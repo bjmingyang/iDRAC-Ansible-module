@@ -1,5 +1,5 @@
 ---
-# file: cdn-provisioning/provisioning/idrac.yml
+# file: idrac.yml
 
 - hosts: localhost
   tasks:
