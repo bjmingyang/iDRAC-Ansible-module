@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# (c) 2015 by Hank Beatty hank@hankbeatty.com
+# (c) 2015 by Hank Beatty
 #
 # This file is part of the iDRAC Ansible Module (a.k.a. idrac-ansible-module).
 #
