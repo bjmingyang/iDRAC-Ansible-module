@@ -1,0 +1,13 @@
+---
+- name: Wait for download to complete
+  local_action: idrac username={{lom_user}} password={{lom_pass}} 
+    hostname={{lom_hostname}} command="CheckJobStatus" jobid={{result.jobid}}
+    debug='True'
+  register: result
+  retries: 30
+  delay: 10
+  until: (result.JobStatus.find('Downloading') == -1) and (result.JobStatus.find('New') == -1)
+
+- debug: var=result
+
+

@@ -1,0 +1,22 @@
+---
+# file: cdn-provisioning/provisioning/roles/idrac-firmware/tasks/main.yml
+
+- name: Make sure iDrac is ready
+  local_action: idrac username={{lom_user}} password={{lom_pass}}
+                hostname={{lom_hostname}} command="CheckReadyState"
+  
+- debug: var=lom_hostname
+
+# To resolve a Life Cycle Controller stuck in the following state 
+# http://www.dell.com/support/manuals/us/en/19/Topic/idrac8-with-lc-v2.05.05.05/LC_2.05.05.05_UG-v1/en-us/GUID-8F76747E-86F2-4242-BE3D-8BB5A88A7C0C
+# - fail: msg="The iDrac isn't ready... bailing out! - CHECK YOUR IDRAC - LifeCycleController Status {{ result.LCStatusString }}. Remote Service API Status {{ result.StatusString }} "
+#  when: ((result.LCStatus != "0") and (result.Status != '0'))
+
+- include: idrac.yml
+  when: LifecycleControllerVersion != target_LifecycleControllerVersion 
+
+# Disabled BIOs until idrac.yml is checking status properly
+- include: bios.yml
+  when: BIOSVersionString != target_BIOSVersionString
+
+
