@@ -1,0 +1,69 @@
+---
+- hosts: idrac
+  gather_facts: False
+  tasks:
+  - name: Gather facts for the iDRAC (a.k.a. Export Config)
+    local_action: idrac username={{drac_user}} password={{drac_pass}}
+      host={{drac_host}} command="ExportSystemConfiguration"
+      hostname={{inventory_hostname}} share_type={{share_type}}
+    vars_prompt:
+      samba_user: "What is the username you are logged in with? Cannot be root."
+      samba_pass: "Password?"
+      samba_ip: "What IP address on this machine can the iDRAC access?"
+      samba_share: "Samaba Share Name?"
+
+  - name: Make sure iDrac is ready
+    local_action: idrac username={{drac_user}} password={{drac_pass}}
+      hostname={{inventory_hostname}} command="GetRemoteServicesAPIStatus"
+    register: result
+    retries: 20
+    delay: 20
+    until: result.LCStatus == "0"
+  
+  - name: Delete the Job Queue
+    local_action: idrac username={{drac_username}} password={{drac_password}} host={{drac_host}} command="DeleteJobQueue"
+  
+  - name: Reset RAID Config
+    local_action: idrac username={{drac_username}} password={{drac_password}} host={{drac_host}} command="ResetConfig"
+  
+  - name: Apply Config
+    local_action: idrac username={{drac_username}} password={{drac_password}} host={{drac_host}} command="CreateTargetedConfigJobRAID"
+  
+  # jobid is in ansible_facts. You would think it would be accessible as ansible_facts.jobid but, NOOOO.
+  - name: Wait until RAID Config is cleared
+    local_action: idrac username={{drac_username}} password={{drac_password}} host={{drac_host}} command="CheckJobStatus" jobid={{ jobid }}
+    register: result
+    retries: 50
+    delay: 15
+    until: result.PercentComplete == "100"
+  
+  ## Wait until the iDrac is ready
+  - name: Check iDrac status again
+    local_action: idrac username={{drac_username}} password={{drac_password}} host={{drac_host}} command="GetRemoteServicesAPIStatus"
+    register: result
+    retries: 20
+    delay: 20
+    until: result.LCStatus == "0"
+  
+  - name: Create RAID1 boot disk
+    local_action: idrac username={{drac_username}} password={{drac_password}} host={{drac_host}} command="CreateVirtualDisk"
+                     virtual_disk_name={{ boot_disk_name }} target_controller={{ target_RAID }} physical_disks={{ boot_disks }}
+                     raid_level={{ boot_RAID_level }} span_length={{ boot_span_length }}
+  
+  - name: Create Cache Disks
+    local_action: idrac username={{drac_username}} password={{drac_password}} host={{drac_host}} command="CreateVirtualDisk"
+                     virtual_disk_name={{ item.name }} target_controller={{ target_RAID }} physical_disks={{ item.physical_disk }}
+                     raid_level={{ cache_RAID_level }} span_length={{ cache_span_length }} stripe_size={{ cache_stripe_size }}
+                     read_policy={{ cache_read_policy }}
+    with_items: cache_disks
+  
+  - name: Apply Config
+    local_action: idrac username={{drac_username}} password={{drac_password}} host={{drac_host}} command="CreateTargetedConfigJobRAID"
+  
+  - name: Waiting until server is ready
+    local_action: idrac username={{drac_username}} password={{drac_password}} host={{drac_host}} command="CheckJobStatus" jobid={{ jobid }}
+    register: result
+    retries: 50
+    delay: 15
+    until: result.PercentComplete == "100"
+  

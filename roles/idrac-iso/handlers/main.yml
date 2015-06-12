@@ -1,0 +1,12 @@
+---
+# file: cdn-provisioning/provisioning/roles/idrac-iso/handlers/main.yml
+
+- name: Wait for server to come back
+  local_action: wait_for host={{ inventory_hostname }}
+                state=started
+                port=22
+                delay=15
+                timeout=900
+                connect_timeout=15
+  sudo: false 
+

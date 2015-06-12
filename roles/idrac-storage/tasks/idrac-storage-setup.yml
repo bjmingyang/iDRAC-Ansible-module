@@ -1,0 +1,64 @@
+---
+# file: cdn-provisioning/provisioning/roles/idrac/tasks/main.yml
+
+- name: Delete the Job Queue
+  local_action: idrac username={{lom_user}} password={{lom_pass}}
+    hostname={{lom_hostname}} command="DeleteJobQueue"
+
+# TODO The next 3 should be combined into one function in the module
+- name: Reset RAID Config
+  local_action: idrac username={{lom_user}} password={{lom_pass}}
+    hostname={{lom_hostname}} command="ResetRAIDConfig"
+  
+- name: Apply Config
+  local_action: idrac username={{lom_user}} password={{lom_pass}}
+   hostname={{lom_hostname}} command="CreateTargetedConfigJobRAID"
+   reboot_type='1'
+  register: result
+  
+- name: Wait until RAID Config is cleared
+  local_action: idrac username={{lom_user}} password={{lom_pass}}
+    hostname={{lom_hostname}} command="CheckJobStatus" jobid={{result.jobid}}
+  register: result
+  retries: 50
+  delay: 15
+  until: result.JobStatus == "Completed"
+  
+# TODO the next 4 should be combined into one function in the module  
+- name: Import RAID Configuration
+  local_action: idrac username={{lom_user}} password={{lom_pass}}
+    hostname={{lom_hostname}} command="ImportSystemConfiguration"
+    share_pass={{share_pass}} share_user={{share_user}}
+    share_ip={{share_ip}} share_name={{share_name}}
+    share_type={{share_type}} import_file=730xd_{{type}}_ImportSystemConfig.xml
+  register: raid_result
+  when: Model.find('730xd') != -1
+
+- name: Create Reboot Job
+  local_action: idrac username={{lom_user}} password={{lom_pass}}
+    hostname={{lom_hostname}} command="CreateRebootJob" reboot_type=1
+  register: result
+
+- name: Do the reboot
+  local_action: idrac username={{lom_user}} password={{lom_pass}}
+    hostname={{lom_hostname}} command="SetupJobQueue"
+    rebootid={{result.rebootid}}
+
+- name: Check the status of the import
+  local_action: idrac username={{lom_user}} password={{lom_pass}}
+    hostname={{lom_hostname}} command="CheckJobStatus"
+    jobid={{raid_result.jobid}}
+  register: result
+  retries: 50
+  delay: 15
+  until: result.PercentComplete == "100"
+  failed_when: "'Failed' in result.JobStatus"
+
+- name: Make sure iDrac is ready
+  local_action: idrac username={{lom_user}} password={{lom_pass}}
+    hostname={{lom_hostname}} command="GetRemoteServicesAPIStatus"
+  register: result
+  retries: 20
+  delay: 20
+  until: ((result.LCStatus == "0") and (result.Status == '0'))
+
