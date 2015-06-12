@@ -1,0 +1,14 @@
+# file : inventory/lab
+[all:vars]
+share_ip=10.10.10.10
+share_user=idrac
+share_pass=idrac
+share_name=public
+share_type=smb
+lom_user=root
+lom_pass=password
+
+[lom:vars]
+lom_user=root
+lom_pass=password
+idrac_default_pass=calvin

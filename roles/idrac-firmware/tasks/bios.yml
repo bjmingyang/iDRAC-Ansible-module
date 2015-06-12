@@ -1,5 +1,5 @@
 ---
-# file : provisioning/roles/idrac-firmware/tasks/bios.yml
+# file : roles/idrac-firmware/tasks/bios.yml
 
 - name: Life Cycle Log message for BIOS Upgrade Start
   local_action: racadm username={{ lom_user }} password={{ lom_pass }}

@@ -1,5 +1,5 @@
 ---
-# file: provisioning/roles/idrac-facts/tasks/main.yml
+# file: roles/idrac-facts/tasks/main.yml
 
 - name: Get System Inventory (ignore_errors)
   local_action: idrac username={{ lom_user }} password={{ lom_pass }}

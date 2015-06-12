@@ -1,5 +1,5 @@
 ---
-# file : provisioning/roles/idrac-firmware/tasks/idrac.yml
+# file : roles/idrac-firmware/tasks/idrac.yml
 
 - name: Life Cycle Log message for iDrac Firmware Upgrade Start
   local_action: racadm username={{ lom_user }} password={{ lom_pass }} host={{ lom_hostname }} cmd="lclog worknote add -m \"Starting iDrac Firmware upgrade\""

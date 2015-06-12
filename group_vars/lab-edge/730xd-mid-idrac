@@ -1,0 +1,31 @@
+---
+# drac configs
+drac_username: root
+drac_password: password
+boot_disk_name: Boot
+target_RAID: RAID.Integrated.1-1
+boot_disks: { 'Disk.Bay.12:Enclosure.Internal.0-1:RAID.Integrated.1-1', 'Disk.Bay.13:Enclosure.Internal.0-1:RAID.Integrated.1-1' }
+boot_RAID_level: '4'
+boot_span_length: '2'
+cache_RAID_level: '2'
+cache_stripe_size: '256'
+cache_read_policy: '64'
+cache_span_length: '1'
+cache_disks:
+  - { name: 'Cachedisk0', physical_disk: 'Disk.Bay.0:Enclosure.Internal.0-1:RAID.Integrated.1-1' }
+  - { name: 'Cachedisk1', physical_disk: 'Disk.Bay.1:Enclosure.Internal.0-1:RAID.Integrated.1-1' }
+  - { name: 'Cachedisk2', physical_disk: 'Disk.Bay.2:Enclosure.Internal.0-1:RAID.Integrated.1-1' }
+  - { name: 'Cachedisk3', physical_disk: 'Disk.Bay.3:Enclosure.Internal.0-1:RAID.Integrated.1-1' }
+  - { name: 'Cachedisk4', physical_disk: 'Disk.Bay.4:Enclosure.Internal.0-1:RAID.Integrated.1-1' }
+  - { name: 'Cachedisk5', physical_disk: 'Disk.Bay.5:Enclosure.Internal.0-1:RAID.Integrated.1-1' }
+  - { name: 'Cachedisk6', physical_disk: 'Disk.Bay.6:Enclosure.Internal.0-1:RAID.Integrated.1-1' }
+  - { name: 'Cachedisk7', physical_disk: 'Disk.Bay.7:Enclosure.Internal.0-1:RAID.Integrated.1-1' }
+  - { name: 'Cachedisk8', physical_disk: 'Disk.Bay.8:Enclosure.Internal.0-1:RAID.Integrated.1-1' }
+  - { name: 'Cachedisk9', physical_disk: 'Disk.Bay.9:Enclosure.Internal.0-1:RAID.Integrated.1-1' }
+  - { name: 'Cachedisk0', physical_disk: 'Disk.Bay.10:Enclosure.Internal.0-1:RAID.Integrated.1-1' }
+  - { name: 'Cachedisk1', physical_disk: 'Disk.Bay.11:Enclosure.Internal.0-1:RAID.Integrated.1-1' }
+  - { name: 'Cachedisk4', physical_disk: 'Disk.Bay.14:Enclosure.Internal.0-1:RAID.Integrated.1-1' }
+  - { name: 'Cachedisk5', physical_disk: 'Disk.Bay.15:Enclosure.Internal.0-1:RAID.Integrated.1-1' }
+  - { name: 'Cachedisk6', physical_disk: 'Disk.Bay.16:Enclosure.Internal.0-1:RAID.Integrated.1-1' }
+  - { name: 'Cachedisk7', physical_disk: 'Disk.Bay.17:Enclosure.Internal.0-1:RAID.Integrated.1-1' }
+

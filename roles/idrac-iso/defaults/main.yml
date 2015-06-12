@@ -1,14 +1,11 @@
 ---
-# file: provisioning/roles/idrac-iso/defaults/main.yml
+# file: roles/idrac-iso/defaults/main.yml
 lom_user: root
-lom_pass: cdadmin99
+lom_pass: password
 drac_default_pass: calvin
 share_user: idrac
 share_pass: idrac
 share_ip: 10.10.10.10
 share_name: public
 share_type: cifs
-
-# Defaults to os_version till with pull this from Traffic Ops
-os_version: centos66
 

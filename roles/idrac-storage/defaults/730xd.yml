@@ -1,5 +1,3 @@
 ---
-# file: cdn-provisioning/provisioning/roles/idrac/defaults/730xd.yml
+# file: roles/idrac-storage/defaults/730xd.yml
 
-bios_firmware: 'firmware/730xd/bios/1.2.10.EXE'
-idrac_firmware: 'firmware/730xd/idrac/2.10.10.10.EXE'

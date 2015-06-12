@@ -1,5 +1,5 @@
 ---
-# file: cdn-provisioning/provisioning/roles/idrac-storage/tasks/main.yml
+# file: roles/idrac-storage/tasks/main.yml
 
 - name: Make sure iDrac is ready
   local_action: idrac username={{lom_user}} password={{lom_pass}}
