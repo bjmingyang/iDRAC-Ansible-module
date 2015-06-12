@@ -1,5 +1,5 @@
 ---
-# file: cdn-provisioning/provisioning/roles/idrac-iso/handlers/main.yml
+# file: roles/idrac-iso/handlers/main.yml
 
 - name: Wait for server to come back
   local_action: wait_for host={{ inventory_hostname }}

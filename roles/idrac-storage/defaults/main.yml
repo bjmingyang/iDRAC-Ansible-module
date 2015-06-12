@@ -1,6 +1,3 @@
 ---
-# file: cdn-provisioning/provisioning/roles/idrac/defaults/main.yml
-lom_user: root
-lom_pass: cdadmin99
-drac_default_pass: calvin
+# file: roles/idrac/defaults/main.yml
 

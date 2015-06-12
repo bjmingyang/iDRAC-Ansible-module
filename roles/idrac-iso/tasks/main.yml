@@ -1,5 +1,5 @@
 ---
-# file: cdn-provisioning/provisioning/roles/idrac-iso/tasks/main.yml
+# file: roles/idrac-iso/tasks/main.yml
 
 - name: Login to Traffic Ops
   connection: local

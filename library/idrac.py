@@ -197,7 +197,7 @@ options:
 requirements:
  - wsmancli
  - dell-wsman-client-api-python
-   https://github.com/jtallieu/dell-wsman-client-api-python
+   https://github.com/hbeatty/dell-wsman-client-api-python
 author: Hank Beatty
 updates: [ 'Steve Malenfant', '' ]
 '''

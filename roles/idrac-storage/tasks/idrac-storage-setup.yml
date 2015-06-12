@@ -1,5 +1,5 @@
 ---
-# file: cdn-provisioning/provisioning/roles/idrac/tasks/main.yml
+# file: roles/idrac-storage/tasks/main.yml
 
 - name: Delete the Job Queue
   local_action: idrac username={{lom_user}} password={{lom_pass}}

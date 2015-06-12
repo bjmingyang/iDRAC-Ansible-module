@@ -1,5 +1,5 @@
 ---
-# file: cdn-provisioning/provisioning/roles/idrac-firmware/defaults/main.yml
+# file: roles/idrac-firmware/defaults/main.yml
 
 seven_thirty_xd:
   bios: firmware/730xd/bios/1.2.10.EXE
