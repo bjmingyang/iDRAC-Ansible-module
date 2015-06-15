@@ -26,3 +26,13 @@
     share_type={{share_type}} iso_image={{inventory_hostname}}.iso
   notify:
     - Wait for server to come back
+
+- meta: flush_handlers
+
+- name: Detach ISO Image
+  local_action: idrac username={{lom_user}} password={{lom_pass}}
+    hostname={{lom_hostname}} command="DetachISOImage"
+
+- name: Check iDRAC State
+  local_action: idrac username={{lom_user}} password={{lom_pass}}
+    hostname={{lom_hostname}} command="CheckReadyState"
