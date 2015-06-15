@@ -597,6 +597,11 @@ def createTargetedConfigJobRAID(remote,hostname,remove_xml,reboot_type,
 #    - default: False
 #       Forces a failure state.
 #
+# wsman invoke -a DeleteJobQueue \
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_JobService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_JobService&SystemName=Idrac&Name=JobService \
+# -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password> \
+# -k JobID="<jobid>" -j utf-8 -y basic
+#
 def deleteJobQueue(remote,jobid,force_fault=False):
    msg = {}
    properties = {}
@@ -614,11 +619,6 @@ def deleteJobQueue(remote,jobid,force_fault=False):
          msg['msg'] = msg['msg']+' Pending Job: '+k+'. Please clear the Job'
          msg['msg'] = msg['msg']+' Queue and reset the iDRAC.'
          return msg
-
-   # wsman invoke -a DeleteJobQueue \
-   # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_JobService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_JobService&SystemName=Idrac&Name=JobService \
-   # -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password> \
-   # -k JobID="<jobid>" -j utf-8 -y basic
 
    r = Reference("DCIM_JobService")
 
@@ -639,6 +639,44 @@ def deleteJobQueue(remote,jobid,force_fault=False):
       return msg
 
    msg = ___checkReturnValues(res, msg)
+
+   return msg
+
+# wsman invoke -a DetachISOImage \
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_OSDeploymentService?CreationClassName=DCIM_OSDeploymentService&Name=DCIM:OSDeploymentService&SystemCreationClassName=DCIM_ComputerSystem&SystemName=DCIM:ComputerSystem" \
+# -u <username> -p <password> -h <hostname> -V -v -c dummy.cert -P 443 \
+# -j utf-8 -y basic
+#
+def detachISOImage(remote):
+
+   if check_mode:
+      msg['check_mode'] = "Running in check mode."
+      msg['msg'] = "Would have attempted detach of ISO image"
+      msg['changed'] = False
+      msg['failed'] = False
+      return msg
+
+   r = Reference("DCIM_JobService")
+
+   r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_OSDeploymentService")
+
+   r.set("SystemCreationClassName","DCIM_ComputerSystem")
+   r.set("CreationClassName","DCIM_OSDeploymentService")
+   r.set("SystemName","DCIM:ComputerSystem")
+   r.set("Name","DCIM:OSDeploymentService")
+
+   res = wsman.invoke(r, 'DetachISOImage', '', remote)
+   if type(res) is Fault:
+      msg['failed'] = True
+      msg['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
+      return msg
+
+   msg = ___checkReturnValues(res)
+
+   if msg['failed']:
+      msg['changed'] = False
+   else:
+      msg['changed'] = True
 
    return msg
 
@@ -878,9 +916,8 @@ def exportSystemConfiguration(remote,share_info,hostname,local_path,
 # it directly.
 #
 def getRemoteServicesAPIStatus (remote,force_fault=False):
-   msg = { }
 
-   msg = ___getRemoteServicesAPIStatus(remote,msg,force_fault)
+   msg = ___getRemoteServicesAPIStatus(remote)
 
    msg['changed'] = False
    return msg
@@ -1142,7 +1179,7 @@ def setupJobQueue(remote,hostname,jobid,rebootid):
 # Checks current installed version and compares to version
 # that is being installed.
 #
-def upgrade_bios(remote,hostname,share_info,firmware,force_fault=False):
+def upgradeBIOS(remote,hostname,share_info,firmware,force_fault=False):
    msg = { }
    jobs = []
 
@@ -1179,7 +1216,7 @@ def upgrade_bios(remote,hostname,share_info,firmware,force_fault=False):
    #### End of Checking Job Queue
 
    # Check to make sure the iDRAC is ready to accept commands
-   res = ___getRemoteServicesAPIStatus(remote,{},force_fault)
+   res = ___getRemoteServicesAPIStatus(remote)
    for k in res:
       #print "key: "+k+" value: "+str(res[k])
       if (res['LCStatus'] != '0') and (res['Status'] != '0'):
@@ -1189,7 +1226,7 @@ def upgrade_bios(remote,hostname,share_info,firmware,force_fault=False):
          return msg
    #### End of checking for iDRAC is ready
 
-   res = ___enumerateSoftwareIdentity(remote,force_fault)
+   res = ___enumerateSoftwareIdentity(remote)
    if res['failed'] == True:
       return res
 
@@ -1212,7 +1249,8 @@ def upgrade_bios(remote,hostname,share_info,firmware,force_fault=False):
          msg['changed'] = False
          msg['failed'] = False
       else:
-         installURI_res = ___installFromURI(remote,hostname,share_info,firmware,instanceID,force_fault)
+         installURI_res = ___installFromURI(remote,hostname,share_info,firmware,
+                                            instanceID)
          if installURI_res['failed']:
             msg['failed'] = True
             msg['changed'] = False
@@ -1309,7 +1347,7 @@ def upgrade_bios(remote,hostname,share_info,firmware,force_fault=False):
 # Checks current installed version and compares to version
 # that is being installed.
 #
-def upgrade_idrac(remote,hostname,share_info,firmware,force_fault=False):
+def upgradeIdrac(remote,hostname,share_info,firmware,force_fault=False):
    msg = { }
 
    res = ___checkShareInfo(share_info)
@@ -1344,7 +1382,7 @@ def upgrade_idrac(remote,hostname,share_info,firmware,force_fault=False):
          return msg
 
    # Check to make sure the iDRAC is ready to accept commands
-   res = ___getRemoteServicesAPIStatus(remote,{},force_fault)
+   res = ___getRemoteServicesAPIStatus(remote)
    for k in res:
       #print "key: "+k+" value: "+str(res[k])
       if (res['LCStatus'] != '0') and (res['Status'] != '0'):
@@ -1353,8 +1391,9 @@ def upgrade_idrac(remote,hostname,share_info,firmware,force_fault=False):
          msg['msg'] = 'iDRAC is not ready. Please check the iDRAC. It may need to be reset.'
          return msg
 
-   res = ___enumerateSoftwareIdentity(remote,force_fault)
-   print "___enumerateSoftwareIdentity"
+   res = ___enumerateSoftwareIdentity(remote)
+   if debug:
+      print "Calling ___enumerateSoftwareIdentity() from upgradeIdrac()"
    if res['failed']:
       return res
 
@@ -1372,8 +1411,7 @@ def upgrade_idrac(remote,hostname,share_info,firmware,force_fault=False):
    new_version = tmp[0]+'.'+tmp[1]+'.'+tmp[2]+'.'+tmp[3]
 
    if LooseVersion(new_version) > LooseVersion(cur_version):
-      msg = ___installFromURI(remote,hostname,share_info,firmware,instanceID,
-                              force_fault)
+      msg = ___installFromURI(remote,hostname,share_info,firmware,instanceID)
       if msg['failed']:
          msg['changed'] = False
          return msg
@@ -1434,8 +1472,9 @@ def upgrade_idrac(remote,hostname,share_info,firmware,force_fault=False):
 
    return msg
 
-def upgrade_nic(remote,share_info,firmware,force_fault=False):
-   print "upgrading NIC"
+def upgradeNIC(remote,share_info,firmware):
+   if debug:
+      print "upgrading NIC"
    # DCIM:INSTALLED:PCI:14E4:1639:0237:1028
    # It is installed firmware on a PCI device.
    # VID (Vendor ID)= 14E4
@@ -1445,13 +1484,14 @@ def upgrade_nic(remote,share_info,firmware,force_fault=False):
    # This refers to a Broadcom NetXtreme II BCM5709 network adaptor7.
 
 # Currently used to reset password
+#
+# wsman invoke -a ApplyAttributes \
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_iDRACCardService&SystemName=DCIM:ComputerSystem&Name=DCIM:iDRACCardService" \
+# -h <hostname> -V -v -c dummy.cert -P 443 \
+# -u <user> -p <pass> -j utf-8 -y basic -J <file>
 def ___applyAttributes(remote,hostname,target,attributes,remove_xml=True,force_fault=False):
    ret = {}
 
-   # wsman invoke -a ApplyAttributes \
-   # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_iDRACCardService&SystemName=DCIM:ComputerSystem&Name=DCIM:iDRACCardService" \
-   # -h <hostname> -V -v -c dummy.cert -P 443 \
-   # -u <user> -p <pass> -j utf-8 -y basic -J <file>
    ref = Reference("DCIM_OSDeploymentService")
 
    if force_fault:
@@ -2094,19 +2134,17 @@ def ___enumerateIdracCardString(remote,force_fault=False):
    ret['failed'] = False
    return ret
 
-def ___enumerateSoftwareIdentity(remote,force_fault=False):
+# wsman enumerate \
+# http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_SoftwareIdentity \
+# -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password>
+# -j utf-8 -y basic
+#
+def ___enumerateSoftwareIdentity(remote):
    ret = {}
 
-   # wsman enumerate \
-   # http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_SoftwareIdentity \
-   # -h <idrac hostname> -V -v -c dummy.cert -P 443 -u <idrac user> -p \
-   # <idrac password> -j utf-8 -y basic
    r = Reference("DCIM_SoftwareIdentity")
 
-   if force_fault:
-      r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcM_RAIDService")
-   else:
-      r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_SoftwareIdentity")
+   r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_SoftwareIdentity")
 
    res = wsman.enumerate(r, 'root/dcim', remote)
    if type(res) is Fault:
@@ -2137,15 +2175,17 @@ def ___enumerateSoftwareIdentity(remote,force_fault=False):
 #    - default: False
 #       Forces a failure state.
 #
-def ___getRemoteServicesAPIStatus (remote,msg={},force_fault=False):
+# wsman invoke -a GetRemoteServicesAPIStatus
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_LCService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_LCService&SystemName=DCIM:ComputerSystem&Name=DCIM:LCService
+# -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password>
+# -j utf-8 -y basic
+#
+def ___getRemoteServicesAPIStatus (remote):
+   msg = {}
 
-   # wsman invoke -a GetRemoteServicesAPIStatus http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_LCService?SystemCreationClassName=DCIM_ComputerSystem,CreationClassName=DCIM_LCService,SystemName=DCIM:ComputerSystem,Name=DCIM:LCService -h $IPADDRESS -V -v -c dummy.cert -P 443 -u $USERNAME -p $PASSWORD -j utf-8 -y basic
    r = Reference("DCIM_LCService")
 
-   if force_fault:
-      r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcM_RAIDService")
-   else:
-      r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_LCService")
+   r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_LCService")
 
    r.set("SystemCreationClassName","DCIM_ComputerSystem")
    r.set("CreationClassName","DCIM_LCService")
@@ -2191,12 +2231,19 @@ def ___info(object, spacing=10, collapse=1):
 #    - default: False
 #       Forces a failure state.
 #
+# wsman invoke -a InstallFromURI
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_SoftwareInstallationService?CreationClassName=DCIM_SoftwareInstallationService&SystemCreationClassName=DCIM_ComputerSystem&SystemName=IDRAC:ID&Name=SoftwareUpdate
+# -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password>
+# -J InstallFromURI.xml -j utf-8 -y basic
+#
 def ___installFromURI(remote,hostname,share_info,firmware,instanceID,
-                      remove_xml=True,force_fault=False):
+                      remove_xml=True):
 
    msg = { 'ansible_facts': { } }
    msg['failed'] = False
    msg['jobid'] = ''
+
+   # TODO share_info should be checked in calling function
 
    if share_info['ip'] == '':
       msg['failed'] = True
@@ -2256,14 +2303,9 @@ def ___installFromURI(remote,hostname,share_info,firmware,instanceID,
 
    fh.close()
 
-   # wsman invoke -a InstallFromURI http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_SoftwareInstallationService?CreationClassName=DCIM_SoftwareInstallationService,SystemCreationClassName=DCIM_ComputerSystem,SystemName=IDRAC:ID,Name=SoftwareUpdate -h $IPADDRESS -V -v -c dummy.cert -P 443 -u $USERNAME -p $PASSWORD -J UpdateInputNIC.xml -j utf-8 -y basic
-
    ref = Reference("DCIM_SoftwareInstallationService")
 
-   if force_fault:
-      ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcM_RAIDService")
-   else:
-      ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_SoftwareInstallationService")
+   ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_SoftwareInstallationService")
 
    ref.set("SystemCreationClassName","DCIM_ComputerSystem")
    ref.set("CreationClassName","DCIM_SoftwareInstallationService")
@@ -2460,6 +2502,176 @@ def ___strip_tag(tag):
       tag = strip_ns_tag
    return tag
 
+# Upgrade firmware
+# Checks current installed version and compares to version
+# that is being installed.
+#
+def ___upgradeFirmware(remote,hostname,share_info,firmware):
+   msg = { }
+   jobs = []
+
+   # handle in calling function
+   #res = ___checkShareInfo(share_info)
+   #if res['failed']:
+   #   return res
+
+   # check in calling function
+   #if firmware == '':
+   #   msg['changed'] = False
+   #   msg['failed'] = True
+   #   msg['msg'] = "firmware must be defined."
+   #   return msg
+
+   # Check the Job Queue to make sure there are no pending jobs
+   res = ___listJobs(remote,'',{})
+   #print "___listJobs"
+   if res['failed']:
+      msg['failed'] = True
+      msg['changed'] = False
+      msg['msg'] = 'iDRAC not accepting commands. wsman returned: '+res['msg']
+      return msg
+
+   for k in res:
+      #print k+": "+str(res[k])
+      if (k == 'JID_CLEARALL') and (res[k]['JobStatus'] == 'Pending'):
+         continue
+      if (hasattr(res[k], 'JobStatus')) and (res[k]['JobStatus'] == 'Pending'):
+         msg['failed'] = True
+         msg['changed'] = False
+         msg['msg'] = 'Could not complete because there are pending Jobs.'
+         msg['msg'] = msg['msg']+' Pending Job: '+k+'. Please clear the Job'
+         msg['msg'] = msg['msg']+' Queue and reset the iDRAC.'
+         return msg
+   #### End of Checking Job Queue
+
+   # Check to make sure the iDRAC is ready to accept commands
+   res = ___getRemoteServicesAPIStatus(remote)
+   for k in res:
+      #print "key: "+k+" value: "+str(res[k])
+      if (res['LCStatus'] != '0') and (res['Status'] != '0'):
+         msg['failed'] = True
+         msg['changed'] = False
+         msg['msg'] = 'iDRAC is not ready. Please check the iDRAC. It may need to be reset.'
+         return msg
+   #### End of checking for iDRAC is ready
+
+   res = ___enumerateSoftwareIdentity(remote)
+   if res['failed'] == True:
+      return res
+
+   # check to see if version trying to be installed is newer or same
+   # if not install
+   for k in res:
+      if re.search('BIOS', k):
+         if res[k]['Status'] == 'Installed':
+            cur_version = res[k]['VersionString']
+            instanceID = k
+
+   tmp = re.split('/', firmware)
+   tmp = tmp[-1]
+   tmp = re.split('\.', tmp)
+   new_version = tmp[0]+'.'+tmp[1]+'.'+tmp[2]
+
+   if StrictVersion(new_version) > StrictVersion(cur_version):
+      if check_mode:
+         # TODO maybe put in what type of firmware.
+         msg['msg'] = "Firmware upgrade would have been attempted."
+         msg['changed'] = False
+         msg['failed'] = False
+      else:
+         installURI_res = ___installFromURI(remote,hostname,share_info,firmware,instanceID)
+         if installURI_res['failed']:
+            msg['failed'] = True
+            msg['changed'] = False
+            msg['idrac_msg'] = installURI_res['Message']
+            msg['msg'] = "Download started but, not completed."
+            return msg
+
+         jobs.append(installURI_res['jobid'])
+
+         # Waits 3 minutes or until the download completes
+         for x in range(1, 90):
+            res = ___checkJobStatus(remote,installURI_res['jobid'])
+            if res['JobStatus'] == 'Downloaded':
+               break
+            if res['JobStatus'] == 'Failed':
+               break
+
+            time.sleep(2)
+
+         if res['JobStatus'] != 'Downloaded':
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['idrac_msg'] = res['Message']
+            msg['msg'] = "Download started but, not completed."
+            return msg
+
+         # Create a reboot job
+         rebootJob_res = ___createRebootJob(remote,hostname,1)
+         if rebootJob_res['failed']:
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['msg'] = "Download completed but, could not create reboot job."
+            return msg
+
+         jobs.append(rebootJob_res['rebootid'])
+
+         jobQueue_res = ___setupJobQueue(remote,hostname,jobs)
+         if jobQueue_res['failed']:
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['msg'] = "Download completed and reboot job created but, could"
+            msg['msg'] = msg['msg']+" not execute reboot."
+            return msg
+
+         # Waits 6 minutes or until the bios upgrade completes
+         for x in range(1, 1800):
+            res = ___checkJobStatus(remote,installURI_res['jobid'])
+            if res['JobStatus'] == 'Completed':
+               break
+            if res['JobStatus'] == 'Failed':
+               break
+
+            time.sleep(2)
+
+         if res['JobStatus'] != 'Completed':
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['msg'] = "BIOS upgrade failed."
+            return msg
+
+         # Waits 15 minutes or until the iDRAC is ready
+         for x in range(1, 90) :
+            res = ___getRemoteServicesAPIStatus(remote)
+            if ((res['LCStatus'] == '0') and (res['Status'] == '0')
+                and res['ServerStatus'] == '2'):
+               break
+
+            time.sleep(10)
+
+         if (res['LCStatus'] != '0') and (res['Status'] != '0'):
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['msg'] = "iDRAC never came back after BIOS upgrade."
+         else:
+            msg['failed'] = False
+            msg['changed'] = True
+            msg['msg'] = "BIOS upgrade successfully completed."
+
+   elif StrictVersion(new_version) == StrictVersion(cur_version):
+      msg['msg'] = "Installed version same as version to be installed."
+      msg['failed'] = False
+      msg['changed'] = False
+   else:
+      msg['msg'] = "Installed version newer than version to be installed."
+      msg['failed'] = False
+      msg['changed'] = False
+
+   if check_mode:
+      msg['check_mode'] = "Running in check mode."
+
+   return msg
+
 def main():
    global debug,check_mode
 
@@ -2595,6 +2807,10 @@ def main():
       res = deleteJobQueue(remote,jobid,force_fault)
       module.exit_json(**res)
 
+   elif command == "DetachISOImage":
+      res = detachISOImage(remote)
+      module.exit_json(**res)
+
    elif command == "DetachSDCardPartitions":
       res = detachSDCardPartitions(remote,hostname)
       module.exit_json(**res)
@@ -2630,11 +2846,11 @@ def main():
       module.exit_json(**res)
 
    elif command == "UpgradeBIOS":
-      res = upgrade_bios(remote,hostname,share_info,firmware,force_fault)
+      res = upgradeBIOS(remote,hostname,share_info,firmware,force_fault)
       module.exit_json(**res)
 
    elif command == "UpgradeIdrac":
-      res = upgrade_idrac(remote,hostname,share_info,firmware,force_fault)
+      res = upgradeIdrac(remote,hostname,share_info,firmware,force_fault)
       module.exit_json(**res)
 
 # TODO: The below commands need to be reviewed to see if they are even
@@ -2670,11 +2886,11 @@ def main():
       module.exit_json(**res)
 
    elif command == "EnumerateSoftwareIdentity":
-      res = ___enumerateSoftwareIdentity(remote,force_fault)
+      res = ___enumerateSoftwareIdentity(remote)
       module.exit_json(**res)
 
    elif command == "InstallFromURI":
-      res = ___installFromURI(remote,hostname,share_info,firmware,force_fault)
+      res = ___installFromURI(remote,hostname,share_info,firmware)
       module.exit_json(**res)
 
    elif command == "ListJobs":

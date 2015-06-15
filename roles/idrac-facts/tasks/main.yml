@@ -17,3 +17,6 @@
 
 - meta: flush_handlers
 
+- name: Get Firmware Info
+  local_action: idrac username={{ lom_user }} password={{ lom_pass }}
+    hostname={{ lom_hostname }} command=EnumerateSoftwareIdentity
