@@ -1,9 +1,0 @@
----
-# file: roles/idrac-firmware/defaults/main.yml
-
-seven_thirty_xd:
-  bios: firmware/730xd/bios/1.2.10.EXE
-  idrac: firmware/730xd/idrac/2.10.10.10.EXE
-
-target_BIOSVersionString: "1.2.10"
-target_LifecycleControllerVersion: "2.10.10.10"
