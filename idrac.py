@@ -22,15 +22,13 @@
 # Ansible is copyright of Ansible, Inc.
 
 
-# TODO: finish documentation
-
 DOCUMENTATION = '''
 ---
 module: idrac
 short_description: Module to configure to Dell iDRAC
 description:
    - Use this module to configure Dell iDRAC.
-version: 0.0.1
+version: 0.0.2
 options:
    hostname:
       description:
@@ -1078,6 +1076,19 @@ def importSystemConfiguration(remote,share_info,hostname,import_file,
 
    return msg
 
+# remote:
+#    - hostname, username, password passed to Remote() of WSMan
+# hostname:
+#    - This is used to make the generated XML file unique
+# user_to_change:
+#    the username that we are changing the password for
+# new_pass:
+#    the new password
+# force_fault:
+#    - boolean: True or False
+#    - default: False
+#       Forces a failure state.
+#
 def resetPassword(remote,hostname,user_to_change,new_pass,force_fault=False):
    msg = {}
 
@@ -1091,7 +1102,8 @@ def resetPassword(remote,hostname,user_to_change,new_pass,force_fault=False):
       msg['msg'] = 'new_pass must be defined'
       return msg
 
-   print new_pass
+   # TODO add to debug
+   #print new_pass
 
    res = ___enumerateIdracCardString(remote,force_fault)
    if res['failed']:
@@ -1180,6 +1192,68 @@ def resetRAIDConfig(remote,hostname,remove_xml,force_fault) :
    else:
       msg['changed'] = True
 
+   return msg
+
+# remote:
+#    - hostname, username, password passed to Remote() of WSMan
+# servers:
+#    - dicionary of servers - iDRAC limit of 3
+#
+def setSyslogServers(remote,servers):
+   msg = {}
+   attirbutes = {}
+
+   if not servers:
+      msg['failed'] = True
+      msg['msg'] = 'servers must be defined'
+      return msg
+
+   #res = ___enumerateIdracCardString(remote,force_fault)
+   #if res['failed']:
+   #   return res
+
+   cnt = 1
+   for server in servers:
+      print server
+      # TODO iDRAC.Embeded.1 should not be a string here
+      target = "iDRAC.Embedded.1"
+      attribute_name = "SysLog.1#Server"+str(cnt)
+      attributes[attribute_name] = server
+      result = ___applyAttributes(remote,remote.hostname,target,attributes)
+      if result['failed']:
+         return result
+
+   #found = 0
+   #for k in res:
+   #   #print k
+   #   if k != 'failed':
+   #      # used for debugging
+   #      #for l in res[k]:
+   #      #   print k+": "+l+": "+res[k][l]
+   #
+   #      tmp = k.split("#")
+   #      if tmp[2] == 'UserName':
+   #         if re.match('^'+res[k]['CurrentValue']+'$', user_to_change):
+   #            #print "found a match"
+   #            found = 1
+   #            target = tmp[0]
+   #            #print 'target: '+target
+   #            attribute_name = tmp[1]+"#Password"
+   #            attributes = {}
+   #            attributes[attribute_name] = new_pass
+   #            result = ___applyAttributes(remote,hostname,target,attributes)
+   #            if result['failed']:
+   #               return result
+   #
+   #if not found:
+   #   msg['failed'] = True
+   #   msg['changed'] = False
+   #   msg['msg'] = 'Could not find user'
+   #   return msg
+
+   msg['failed'] = False
+   msg['changed'] = True
+   msg['msg'] = 'Password has been changed.'
    return msg
 
 # remote:
@@ -2183,6 +2257,7 @@ def ___enumerateIdracCard(remote,force_fault=False):
    ret['changed'] = False
    return ret
 
+# TODO consider making a part of fact gathering
 def ___enumerateIdracCardString(remote,force_fault=False):
    ret = {}
 
@@ -2790,6 +2865,7 @@ def main():
          read_policy       = dict(default=''),
          write_policy      = dict(default=''),
          disk_cache_policy = dict(default=''),
+         servers           = dict(type='dict',default=dict()),
          share_user        = dict(default=''),
          share_pass        = dict(default=''),
          share_name        = dict(default=''),
@@ -2835,6 +2911,7 @@ def main():
    share_name        = module.params['share_name']
    share_type        = module.params['share_type']
    share_ip          = module.params['share_ip']
+   servers           = module.params['servers']
    workgroup         = module.params['workgroup']
    local_path        = module.params['local_path']
    import_file       = module.params['import_file']
@@ -2945,6 +3022,10 @@ def main():
       res = resetRAIDConfig(remote,hostname,remove_xml,force_fault)
       module.exit_json(**res)
 
+   elif command == "SetSyslogServers":
+      res = setSyslogServers(remote,servers)
+      module.exit_json(**res)
+
    elif command == "SetupJobQueue":
       res = setupJobQueue(remote,hostname,jobid,rebootid)
       module.exit_json(**res)
@@ -2965,10 +3046,6 @@ def main():
       res = upgradePerc(remote,hostname,share_info,firmware)
       module.exit_json(**res)
 
-# TODO: The below commands need to be reviewed to see if they are even
-# usable as stand alone functions since we can't keep state between module
-# calls.
-
    elif command == "CreateVirtualDisk":
       res = ___createVirtualDisk(remote,target_controller,physical_disks,
                                  raid_level,span_length,virtual_disk_name,size,
@@ -2985,15 +3062,15 @@ def main():
       res = ___checkJobStatus(remote,jobid)
       module.exit_json(**res)
 
-   elif command == "DetachSDCardPartition":
+   elif command == "___detachSDCardPartition":
       res = ___detachSDCardPartition(remote,hostname,partition_ndx)
       module.exit_json(**res)
 
-   elif command == "EnumerateIdracCard":
+   elif command == "___enumerateIdracCard":
       res = ___enumerateIdracCard(remote,force_fault)
       module.exit_json(**res)
 
-   elif command == "EnumerateIdracCardString":
+   elif command == "___enumerateIdracCardString":
       res = ___enumerateIdracCardString(remote,force_fault)
       module.exit_json(**res)
 
@@ -3002,15 +3079,15 @@ def main():
       res = ___enumerateSoftwareIdentity(remote)
       module.exit_json(**res)
 
-   elif command == "InstallFromURI":
+   elif command == "___installFromURI":
       res = ___installFromURI(remote,hostname,share_info,firmware)
       module.exit_json(**res)
 
-   elif command == "ListJobs":
+   elif command == "___listJobs":
       res = ___listJobs(remote,jobid,{})
       module.exit_json(**res)
 
-   elif command == "ListSDCardPartitions":
+   elif command == "___listSDCardPartitions":
       res = ___listSDCardPartitions(remote)
       module.exit_json(**res)
 
