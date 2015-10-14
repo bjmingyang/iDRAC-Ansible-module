@@ -327,58 +327,52 @@ import tempfile
 from distutils.version import LooseVersion, StrictVersion
 
 try:
-    import xml.etree.cElementTree as ET
+   import xml.etree.cElementTree as ET
 except ImportError:
-    import xml.etree.ElementTree as ET
+   import xml.etree.ElementTree as ET
 
-from wsman import WSMan
-from wsman.provider.remote import Remote
-from wsman.transport.process import Subprocess
-from wsman.response.reference import Reference
-from wsman.response.fault import Fault
+try:
+   from wsman import WSMan
+   from wsman.provider.remote import Remote
+   from wsman.transport.process import Subprocess
+   from wsman.response.reference import Reference
+   from wsman.response.fault import Fault
+   from wsman.format.command import OutputFormatter
+   from wsman.loghandlers.HTMLHandler import HTMLHandler
 
-
-from wsman.format.command import OutputFormatter
-from wsman.loghandlers.HTMLHandler import HTMLHandler
+   HAS_WSMAN = True
+except ImportError:
+   HAS_WSMAN = False
 
 import logging
 
 class switch(object):
-    def __init__(self, value):
-        self.value = value
-        self.fall = False
+   def __init__(self, value):
+      self.value = value
+      self.fall = False
 
-    def __iter__(self):
-        """Return the match method once, then stop"""
-        yield self.match
-        raise StopIteration
+   def __iter__(self):
+      """Return the match method once, then stop"""
+      yield self.match
+      raise StopIteration
 
-    def match(self, *args):
-        """Indicate whether or not to enter a case suite"""
-        if self.fall or not args:
-            return True
-        elif self.value in args: # changed for v1.5, see below
-            self.fall = True
-            return True
-        else:
-            return False
+   def match(self, *args):
+      """Indicate whether or not to enter a case suite"""
+      if self.fall or not args:
+         return True
+      elif self.value in args: # changed for v1.5, see below
+         self.fall = True
+         return True
+      else:
+         return False
 
-
-# Set up the text log
-fmt = OutputFormatter('%(asctime)s %(levelname)s %(name)s %(message)s %(command)s %(output)s %(duration)fs', pretty=False)
-fHandle = logging.FileHandler("test_raw.txt", mode="w")
-fHandle.setFormatter(fmt)
-
-# Set up the HTML log
-html = HTMLHandler("test_raw.html", pretty=False)
-log = logging.getLogger("")
-log.setLevel(logging.DEBUG)
-log.addHandler(fHandle)
-log.addHandler(html)
-
-wsman = WSMan(transport=Subprocess())
 debug = False
 check_mode = False
+fmt = ''
+fHandle = ''
+html = ''
+log = ''
+wsman = ''
 
 # Boot to a network ISO image. Reboot appears to be immediate.
 #
@@ -2845,7 +2839,7 @@ def ___upgradeFirmware(remote,hostname,share_info,firmware,instanceID):
    return msg
 
 def main():
-   global debug,check_mode
+   global debug,check_mode,fmt,fHandle,html,log,wsman
 
    module = AnsibleModule(
       argument_spec = dict(
@@ -2929,6 +2923,24 @@ def main():
    force_fault       = module.params['force_fault']
    local_debug       = module.params['debug']
    check_mode        = module.check_mode
+
+   if not HAS_WSMAN:
+      module.fail_json(msg='dell-wsman-client-api-python is required for this module http://github.com/hbeatty/dell-wsman-api-python')
+
+   wsman = WSMan(transport=Subprocess())
+
+   # Set up the text log
+   fmt = OutputFormatter('%(asctime)s %(levelname)s %(name)s %(message)s %(command)s %(output)s %(duration)fs', pretty=False)
+   fHandle = logging.FileHandler("test_raw.txt", mode="w")
+   fHandle.setFormatter(fmt)
+
+   # Set up the HTML log
+   html = HTMLHandler("test_raw.html", pretty=False)
+   log = logging.getLogger("")
+   log.setLevel(logging.DEBUG)
+   log.addHandler(fHandle)
+   log.addHandler(html)
+
 
    if local_debug == 'True':
       print "Entering debug mode"
