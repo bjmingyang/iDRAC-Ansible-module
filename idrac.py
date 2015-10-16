@@ -2277,7 +2277,7 @@ def ___enumerateIdracCard(remote,force_fault=False):
    return ret
 
 # TODO consider making a part of fact gathering
-`def ___enumerateIdracCardString(remote):
+def ___enumerateIdracCardString(remote):
    ret = {}
 
    # wsman enumerate \
