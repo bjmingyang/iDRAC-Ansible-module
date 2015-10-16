@@ -1099,7 +1099,7 @@ def resetPassword(remote,hostname,user_to_change,new_pass,force_fault=False):
    # TODO add to debug
    #print new_pass
 
-   res = ___enumerateIdracCardString(remote,force_fault)
+   res = ___enumerateIdracCardString(remote)
    if res['failed']:
       return res
 
@@ -1193,27 +1193,52 @@ def resetRAIDConfig(remote,hostname,remove_xml,force_fault) :
 # servers:
 #    - dicionary of servers - iDRAC limit of 3
 #
-def setSyslogServers(remote,servers):
+def syslogSettings(remote,servers,enable,port):
    msg = {}
-   attirbutes = {}
+   attributes = {}
+   msg['changed'] = False
 
    if not servers:
       msg['failed'] = True
       msg['msg'] = 'servers must be defined'
       return msg
 
-   #res = ___enumerateIdracCardString(remote,force_fault)
-   #if res['failed']:
-   #   return res
+   res = ___enumerateIdracCardString(remote)
+   if res['failed']:
+      return res
 
-   cnt = 1
-   for server in servers:
-      print server
+   for k in res:
+      if debug:
+         log.debug ("k: %s", k)
+      if k != 'failed':
+   
+         tmp = k.split("#")
+         target = tmp[0]
+         if tmp[1] == "SysLog.1":
+            if tmp[2] == "Server1":
+
+         #if tmp[2] == 'UserName':
+         #   if re.match('^'+res[k]['CurrentValue']+'$', user_to_change):
+         #      #print "found a match"
+         #      found = 1
+         #      target = tmp[0]
+         #      #print 'target: '+target
+         #      attribute_name = tmp[1]+"#Password"
+         #      attributes = {}
+         #      attributes[attribute_name] = new_pass
+         #      result = ___applyAttributes(remote,hostname,target,attributes)
+         #      if result['failed']:
+         #         return result
+
+   #cnt = 1
+   for k in servers:
+      if debug:
+         log.debug ("syslog server: %s",servers[k])
       # TODO iDRAC.Embeded.1 should not be a string here
       target = "iDRAC.Embedded.1"
-      attribute_name = "SysLog.1#Server"+str(cnt)
-      attributes[attribute_name] = server
-      result = ___applyAttributes(remote,remote.hostname,target,attributes)
+      attribute_name = "SysLog.1#"+k
+      attributes[attribute_name] = servers[k]
+      result = ___applyAttributes(remote,remote.ip,target,attributes)
       if result['failed']:
          return result
 
@@ -1247,7 +1272,7 @@ def setSyslogServers(remote,servers):
 
    msg['failed'] = False
    msg['changed'] = True
-   msg['msg'] = 'Password has been changed.'
+   msg['msg'] = 'Syslog Servers Set'
    return msg
 
 # remote:
@@ -2252,7 +2277,7 @@ def ___enumerateIdracCard(remote,force_fault=False):
    return ret
 
 # TODO consider making a part of fact gathering
-def ___enumerateIdracCardString(remote,force_fault=False):
+`def ___enumerateIdracCardString(remote):
    ret = {}
 
    # wsman enumerate \
@@ -2261,10 +2286,7 @@ def ___enumerateIdracCardString(remote,force_fault=False):
    # <idrac pass> -j utf-8 -y basic
    ref = Reference("DCIM_iDRACCardString")
 
-   if force_fault:
-      ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcM_RAIDService")
-   else:
-      ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardString")
+   ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardString")
 
    res = wsman.enumerate(ref, 'root/dcim', remote)
    if type(res) is Fault:
@@ -2843,85 +2865,89 @@ def main():
 
    module = AnsibleModule(
       argument_spec = dict(
-         hostname          = dict(required=True),
-         username          = dict(required=True),
-         password          = dict(required=True),
          command           = dict(required=True),
+         debug             = dict(default='False',type='bool'),
+         disk_cache_policy = dict(default=''),
+         enable            = dict(type='bool'),
+         firmware          = dict(default=''),
+         force_fault       = dict(default=False),
+         hostname          = dict(required=True),
+         import_file       = dict(default=''),
+         instanceID        = dict(default=''),
+         iso_image         = dict(),
          jobid             = dict(default=''),
-         target_controller = dict(default=''),
+         local_path        = dict(default='~'),
+         new_pass          = dict(),
+         old_pass          = dict(),
+         partition_ndx     = dict(),
+         password          = dict(required=True),
          physical_disks    = dict(default=''),
+         port              = dict(type='int',default=514),
          raid_level        = dict(default=''),
-         span_length       = dict(default=''),
-         virtual_disk_name = dict(default=''),
+         read_policy       = dict(default=''),
+         rebootid          = dict(),
+         reboot_type       = dict(default='2'),
+         remove_xml        = dict(default=True),
+         servers           = dict(type='dict'),
+         share_ip          = dict(default=''),
+         share_name        = dict(default=''),
+         share_pass        = dict(default=''),
+         share_type        = dict(default=''),
+         share_user        = dict(default=''),
          size              = dict(default=''),
          span_depth        = dict(default=''),
+         span_length       = dict(default=''),
          stripe_size       = dict(default=''),
-         read_policy       = dict(default=''),
-         write_policy      = dict(default=''),
-         disk_cache_policy = dict(default=''),
-         servers           = dict(type='dict',default=dict()),
-         share_user        = dict(default=''),
-         share_pass        = dict(default=''),
-         share_name        = dict(default=''),
-         share_type        = dict(default=''),
-         share_ip          = dict(default=''),
-         workgroup         = dict(default=''),
-         local_path        = dict(default='~'),
-         import_file       = dict(default=''),
-         firmware          = dict(default=''),
-         reboot_type       = dict(default='2'),
+         target_controller = dict(default=''),
          user_to_change    = dict(default=''),
-         old_pass          = dict(),
-         new_pass          = dict(),
-         rebootid          = dict(),
-         remove_xml        = dict(default=True),
-         iso_image         = dict(),
-         partition_ndx     = dict(),
-         instanceID        = dict(default=''),
-         force_fault       = dict(default=False),
-         debug             = dict(default=False)
+         username          = dict(required=True),
+         virtual_disk_name = dict(default=''),
+         workgroup         = dict(default=''),
+         write_policy      = dict(default='')
       ),
       supports_check_mode=True
    )
 
-   hostname          = module.params['hostname']
-   username          = module.params['username']
-   password          = module.params['password']
    command           = module.params['command']
+   debug             = module.params['debug']
+   disk_cache_policy = module.params['disk_cache_policy']
+   enable            = module.params['enable']
+   firmware          = module.params['firmware']
+   force_fault       = module.params['force_fault']
+   hostname          = module.params['hostname']
+   import_file       = module.params['import_file']
+   instanceID        = module.params['instanceID']
+   iso_image         = module.params['iso_image']
    jobid             = module.params['jobid']
-   target_controller = module.params['target_controller']
+   local_path        = module.params['local_path']
+   new_pass          = module.params['new_pass']
+   old_pass          = module.params['old_pass']
+   partition_ndx     = module.params['partition_ndx']
+   password          = module.params['password']
    physical_disks    = module.params['physical_disks']
+   port              = module.params['port']
    raid_level        = module.params['raid_level']
-   span_length       = module.params['span_length']
-   virtual_disk_name = module.params['virtual_disk_name']
+   read_policy       = module.params['read_policy']
+   reboot_type       = module.params['reboot_type']
+   rebootid          = module.params['rebootid']
+   remove_xml        = module.params['remove_xml']
+   servers           = module.params['servers']
+   share_ip          = module.params['share_ip']
+   share_name        = module.params['share_name']
+   share_pass        = module.params['share_pass']
+   share_type        = module.params['share_type']
+   share_user        = module.params['share_user']
    size              = module.params['size']
+   span_length       = module.params['span_length']
    span_depth        = module.params['span_depth']
    stripe_size       = module.params['stripe_size']
-   read_policy       = module.params['read_policy']
-   write_policy      = module.params['write_policy']
-   disk_cache_policy = module.params['disk_cache_policy']
-   share_user        = module.params['share_user']
-   share_pass        = module.params['share_pass']
-   share_name        = module.params['share_name']
-   share_type        = module.params['share_type']
-   share_ip          = module.params['share_ip']
-   servers           = module.params['servers']
-   workgroup         = module.params['workgroup']
-   local_path        = module.params['local_path']
-   import_file       = module.params['import_file']
-   firmware          = module.params['firmware']
-   reboot_type       = module.params['reboot_type']
+   target_controller = module.params['target_controller']
    user_to_change    = module.params['user_to_change']
-   old_pass          = module.params['old_pass']
-   new_pass          = module.params['new_pass']
-   rebootid          = module.params['rebootid']
-   reboot_type       = module.params['reboot_type']
-   remove_xml        = module.params['remove_xml']
-   iso_image         = module.params['iso_image']
-   partition_ndx     = module.params['partition_ndx']
-   instanceID        = module.params['instanceID']
-   force_fault       = module.params['force_fault']
-   local_debug       = module.params['debug']
+   username          = module.params['username']
+   virtual_disk_name = module.params['virtual_disk_name']
+   workgroup         = module.params['workgroup']
+   write_policy      = module.params['write_policy']
+
    check_mode        = module.check_mode
 
    if not HAS_WSMAN:
@@ -2941,16 +2967,15 @@ def main():
    log.addHandler(fHandle)
    log.addHandler(html)
 
-
-   if local_debug == 'True':
-      print "Entering debug mode"
-      debug = True
+   if debug:
+      #debug = True
       logging.basicConfig(level=logging.DEBUG,
                           format='%(asctime)s %(levelname)-8s %(message)s',
                           datefmt='%a, %d %b %Y %H:%M:%S')
+      log.debug ("Entering debug mode")
 
    if debug and check_mode:
-      print "Entering check mode"
+      log.debug ("Entering check mode")
 
    # this gets passed to all wsman commands
    remote = Remote(hostname, username, password)
@@ -3034,8 +3059,8 @@ def main():
       res = resetRAIDConfig(remote,hostname,remove_xml,force_fault)
       module.exit_json(**res)
 
-   elif command == "SetSyslogServers":
-      res = setSyslogServers(remote,servers)
+   elif command == "SyslogSettings":
+      res = syslogSettings(remote,servers,enable,port)
       module.exit_json(**res)
 
    elif command == "SetupJobQueue":
@@ -3083,7 +3108,7 @@ def main():
       module.exit_json(**res)
 
    elif command == "___enumerateIdracCardString":
-      res = ___enumerateIdracCardString(remote,force_fault)
+      res = ___enumerateIdracCardString(remote)
       module.exit_json(**res)
 
    # The return value isn't in ansible_facts
