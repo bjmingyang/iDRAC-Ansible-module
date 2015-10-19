@@ -1103,6 +1103,8 @@ def resetPassword(remote,hostname,user_to_change,new_pass,force_fault=False):
    if res['failed']:
       return res
 
+   # TODO Could make this loop slightly faster if went directly to the users
+   # instead of looping thru the whole dictionary
    found = 0
    for k in res:
       #print k
@@ -1146,8 +1148,8 @@ def resetPassword(remote,hostname,user_to_change,new_pass,force_fault=False):
 def resetRAIDConfig(remote,hostname,remove_xml,force_fault) :
    msg = {}
 
-   # wsman invoke -a ResetConfig http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_RAIDService&SystemName=DCIM:ComputerSystem&Name=DCIM:RAIDService -h 10.22.252.15 -V -v -c Dummy -P 443 -u root -p cdadmin99 -J /tmp/resetConfig.xml -j utf-8 -y basic
-   # wsman invoke " http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService?CreationClassName="DCIM_RAIDService"&SystemName="DCIM:ComputerSystem"&Name="DCIM:RAIDService"&SystemCreationClassName="DCIM_ComputerSystem"" -a "ResetConfig" -u root -p cdadmin99 -h 10.22.252.15 -P 443 -j utf-8 -y basic -V -v -c Dummy --input="/tmp/resetConfig.xml"
+   # wsman invoke -a ResetConfig http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_RAIDService&SystemName=DCIM:ComputerSystem&Name=DCIM:RAIDService -h 10.22.252.15 -V -v -c Dummy -P 443 -u root -p <password> -J /tmp/resetConfig.xml -j utf-8 -y basic
+   # wsman invoke " http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService?CreationClassName="DCIM_RAIDService"&SystemName="DCIM:ComputerSystem"&Name="DCIM:RAIDService"&SystemCreationClassName="DCIM_ComputerSystem"" -a "ResetConfig" -u <username> -p <password> -h <hostname> -P 443 -j utf-8 -y basic -V -v -c Dummy --input="/tmp/resetConfig.xml"
    r = Reference("DCIM_RAIDService")
 
    if force_fault:
@@ -1193,6 +1195,7 @@ def resetRAIDConfig(remote,hostname,remove_xml,force_fault) :
 # servers:
 #    - dicionary of servers - iDRAC limit of 3
 #
+# check_mode is working
 def syslogSettings(remote,servers,enable,port):
    msg = {}
    attributes = {}
@@ -1207,71 +1210,49 @@ def syslogSettings(remote,servers,enable,port):
    if res['failed']:
       return res
 
-   for k in res:
-      if debug:
-         log.debug ("k: %s", k)
-      if k != 'failed':
-   
-         tmp = k.split("#")
-         target = tmp[0]
-         if tmp[1] == "SysLog.1":
-            if tmp[2] == "Server1":
+   target = "iDRAC.Embedded.1"
+   if ('Server1' in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server1']['CurrentValue'] != servers['Server1']):
+      msg['changed'] = True
+      attributes['SysLog.1#Server1'] = servers['Server1']
+   elif ('Server1' not in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server1']['CurrentValue'] != ''):
+      msg['changed'] = True
+      attributes['SysLog.1#Server1'] = ''
 
-         #if tmp[2] == 'UserName':
-         #   if re.match('^'+res[k]['CurrentValue']+'$', user_to_change):
-         #      #print "found a match"
-         #      found = 1
-         #      target = tmp[0]
-         #      #print 'target: '+target
-         #      attribute_name = tmp[1]+"#Password"
-         #      attributes = {}
-         #      attributes[attribute_name] = new_pass
-         #      result = ___applyAttributes(remote,hostname,target,attributes)
-         #      if result['failed']:
-         #         return result
 
-   #cnt = 1
-   for k in servers:
-      if debug:
-         log.debug ("syslog server: %s",servers[k])
-      # TODO iDRAC.Embeded.1 should not be a string here
-      target = "iDRAC.Embedded.1"
-      attribute_name = "SysLog.1#"+k
-      attributes[attribute_name] = servers[k]
-      result = ___applyAttributes(remote,remote.ip,target,attributes)
-      if result['failed']:
-         return result
+   if ('Server2' in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server2']['CurrentValue'] != servers['Server2']):
+      msg['changed'] = True
+      attributes['SysLog.1#Server2'] = servers['Server2']
+   elif ('Server2' not in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server2']['CurrentValue'] != ''):
+      msg['changed'] = True
+      attributes['SysLog.1#Server2'] = ''
 
-   #found = 0
-   #for k in res:
-   #   #print k
-   #   if k != 'failed':
-   #      # used for debugging
-   #      #for l in res[k]:
-   #      #   print k+": "+l+": "+res[k][l]
-   #
-   #      tmp = k.split("#")
-   #      if tmp[2] == 'UserName':
-   #         if re.match('^'+res[k]['CurrentValue']+'$', user_to_change):
-   #            #print "found a match"
-   #            found = 1
-   #            target = tmp[0]
-   #            #print 'target: '+target
-   #            attribute_name = tmp[1]+"#Password"
-   #            attributes = {}
-   #            attributes[attribute_name] = new_pass
-   #            result = ___applyAttributes(remote,hostname,target,attributes)
-   #            if result['failed']:
-   #               return result
-   #
-   #if not found:
-   #   msg['failed'] = True
-   #   msg['changed'] = False
-   #   msg['msg'] = 'Could not find user'
-   #   return msg
+   if ('Server3' in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server3']['CurrentValue'] != servers['Server3']):
+      msg['changed'] = True
+      attributes['SysLog.1#Server3'] = servers['Server3']
+   elif ('Server3' not in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server3']['CurrentValue'] != ''):
+      msg['changed'] = True
+      attributes['SysLog.1#Server3'] = ''
+
+   res = ___enumerateIdracCard(remote)
+   if res['failed']:
+      return res
+
+   if enable and (res['iDRAC.Embedded.1#SysLog.1#SysLogEnable']['CurrentValue'] != 'Enabled'):
+      log.debug ("hostname: %s, syslog not enabled. Enabling.", remote.ip)
+      msg['changed'] = True
+      attributes['SysLog.1#SysLogEnable'] = 'Enabled'
+   elif (not enable) and (res['iDRAC.Embedded.1#SysLog.1#SysLogEnable']['CurrentValue'] == 'Enabled'):
+      log.debug ("hostname: %s, syslog enabled. Disabling.", remote.ip)
+      msg['changed'] = True
+      attributes['SysLog.1#SysLogEnable'] = 'Disabled'
+
+   if not check_mode:
+      if msg['changed']:
+         result = ___applyAttributes(remote,target,attributes)
+         if result['failed']:
+            return result
 
    msg['failed'] = False
-   msg['changed'] = True
    msg['msg'] = 'Syslog Servers Set'
    return msg
 
@@ -1661,22 +1642,19 @@ def upgradePerc(remote,hostname,share_info,firmware):
 # -h <hostname> -V -v -c dummy.cert -P 443 \
 # -u <user> -p <pass> -j utf-8 -y basic -J <file>
 #
-def ___applyAttributes(remote,hostname,target,attributes,remove_xml=True,force_fault=False):
+def ___applyAttributes(remote,target,attributes,remove_xml=True):
    ret = {}
 
    ref = Reference("DCIM_OSDeploymentService")
 
-   if force_fault:
-      ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcM_RAIDService")
-   else:
-      ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardService")
+   ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardService")
 
    ref.set("SystemCreationClassName", "DCIM_ComputerSystem")
    ref.set("CreationClassName", "DCIM_iDRACCardService")
    ref.set("SystemName", "DCIM:ComputerSystem")
    ref.set("Name","DCIM:iDRACCardService")
 
-   sffx = "_"+hostname+"_Attributes.xml"
+   sffx = "_"+remote.ip+"_Attributes.xml"
 
    fh = tempfile.NamedTemporaryFile(delete=False, mode='w', suffix=sffx)
 
@@ -2235,26 +2213,24 @@ def ___elem_to_internal(elem, strip_ns=1, strip=1):
       d = text or None
    return {elem_tag: d}
 
-def ___enumerateIdracCard(remote,force_fault=False):
+# TODO consider making part of fact gathering
+def ___enumerateIdracCard(remote):
    ret = {}
 
    # wsman enumerate \
-   # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardEnumeration  " \
-   # -h 10.22.252.130 -V -v -c dummy.cert -P 443 -u root -p cdadmin99 -j utf-8 \
+   # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardEnumeration" \
+   # -h 10.22.252.130 -V -v -c dummy.cert -P 443 -u <username> -p <password> -j utf-8 \
    # -y basic
    r = Reference("DCIM_iDRACCardEnumeration")
 
-   if force_fault:
-      r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcM_RAIDService")
-   else:
-      r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardEnumeration")
+   r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardEnumeration")
 
    res = wsman.enumerate(r, 'root/dcim', remote)
    if type(res) is Fault:
-      #print 'There was an error!'
-      msg['failed'] = True
-      msg['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
-      return msg
+      ret['failed'] = True
+      ret['result'] = "Could not enumerate iDRAC Card"
+      ret['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
+      return ret
 
    for instance in res:
       tmp = ''
@@ -2262,7 +2238,7 @@ def ___enumerateIdracCard(remote,force_fault=False):
          if k == 'InstanceID':
             tmp = ("%s" % ("".join(map(lambda x: x if x else "" ,v)) ))
             #ret['InstanceID'] = tmp
-            print tmp
+            #print tmp
 
       ret[tmp] = {}
       for k,v in instance.items:
@@ -3104,7 +3080,7 @@ def main():
       module.exit_json(**res)
 
    elif command == "___enumerateIdracCard":
-      res = ___enumerateIdracCard(remote,force_fault)
+      res = ___enumerateIdracCard(remote)
       module.exit_json(**res)
 
    elif command == "___enumerateIdracCardString":
