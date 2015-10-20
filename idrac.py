@@ -1246,6 +1246,16 @@ def syslogSettings(remote,servers,enable,port):
       msg['changed'] = True
       attributes['SysLog.1#SysLogEnable'] = 'Disabled'
 
+   res = ___enumerateIdracCardInteger(remote)
+   if res['failed']:
+      return res
+
+   if port != int(res['iDRAC.Embedded.1#SysLog.1#Port']['CurrentValue']):
+      log.debug ("hostname: %s, syslog port doesn't match setting to %s. Enabling.",
+                 remote.ip, res['iDRAC.Embedded.1#SysLog.1#Port']['CurrentValue'])
+      msg['changed'] = True
+      attributes['SysLog.1#Port'] = res['iDRAC.Embedded.1#SysLog.1#Port']['CurrentValue']
+
    if not check_mode:
       if msg['changed']:
          result = ___applyAttributes(remote,target,attributes)
@@ -2253,13 +2263,55 @@ def ___enumerateIdracCard(remote):
    return ret
 
 # TODO consider making a part of fact gathering
+#
+# wsman enumerate \
+# http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardInteger \
+# -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password> \
+# -j utf-8 -y basic
+#
+def ___enumerateIdracCardInteger(remote):
+   ret = {}
+
+   ref = Reference("DCIM_iDRACCardInteger")
+
+   ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardInteger")
+
+   res = wsman.enumerate(ref, 'root/dcim', remote)
+   if type(res) is Fault:
+      ret['failed'] = True
+      ret['changed'] = False
+      ret['result'] = 'Could not enumerate iDRAC Card Integer'
+      ret['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
+      return ret
+
+   for instance in res:
+      tmp = ''
+      for k,v in instance.items:
+         if k == 'InstanceID':
+            tmp = ("%s" % ("".join(map(lambda x: x if x else "" ,v)) ))
+            #msg['InstanceID'] = tmp
+            tmp = tmp.__str__()
+
+      ret[tmp] = {}
+      for k,v in instance.items:
+         if k != 'InstanceID':
+            value = ("%s" % ("".join(map(lambda x: x if x else "" ,v)) ))
+            k = k.__str__()
+            ret[tmp][k] = value.__str__()
+
+   ret['failed'] = False
+   return ret
+
+# TODO consider making a part of fact gathering
+#
+# wsman enumerate \
+# http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardString \
+# -h <idrac hostname> -V -v -c dummy.cert -P 443 -u <idrac user> -p \
+# <idrac pass> -j utf-8 -y basic
+#
 def ___enumerateIdracCardString(remote):
    ret = {}
 
-   # wsman enumerate \
-   # http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardString \
-   # -h <idrac hostname> -V -v -c dummy.cert -P 443 -u <idrac user> -p \
-   # <idrac pass> -j utf-8 -y basic
    ref = Reference("DCIM_iDRACCardString")
 
    ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardString")
@@ -3081,6 +3133,10 @@ def main():
 
    elif command == "___enumerateIdracCard":
       res = ___enumerateIdracCard(remote)
+      module.exit_json(**res)
+
+   elif command == "___enumerateIdracCardInteger(remote)":
+      res = ___enumerateIdracCardInteger(remote)
       module.exit_json(**res)
 
    elif command == "___enumerateIdracCardString":
