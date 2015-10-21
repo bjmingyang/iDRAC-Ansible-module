@@ -769,6 +769,10 @@ def enumerateSoftwareIdentity(remote):
    msg['failed'] = False
    return msg
 
+#
+def eventFilters(remote,enable_event,enable_service,disable_event,disable_service):
+   msg = {}
+
 # This function does not modify the iDRAC. The iDRAC deletes the file from the
 # share before putting it back.
 #
@@ -2223,14 +2227,79 @@ def ___elem_to_internal(elem, strip_ns=1, strip=1):
       d = text or None
    return {elem_tag: d}
 
+#
+def ___enumerateEventFilter(remote):
+   ret = {}
+
+   r = Reference("DCIM_EventFilter")
+
+   r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EventFilter")
+
+   res = wsman.enumerate(r, 'root/dcim', remote, True)
+   if type(res) is Fault:
+      ret['failed'] = True
+      ret['result'] = "Could not enumerate Event Filters"
+      ret['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
+      return ret
+
+   print res
+   #for instance in res:
+   #   tmp = ''
+   #   for k,v in instance.items:
+   #      if k == 'InstanceID':
+   #         tmp = ("%s" % ("".join(map(lambda x: x if x else "" ,v)) ))
+   #         #ret['InstanceID'] = tmp
+   #         #print tmp
+   #
+   #   ret[tmp] = {}
+   #
+   #   for k,v in instance.items:
+   #      #if k not in ret[tmp]:
+   #      #   ret[tmp][k] = {}
+   #      cnt = 0
+   #      #print "cnt: "+str(cnt)
+   #      if k == 'Notification':
+   #         #if 'Notification' not in ret[tmp][k]:
+   #         #   ret[tmp][k]['Notification'] = []
+   #         cnt = cnt + 1
+   #         print "cnt: "+str(cnt)
+   #         if 'Notification' in ret[tmp]:
+   #            value = ("%s" % ("".join(map(lambda x: x if x else "" ,v)) ))
+   #            ret[tmp][k].append(value.__str__())
+   #         else:
+   #            value = ("%s" % ("".join(map(lambda x: x if x else "" ,v)) ))
+   #            ret[tmp][k] = []
+   #            ret[tmp][k].append(value.__str__())
+   #
+   #      #if k == 'PossibleNotificationDescriptions':
+   #      #   if 'PossibleNotificationDescriptions' not in ret[tmp][k]:
+   #      #      ret[tmp][k]['PossibleNotificationDescriptions'] = []
+   #      #   ret[tmp][k]['PossibleNotificationDescriptions'].append(value.__str__())
+   #      #
+   #      #if k == 'PossibleNotifications':
+   #      #   if 'PossibleNotifications' not in ret[tmp][k]:
+   #      #      ret[tmp][k]['PossibleNotifications'] = []
+   #      #   ret[tmp][k]['PossibleNotifications'].append(value.__str__())
+   #
+   #      #elif k != 'InstanceID':
+   #      #   ret[tmp][k] = value.__str__()
+   #      #if k == 'AttributeName':
+   #      #   print k+": "+value.__str__()
+
+   ret['failed'] = False
+   ret['changed'] = False
+   return ret
+
 # TODO consider making part of fact gathering
+#
+# wsman enumerate \
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardEnumeration" \
+# -h 10.22.252.130 -V -v -c dummy.cert -P 443 -u <username> -p <password> -j utf-8 \
+# -y basic
+#
 def ___enumerateIdracCard(remote):
    ret = {}
 
-   # wsman enumerate \
-   # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardEnumeration" \
-   # -h 10.22.252.130 -V -v -c dummy.cert -P 443 -u <username> -p <password> -j utf-8 \
-   # -y basic
    r = Reference("DCIM_iDRACCardEnumeration")
 
    r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardEnumeration")
@@ -3129,6 +3198,10 @@ def main():
 
    elif command == "___detachSDCardPartition":
       res = ___detachSDCardPartition(remote,hostname,partition_ndx)
+      module.exit_json(**res)
+
+   elif command == "___enumerateEventFilter":
+      res = ___enumerateEventFilter(remote)
       module.exit_json(**res)
 
    elif command == "___enumerateIdracCard":
