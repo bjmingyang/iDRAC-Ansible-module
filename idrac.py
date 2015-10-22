@@ -2235,17 +2235,26 @@ def ___enumerateEventFilter(remote):
 
    r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EventFilter")
 
-   res = wsman.enumerate(r, 'root/dcim', remote, True)
+   # provides raw XML output
+   #res = wsman.enumerate(r, 'root/dcim', remote, True)
+   #print res
+   res = wsman.enumerate(r, 'root/dcim', remote)
    if type(res) is Fault:
       ret['failed'] = True
       ret['result'] = "Could not enumerate Event Filters"
       ret['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
       return ret
 
-   print res
-   #for instance in res:
-   #   tmp = ''
-   #   for k,v in instance.items:
+
+   for instance in res:
+      if debug:
+         tmp = json.dumps(instance.items, sort_keys=True, indent=3, separators=(',', ': '))
+         log.debug(tmp)
+      tmp = ''
+      for k,v in instance.items:
+         #print "key: "+k+" val: "+v
+   #      if type(v) is list:
+   #         print "   key: "+k
    #      if k == 'InstanceID':
    #         tmp = ("%s" % ("".join(map(lambda x: x if x else "" ,v)) ))
    #         #ret['InstanceID'] = tmp
