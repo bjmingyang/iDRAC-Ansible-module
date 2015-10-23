@@ -745,6 +745,20 @@ def detachSDCardPartitions(remote,hostname):
    msg['failed'] = False
    return msg
 
+#
+def enumerateEventFilters(remote):
+   msg = {}
+
+   res = ___enumerateEventFilter(remote)
+   if res['failed']:
+      msg['failed'] = True
+      msg['changed'] = False
+      return msg
+
+   msg = res
+   msg['changed'] = False
+   return msg
+
 # Puts the return values from ___enumerateSoftwareIdentity() into ansible_facts
 # 
 def enumerateSoftwareIdentity(remote):
@@ -768,10 +782,6 @@ def enumerateSoftwareIdentity(remote):
    msg['changed'] = False
    msg['failed'] = False
    return msg
-
-#
-def eventFilters(remote,enable_event,enable_service,disable_event,disable_service):
-   msg = {}
 
 # This function does not modify the iDRAC. The iDRAC deletes the file from the
 # share before putting it back.
@@ -1268,6 +1278,25 @@ def syslogSettings(remote,servers,enable,port):
 
    msg['failed'] = False
    msg['msg'] = 'Syslog Servers Set'
+   return msg
+
+#
+#def setEventFilters(remote,enable_event,enable_service,disable_event,disable_service):
+def setEventFilters(remote):
+   msg = {}
+
+   res = ___enumerateEventFilter(remote)
+   if res['failed']:
+      msg['changed'] = False
+      msg['failed'] = True
+      return res
+
+   for k in res:
+      if k != "failed":
+         print "key: ",k
+   # check to see if this alert supports "Remote System Log"
+   #if "Remote System Log" in res:
+
    return msg
 
 # remote:
@@ -2245,58 +2274,18 @@ def ___enumerateEventFilter(remote):
       ret['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
       return ret
 
-
    for instance in res:
-      if debug:
-         tmp = json.dumps(instance.items, sort_keys=True, indent=3, separators=(',', ': '))
-         log.debug(tmp)
       tmp = ''
       for k,v in instance.items:
-         #print "key: "+k+" val: "+v
-   #      if type(v) is list:
-   #         print "   key: "+k
-   #      if k == 'InstanceID':
-   #         tmp = ("%s" % ("".join(map(lambda x: x if x else "" ,v)) ))
-   #         #ret['InstanceID'] = tmp
-   #         #print tmp
-   #
-   #   ret[tmp] = {}
-   #
-   #   for k,v in instance.items:
-   #      #if k not in ret[tmp]:
-   #      #   ret[tmp][k] = {}
-   #      cnt = 0
-   #      #print "cnt: "+str(cnt)
-   #      if k == 'Notification':
-   #         #if 'Notification' not in ret[tmp][k]:
-   #         #   ret[tmp][k]['Notification'] = []
-   #         cnt = cnt + 1
-   #         print "cnt: "+str(cnt)
-   #         if 'Notification' in ret[tmp]:
-   #            value = ("%s" % ("".join(map(lambda x: x if x else "" ,v)) ))
-   #            ret[tmp][k].append(value.__str__())
-   #         else:
-   #            value = ("%s" % ("".join(map(lambda x: x if x else "" ,v)) ))
-   #            ret[tmp][k] = []
-   #            ret[tmp][k].append(value.__str__())
-   #
-   #      #if k == 'PossibleNotificationDescriptions':
-   #      #   if 'PossibleNotificationDescriptions' not in ret[tmp][k]:
-   #      #      ret[tmp][k]['PossibleNotificationDescriptions'] = []
-   #      #   ret[tmp][k]['PossibleNotificationDescriptions'].append(value.__str__())
-   #      #
-   #      #if k == 'PossibleNotifications':
-   #      #   if 'PossibleNotifications' not in ret[tmp][k]:
-   #      #      ret[tmp][k]['PossibleNotifications'] = []
-   #      #   ret[tmp][k]['PossibleNotifications'].append(value.__str__())
-   #
-   #      #elif k != 'InstanceID':
-   #      #   ret[tmp][k] = value.__str__()
-   #      #if k == 'AttributeName':
-   #      #   print k+": "+value.__str__()
+         if k == 'InstanceID':
+            tmp = ("%s" % ("".join(map(lambda x: x if x else "" ,v)) ))
+
+      ret[tmp] = {}
+      for k,v in instance.items:
+         if k != 'InstanceID':
+            ret[tmp][k] = v
 
    ret['failed'] = False
-   ret['changed'] = False
    return ret
 
 # TODO consider making part of fact gathering
@@ -3057,7 +3046,7 @@ def main():
    check_mode        = module.check_mode
 
    if not HAS_WSMAN:
-      module.fail_json(msg='dell-wsman-client-api-python is required for this module http://github.com/hbeatty/dell-wsman-api-python')
+      module.fail_json(msg='dell-wsman-client-api-python is required for this module http://github.com/hbeatty/dell-wsman-client-api-python')
 
    wsman = WSMan(transport=Subprocess())
 
@@ -3134,6 +3123,10 @@ def main():
       res = detachSDCardPartitions(remote,hostname)
       module.exit_json(**res)
 
+   elif command == "EnumerateEventFilters":
+      res = enumerateEventFilters(remote)
+      module.exit_json(**res)
+
    # The return value is in ansible_facts
    elif command == "EnumerateSoftwareIdentity":
       res = enumerateSoftwareIdentity(remote)
@@ -3164,6 +3157,9 @@ def main():
    elif command == "ResetRAIDConfig":
       res = resetRAIDConfig(remote,hostname,remove_xml,force_fault)
       module.exit_json(**res)
+
+   elif command == "SetEventFilters":
+      res = setEventFilters(remote)
 
    elif command == "SyslogSettings":
       res = syslogSettings(remote,servers,enable,port)
