@@ -749,7 +749,7 @@ def detachSDCardPartitions(remote,hostname):
 def enumerateEventFilters(remote):
    msg = {}
 
-   res = ___enumerateEventFilter(remote)
+   res = ___enumerateEventFilters(remote)
    if res['failed']:
       msg['failed'] = True
       msg['changed'] = False
@@ -1285,7 +1285,7 @@ def syslogSettings(remote,servers,enable,port):
 def setEventFilters(remote):
    msg = {}
 
-   res = ___enumerateEventFilter(remote)
+   res = ___enumerateEventFilters(remote)
    if res['failed']:
       msg['changed'] = False
       msg['failed'] = True
@@ -2257,7 +2257,7 @@ def ___elem_to_internal(elem, strip_ns=1, strip=1):
    return {elem_tag: d}
 
 #
-def ___enumerateEventFilter(remote):
+def ___enumerateEventFilters(remote):
    ret = {}
 
    r = Reference("DCIM_EventFilter")
@@ -3160,6 +3160,7 @@ def main():
 
    elif command == "SetEventFilters":
       res = setEventFilters(remote)
+      module.exit_json(**res)
 
    elif command == "SyslogSettings":
       res = syslogSettings(remote,servers,enable,port)
@@ -3205,8 +3206,8 @@ def main():
       res = ___detachSDCardPartition(remote,hostname,partition_ndx)
       module.exit_json(**res)
 
-   elif command == "___enumerateEventFilter":
-      res = ___enumerateEventFilter(remote)
+   elif command == "___enumerateEventFilters":
+      res = ___enumerateEventFilters(remote)
       module.exit_json(**res)
 
    elif command == "___enumerateIdracCard":
