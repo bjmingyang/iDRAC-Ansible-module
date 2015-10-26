@@ -747,7 +747,7 @@ def detachSDCardPartitions(remote,hostname):
 
 #
 def enumerateEventFilters(remote):
-   msg = {}
+   msg = { 'msg': {} }
 
    res = ___enumerateEventFilters(remote)
    if res['failed']:
@@ -755,7 +755,12 @@ def enumerateEventFilters(remote):
       msg['changed'] = False
       return msg
 
-   msg = res
+   for k in res:
+      # this k != 'failed' is needed! failed is True or False and python blows
+      # up if you try to iterate a bool object!
+      if k != 'failed':
+         msg['msg'][k] = res[k]
+
    msg['changed'] = False
    return msg
 
@@ -1137,7 +1142,7 @@ def resetPassword(remote,hostname,user_to_change,new_pass,force_fault=False):
                attribute_name = tmp[1]+'#Password'
                attributes = {}
                attributes[attribute_name] = new_pass
-               result = ___applyAttributes(remote,hostname,target,attributes)
+               result = ___applyAttributes(remote,target,attributes)
                if result['failed']:
                   return result
 
@@ -1281,9 +1286,11 @@ def syslogSettings(remote,servers,enable,port):
    return msg
 
 #
+# check_mode is working
 #def setEventFilters(remote,enable_event,enable_service,disable_event,disable_service):
 def setEventFilters(remote):
    msg = {}
+   targets = {}
 
    res = ___enumerateEventFilters(remote)
    if res['failed']:
@@ -1291,12 +1298,49 @@ def setEventFilters(remote):
       msg['failed'] = True
       return res
 
+   msg['msg'] = {}
    for k in res:
       if k != "failed":
          print "key: ",k
-   # check to see if this alert supports "Remote System Log"
-   #if "Remote System Log" in res:
+         #msg['msg'].update(res[k])
+         # check to see if this alert supports "Remote System Log"
+         if "Remote System Log" in res[k]['PossibleNotificationDescriptions']:
+            print "index: ", res[k]['PossibleNotificationDescriptions'].index('Remote System Log')
+            idx = res[k]['PossibleNotificationDescriptions'].index('Remote System Log')
+            print "PossibleNotifications: ",res[k]['PossibleNotifications'][idx]
+            rsyslog_dec = res[k]['PossibleNotifications'][idx]
+            if rsyslog_dec not in res[k]['Notification']:
+               # add it because we are going to change it
+               res[k]['Notification'].append(rsyslog_dec)
+               msg['changed'] = True
+               target = "EventFilters."+res[k]['Category'][0]+".1"
+               attribute = {}
+               if target not in targets:
+                  targets[target] = {}
+               tmp = k.split("#")
+               event = tmp[-1]
+               attribute_name = event+"#Alert#Syslog"
+               attribute[attribute_name] = 'Enabled'
+               targets[target].update(attribute)
 
+         # this will encompass all the changes made
+         msg['msg'][k] = res[k]
+
+   if msg['changed'] and not check_mode:
+      # Apply the attributes
+      for target in targets:
+         res = ___setEventFilterByInstanceIDs(remote,target)
+         if result['failed']:
+            return result
+
+   tmp = json.dumps(targets, indent=3, separators=(',', ': '))
+   print tmp
+
+   if debug:
+      tmp = json.dumps(msg, indent=3, separators=(',', ': '))
+      log.debug("hostname: %s, tmp: %s",remote.ip,tmp)
+
+   msg['failed'] = False
    return msg
 
 # remote:
@@ -2257,6 +2301,11 @@ def ___elem_to_internal(elem, strip_ns=1, strip=1):
    return {elem_tag: d}
 
 #
+# wsman enumerate \
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EventFilter" \
+# -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password> -j utf-8 \
+# -y basic
+#
 def ___enumerateEventFilters(remote):
    ret = {}
 
@@ -2292,7 +2341,7 @@ def ___enumerateEventFilters(remote):
 #
 # wsman enumerate \
 # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardEnumeration" \
-# -h 10.22.252.130 -V -v -c dummy.cert -P 443 -u <username> -p <password> -j utf-8 \
+# -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password> -j utf-8 \
 # -y basic
 #
 def ___enumerateIdracCard(remote):
@@ -2714,6 +2763,35 @@ def ___listSDCardPartitions(remote, msg={}):
 
    return msg
 
+# SetEventFilterByInstanceIDs InstanceID=iDRAC.Embedded.1#RACEvtFilterCfgRoot#IOV_1_3,iDRAC.Embedded.1#RACEvtFilterCfgRoot#IOV_1_1 RequestedAction=0 RequestedNotification=2,3,5,6,7
+# wsman invoke -a SetEventFilterByInstanceIDs \
+# http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationServcie?SystemCreationClassName=DCIM_SPComputerSystem&CreationClassName=DCIM_EFConfigurationServcie&SystemName=systemmc&Name=DCIM:EFConfigurationService \
+# -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password> \
+# -J SetupJobQueue.xml -j utf-8 -y basic
+#
+def ___setEventFilterByInstanceIDs(remote,properties):
+   msg = {}
+
+   r = Reference ("DCIM_EFConfigurationService")
+
+   r.set_resource_uri("http://schemas.dell.com/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService")
+
+   r.set("SystemCreationClassName","DCIM_SPComputerSystem")
+   r.set("CreationClassName","DCIM_EFConfigurationService")
+   r.set("SystemName","systemmc")
+   r.set("Name","DCIM:EFConfigurationService")
+
+   res = wsman.invoke(r, 'SetEventFilterByInstanceIDs', properties, remote)
+   if type(res) is Fault:
+      #print 'There was an error!'
+      msg['failed'] = True
+      msg['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
+      return msg
+
+   msg = ___checkReturnValues(res, msg)
+
+   return msg
+
 # remote:
 #    - hostname, username, password passed to Remote() of WSMan
 # jobs:
@@ -2725,10 +2803,13 @@ def ___listSDCardPartitions(remote, msg={}):
 #
 # This function does not return changed status. It is up to the calling function.
 #
+# wsman invoke -a SetupJobQueue \
+# http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_JobService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_JobService&SystemName=Idrac&Name=JobService \
+# -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password> \
+# -J SetupJobQueue.xml -j utf-8 -y basic
 def ___setupJobQueue(remote,hostname,jobs):
    msg = { }
 
-   # wsman invoke -a SetupJobQueue http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_JobService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_JobService&SystemName=Idrac&Name=JobService -h $IPADDRESS -V -v -c dummy.cert -P 443 -u $USERNAME -p $PASSWORD -J SetupJobQueue.xml -j utf-8 -y basic
    r = Reference ("DCIM_JobService")
 
    r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_JobService")
