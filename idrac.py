@@ -1291,6 +1291,7 @@ def syslogSettings(remote,servers,enable,port):
 def setEventFilters(remote):
    msg = {}
    targets = {}
+   properties = {}
 
    res = ___enumerateEventFilters(remote)
    if res['failed']:
@@ -1326,15 +1327,18 @@ def setEventFilters(remote):
          # this will encompass all the changes made
          msg['msg'][k] = res[k]
 
+   properties['InstanceID'] = "iDRAC.Embedded.1#RACEvtFilterCfgRoot#BAT_2_2"
+   properties['RequestedAction'] = "0"
+   properties['RequestedNotification'] = "2,3,5,6,7"
    if msg['changed'] and not check_mode:
       # Apply the attributes
       for target in targets:
-         res = ___setEventFilterByInstanceIDs(remote,target)
-         if result['failed']:
-            return result
+         res = ___setEventFilterByInstanceIDs(remote,properties)
+         if res['failed']:
+            return res
 
-   tmp = json.dumps(targets, indent=3, separators=(',', ': '))
-   print tmp
+   #tmp = json.dumps(targets, indent=3, separators=(',', ': '))
+   #print tmp
 
    if debug:
       tmp = json.dumps(msg, indent=3, separators=(',', ': '))
@@ -2763,18 +2767,31 @@ def ___listSDCardPartitions(remote, msg={}):
 
    return msg
 
-# SetEventFilterByInstanceIDs InstanceID=iDRAC.Embedded.1#RACEvtFilterCfgRoot#IOV_1_3,iDRAC.Embedded.1#RACEvtFilterCfgRoot#IOV_1_1 RequestedAction=0 RequestedNotification=2,3,5,6,7
+# wsman invoke -a SetEventFilterByCategory \
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationServcie?SystemCreationClassName=DCIM_SPComputerSystem&CreationClassName=DCIM_EFConfigurationServcie&SystemName=systemmc&Name=DCIM:EFConfigurationService" \
+# -h <hostname> -P 443 -u <username> -p <password> -V -v -c dummy.cert \
+# -j utf-8 -y basic -k "Category=Storage" -k "SubCategory=BAT" \
+# -k "Severity=Warning" -k "RequestedAction=0" \
+# -k "RequestedNotification=2,3,5,6,7"
+#
+def ___setEventFilterByCategory(remote,properties):
+   msg = {}
+
+   return msg
+
 # wsman invoke -a SetEventFilterByInstanceIDs \
-# http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationServcie?SystemCreationClassName=DCIM_SPComputerSystem&CreationClassName=DCIM_EFConfigurationServcie&SystemName=systemmc&Name=DCIM:EFConfigurationService \
-# -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password> \
-# -J SetupJobQueue.xml -j utf-8 -y basic
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService?Name=DCIM:EFConfigurationService&CreationClassName=DCIM_EFConfigurationService&SystemName=systemmc&SystemCreationClassName=DCIM_SPComputerSystem" \
+# -h <hostname> -P 443 -u <username> -p <password> -V -v -c dummy.cert \
+# -j utf-8 -y basic \
+# -k "EFInstanceIDs=iDRAC.Embedded.1#RACEvtFilterCfgRoot#BAT_2_2" \
+# -k "RequestedAction=0" -k "RequestedNotification=2,3,5,6,7"
 #
 def ___setEventFilterByInstanceIDs(remote,properties):
    msg = {}
 
    r = Reference ("DCIM_EFConfigurationService")
 
-   r.set_resource_uri("http://schemas.dell.com/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService")
+   r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService")
 
    r.set("SystemCreationClassName","DCIM_SPComputerSystem")
    r.set("CreationClassName","DCIM_EFConfigurationService")
