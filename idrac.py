@@ -376,7 +376,8 @@ wsman = ''
 
 # Boot to a network ISO image. Reboot appears to be immediate.
 #
-# remote: hostname, username, password passed to Remote() of WSMan
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
 # share_user: username for the share
 #    - default: ''
 # share_pass: password for the share
@@ -510,13 +511,9 @@ def checkReadyState(remote):
    return msg
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # reboot_type:
 #    - 1 = PowerCycle, 2 = Graceful Reboot without forced shutdown, 3 = Graceful reboot with forced shutdown
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
 #
 def createRebootJob (remote,hostname,reboot_type):
    msg = { }
@@ -531,7 +528,7 @@ def createRebootJob (remote,hostname,reboot_type):
    return msg
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # force_fault:
 #    - boolean: True or False
 #    - default: False
@@ -589,7 +586,7 @@ def createTargetedConfigJobRAID(remote,hostname,remove_xml,reboot_type,
 # wsman:
 #    - provided by module
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # jobid:
 #    - default: JID_CLEARALL
 # force_fault:
@@ -792,6 +789,7 @@ def enumerateSoftwareIdentity(remote):
 # share before putting it back.
 #
 # remote:
+#    - ip, username, password passed to Remote() of WSMan
 # share_user:
 # share_pass:
 # share_name:
@@ -1001,7 +999,7 @@ def getSystemInventory(remote):
    return msg
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # share_info:
 #    - share_user, share_pass, share_name, share_type, share_ip
 # hostname:
@@ -1090,7 +1088,7 @@ def importSystemConfiguration(remote,share_info,hostname,import_file,
    return msg
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # hostname:
 #    - This is used to make the generated XML file unique
 # user_to_change:
@@ -1158,7 +1156,7 @@ def resetPassword(remote,hostname,user_to_change,new_pass,force_fault=False):
    return msg
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # force_fault:
 #    - boolean: True or False
 #    - default: False
@@ -1210,7 +1208,7 @@ def resetRAIDConfig(remote,hostname,remove_xml,force_fault) :
    return msg
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # servers:
 #    - dicionary of servers - iDRAC limit of 3
 #
@@ -1285,70 +1283,62 @@ def syslogSettings(remote,servers,enable,port):
    msg['msg'] = 'Syslog Servers Set'
    return msg
 
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
 #
 # check_mode is working
 #def setEventFilters(remote,enable_event,enable_service,disable_event,disable_service):
-def setEventFilters(remote):
-   msg = {}
+def setEventFiltersByInstanceIDs(remote):
+   msg = { 'msg': {} }
+   msg['changed'] = False
    targets = {}
-   properties = {}
+   event_instances = {}
 
    res = ___enumerateEventFilters(remote)
    if res['failed']:
-      msg['changed'] = False
-      msg['failed'] = True
+      res['changed'] = False
       return res
 
-   msg['msg'] = {}
    for k in res:
       if k != "failed":
          print "key: ",k
          #msg['msg'].update(res[k])
          # check to see if this alert supports "Remote System Log"
          if "Remote System Log" in res[k]['PossibleNotificationDescriptions']:
-            print "index: ", res[k]['PossibleNotificationDescriptions'].index('Remote System Log')
+            #print "index: ", res[k]['PossibleNotificationDescriptions'].index('Remote System Log')
             idx = res[k]['PossibleNotificationDescriptions'].index('Remote System Log')
-            print "PossibleNotifications: ",res[k]['PossibleNotifications'][idx]
+            #print "PossibleNotifications: ",res[k]['PossibleNotifications'][idx]
             rsyslog_dec = res[k]['PossibleNotifications'][idx]
             if rsyslog_dec not in res[k]['Notification']:
-               # add it because we are going to change it
+               # add it to res because we are going to change it and return res
                res[k]['Notification'].append(rsyslog_dec)
+
+               if '0' in res[k]['Notification']:
+                  res[k]['Notification'].remove('0')
+
+               if not check_mode:
+                  # Set the Event Filter
+                  tmp = dict(res[k])
+                  tmp['InstanceID'] = k
+                  set_ef_res = ___setEventFilterByInstanceID(remote,tmp)
+                  if set_ef_res['failed']:
+                     return set_ef_res
+
+               # Set changed because a change has been made
                msg['changed'] = True
-               target = "EventFilters."+res[k]['Category'][0]+".1"
-               attribute = {}
-               if target not in targets:
-                  targets[target] = {}
-               tmp = k.split("#")
-               event = tmp[-1]
-               attribute_name = event+"#Alert#Syslog"
-               attribute[attribute_name] = 'Enabled'
-               targets[target].update(attribute)
 
-         # this will encompass all the changes made
+         # add this Event Filter for return whether changed or not
          msg['msg'][k] = res[k]
-
-   properties['InstanceID'] = "iDRAC.Embedded.1#RACEvtFilterCfgRoot#BAT_2_2"
-   properties['RequestedAction'] = "0"
-   properties['RequestedNotification'] = "2,3,5,6,7"
-   if msg['changed'] and not check_mode:
-      # Apply the attributes
-      for target in targets:
-         res = ___setEventFilterByInstanceIDs(remote,properties)
-         if res['failed']:
-            return res
-
-   #tmp = json.dumps(targets, indent=3, separators=(',', ': '))
-   #print tmp
 
    if debug:
       tmp = json.dumps(msg, indent=3, separators=(',', ': '))
-      log.debug("hostname: %s, tmp: %s",remote.ip,tmp)
+      log.debug("hostname: %s, msg: %s",remote.ip,tmp)
 
    msg['failed'] = False
    return msg
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # jobs:
 #    - array of jobs to be executed.
 #
@@ -1779,16 +1769,10 @@ def ___applyAttributes(remote,target,attributes,remove_xml=True):
 
 # Checks the job Status of the given Job ID.
 #
-# wsman:
-#    - provided by module
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # jobid:
 #    - passed in by Ansible.
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
 #
 def ___checkJobStatus (remote,jobid):
    msg = {}
@@ -1812,14 +1796,9 @@ def ___checkJobStatus (remote,jobid):
 
 # This function will set the failure status but, it is up to the calling
 # function to set changed
+#
 def ___checkReturnValues(res, msg = {}):
    found = 0
-
-   # Steve: Always inititialize values required by other functions, this will prevent random exceptions.
-   #        If the return values are empty, means something bad happen along the "Fail" message.
-   msg['ServerStatus'] = ''
-   msg['LCStatus'] = ''
-   msg['Status'] = ''
 
    for p in res.keys:
       if debug:
@@ -1873,6 +1852,12 @@ def ___checkReturnValues(res, msg = {}):
          tmp = re.split("'", tmp)
          #print tmp[1]
          msg['Message'] = tmp[1]
+
+      if re.match('MessageID', p):
+         tmp = res.get(p).__str__()
+         tmp = re.split("'", tmp)
+         #print tmp[1]
+         msg['MessageID'] = tmp[1]
 
       if re.match('Job', p) != None:
          tmp = res.get(p).__str__() # convert to a string
@@ -2006,16 +1991,13 @@ def ___checkShareInfo(share_info):
    return msg
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # reboot_type:
 #    - 1 = PowerCycle, 2 = Graceful Reboot without forced shutdown, 3 = Graceful reboot with forced shutdown
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
 #
 # Does not return a changed status. That is up to the calling function.
 #
+# TODO: hostname is not needed in this function. Use remote.ip instead
 def ___createRebootJob (remote,hostname,reboot_type):
    msg = { }
 
@@ -2059,8 +2041,8 @@ def ___createRebootJob (remote,hostname,reboot_type):
 # disk 6. If you need to create a lot of virtual disks or are doing initial
 # setup see ___exportSystemConfiguration and ___importSystemConfiguration().
 #
-# wsman:
 # remote:
+#    - ip, username, password passed to Remote() of WSMan
 # target: This parameter is the FQDD of the DCIM_ControllerView
 #     example: RAID.Integrated.1-1
 #
@@ -2501,11 +2483,7 @@ def ___enumerateSoftwareIdentity(remote):
    return ret
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
+#    - ip, username, password passed to Remote() of WSMan
 #
 # wsman invoke -a GetRemoteServicesAPIStatus
 # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_LCService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_LCService&SystemName=DCIM:ComputerSystem&Name=DCIM:LCService
@@ -2514,6 +2492,10 @@ def ___enumerateSoftwareIdentity(remote):
 #
 def ___getRemoteServicesAPIStatus (remote):
    msg = {}
+   msg['ServerStatus'] = ''
+   msg['LCStatus'] = ''
+   msg['Status'] = ''
+   msg['ReturnValue'] = ''
 
    r = Reference("DCIM_LCService")
 
@@ -2547,7 +2529,7 @@ def ___info(object, spacing=10, collapse=1):
                     for method in methodList])
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # share_info: Consists of the below
 #    user:
 #    pass:
@@ -2558,10 +2540,6 @@ def ___info(object, spacing=10, collapse=1):
 # firmware:
 #    - default: ''
 # instanceID: The firmware instance to be changed
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
 #
 # wsman invoke -a InstallFromURI
 # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_SoftwareInstallationService?CreationClassName=DCIM_SoftwareInstallationService&SystemCreationClassName=DCIM_ComputerSystem&SystemName=IDRAC:ID&Name=SoftwareUpdate"
@@ -2769,54 +2747,105 @@ def ___listSDCardPartitions(remote, msg={}):
 
 # wsman invoke -a SetEventFilterByCategory \
 # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationServcie?SystemCreationClassName=DCIM_SPComputerSystem&CreationClassName=DCIM_EFConfigurationServcie&SystemName=systemmc&Name=DCIM:EFConfigurationService" \
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService?SystemCreationClassName=DCIM_SPComputerSystem&CreationClassName=DCIM_EFConfigurationService&SystemName=systemmc&Name=DCIM:EFConfigurationService"
 # -h <hostname> -P 443 -u <username> -p <password> -V -v -c dummy.cert \
 # -j utf-8 -y basic -k "Category=Storage" -k "SubCategory=BAT" \
 # -k "Severity=Warning" -k "RequestedAction=0" \
 # -k "RequestedNotification=2,3,5,6,7"
 #
-def ___setEventFilterByCategory(remote,properties):
+def ___setEventFilterByCategory(remote,event_instance):
    msg = {}
 
    return msg
 
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
+# eventInstance:
+#    - dict of a single Event Filter by InstanceID
+#      {
+#          "InstanceID": "iDRAC.Embedded.1#RACEvtFilterCfgRoot#BAT_2_2"
+#          "Actions": ['0','1','2','3']
+#          "Notifications": ['1','2','3','4','5','6','7']
+#      }
+#
+# See the docs/mofs/DCIM_EventFilter.mof for information on the above Actions
+# and Notifications
+#
+# This command sets one Notification at a time and turns the others off. Not
+# real useful IMO but, put here for completeness
+#
 # wsman invoke -a SetEventFilterByInstanceIDs \
 # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService?Name=DCIM:EFConfigurationService&CreationClassName=DCIM_EFConfigurationService&SystemName=systemmc&SystemCreationClassName=DCIM_SPComputerSystem" \
 # -h <hostname> -P 443 -u <username> -p <password> -V -v -c dummy.cert \
 # -j utf-8 -y basic \
-# -k "EFInstanceIDs=iDRAC.Embedded.1#RACEvtFilterCfgRoot#BAT_2_2" \
-# -k "RequestedAction=0" -k "RequestedNotification=2,3,5,6,7"
+# -k "InstanceID=iDRAC.Embedded.1#RACEvtFilterCfgRoot#BAT_2_2" \
+# -k "RequestedAction=0" -k "RequestedNotification=5"
 #
-def ___setEventFilterByInstanceIDs(remote,properties):
+# This command uses an XML file to set multiple notifications but, can only set
+# one Event Filter at a time. I have put in a request will Dell to enhance the 
+# iDRAC so that multiple Event Filters can be set at a time.
+#
+# wsman invoke -a SetEventFilterByInstanceIDs \
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService?Name=DCIM:EFConfigurationService&CreationClassName=DCIM_EFConfigurationService&SystemName=systemmc&SystemCreationClassName=DCIM_SPComputerSystem" \
+# -h <hostname> -P 443 -u <username> -p <password> -V -v -c dummy.cert \
+# -j utf-8 -y basic -J <file.xml>
+#
+# <p:SetEventFilterByInstanceIDs_INPUT xmlns:p="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService">
+#    <p:InstanceID>iDRAC.Embedded.1#RACEvtFilterCfgRoot#BAT_2_2</p:InstanceID>
+#    <p:RequestedAction>0</p:RequestedAction>
+#    <p:RequestedNotification>2</p:RequestedNotification>
+#    <p:RequestedNotification>3</p:RequestedNotification>
+#    <p:RequestedNotification>5</p:RequestedNotification>
+#    <p:RequestedNotification>6</p:RequestedNotification>
+#    <p:RequestedNotification>7</p:RequestedNotification>
+# </p:SetEventFilterByInstanceIDs_INPUT>
+#
+def ___setEventFilterByInstanceID(remote,event_instance):
    msg = {}
 
-   r = Reference ("DCIM_EFConfigurationService")
+   ref = Reference ("DCIM_EFConfigurationService")
 
-   r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService")
+   ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService")
 
-   r.set("SystemCreationClassName","DCIM_SPComputerSystem")
-   r.set("CreationClassName","DCIM_EFConfigurationService")
-   r.set("SystemName","systemmc")
-   r.set("Name","DCIM:EFConfigurationService")
+   ref.set("SystemCreationClassName","DCIM_SPComputerSystem")
+   ref.set("CreationClassName","DCIM_EFConfigurationService")
+   ref.set("SystemName","systemmc")
+   ref.set("Name","DCIM:EFConfigurationService")
 
-   res = wsman.invoke(r, 'SetEventFilterByInstanceIDs', properties, remote)
+   sffx = "_"+remote.ip+"_EventFilterByInstanceIDInput.xml"
+
+   fh = tempfile.NamedTemporaryFile(delete=False, mode='w', suffix=sffx)
+
+   fh.write('<p:SetEventFilterByInstanceIDs_INPUT ')
+   fh.write('xmlns:p="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService">\n')
+   fh.write('<p:InstanceID>'+event_instance['InstanceID']+'</p:InstanceID>\n')
+   for k in event_instance['Action']:
+      fh.write('<p:RequestedAction>'+k+'</p:RequestedAction>\n')
+   for k in event_instance['Notification']:
+      fh.write('<p:RequestedNotification>'+k+'</p:RequestedNotification>\n')
+   fh.write('</p:SetEventFilterByInstanceIDs_INPUT>\n')
+
+   fh.close()
+
+   res = wsman.invoke(ref, 'SetEventFilterByInstanceIDs', fh.name, remote)
+   if not debug:
+      os.remove(fh.name)
+
    if type(res) is Fault:
       #print 'There was an error!'
       msg['failed'] = True
       msg['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
       return msg
 
-   msg = ___checkReturnValues(res, msg)
+   msg = ___checkReturnValues(res,msg)
 
+   msg['failed'] = False
    return msg
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # jobs:
-#    - array of jobs to be executed.
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
+#    - list of jobs to be executed.
 #
 # This function does not return changed status. It is up to the calling function.
 #
@@ -2824,6 +2853,7 @@ def ___setEventFilterByInstanceIDs(remote,properties):
 # http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_JobService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_JobService&SystemName=Idrac&Name=JobService \
 # -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password> \
 # -J SetupJobQueue.xml -j utf-8 -y basic
+#
 def ___setupJobQueue(remote,hostname,jobs):
    msg = { }
 
@@ -3061,7 +3091,7 @@ def main():
          command           = dict(required=True),
          debug             = dict(default='False',type='bool'),
          disk_cache_policy = dict(default=''),
-         enable            = dict(type='bool'),
+         enable            = dict(type='bool',default='True'),
          firmware          = dict(default=''),
          force_fault       = dict(default=False),
          hostname          = dict(required=True),
@@ -3081,7 +3111,7 @@ def main():
          rebootid          = dict(),
          reboot_type       = dict(default='2'),
          remove_xml        = dict(default=True),
-         servers           = dict(type='dict'),
+         servers           = dict(type='list'),
          share_ip          = dict(default=''),
          share_name        = dict(default=''),
          share_pass        = dict(default=''),
@@ -3256,8 +3286,8 @@ def main():
       res = resetRAIDConfig(remote,hostname,remove_xml,force_fault)
       module.exit_json(**res)
 
-   elif command == "SetEventFilters":
-      res = setEventFilters(remote)
+   elif command == "SetEventFiltersByInstanceIDs":
+      res = setEventFiltersByInstanceIDs(remote)
       module.exit_json(**res)
 
    elif command == "SyslogSettings":
