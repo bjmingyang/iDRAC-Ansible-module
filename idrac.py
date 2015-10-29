@@ -3088,6 +3088,7 @@ def main():
 
    module = AnsibleModule(
       argument_spec = dict(
+         attributes        = dict(type='list'),
          command           = dict(required=True),
          debug             = dict(default='False',type='bool'),
          disk_cache_policy = dict(default=''),
@@ -3121,6 +3122,7 @@ def main():
          span_depth        = dict(default=''),
          span_length       = dict(default=''),
          stripe_size       = dict(default=''),
+         target            = dict(default='iDRAC.Embedded.1'),
          target_controller = dict(default=''),
          user_to_change    = dict(default=''),
          username          = dict(required=True),
@@ -3131,6 +3133,7 @@ def main():
       supports_check_mode=True
    )
 
+   attributes        = module.params['attributes']
    command           = module.params['command']
    debug             = module.params['debug']
    disk_cache_policy = module.params['disk_cache_policy']
@@ -3164,6 +3167,7 @@ def main():
    span_length       = module.params['span_length']
    span_depth        = module.params['span_depth']
    stripe_size       = module.params['stripe_size']
+   target            = module.params['target']
    target_controller = module.params['target_controller']
    user_to_change    = module.params['user_to_change']
    username          = module.params['username']
@@ -3325,6 +3329,10 @@ def main():
    # The below commands are considered "private" for the module. One should not
    # have to call any of them directly. They are in this section for testing
    # purposes.
+
+   elif command == "___applyAttributes":
+      res = ___applyAttributes(remote,target,attributes)
+      module.exit_json(**res)
 
    elif command == "___checkJobStatus":
       res = ___checkJobStatus(remote,jobid)
