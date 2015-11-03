@@ -1221,6 +1221,8 @@ def syslogSettings(remote,servers,enable,port):
    if not servers:
       msg['failed'] = True
       msg['msg'] = 'servers must be defined'
+      if debug:
+         log.debug ("hostname: %s, servers not defined in syslogSettings", remote.ip)
       return msg
 
    res = ___enumerateIdracCardString(remote)
@@ -1250,6 +1252,8 @@ def syslogSettings(remote,servers,enable,port):
       msg['changed'] = True
       attributes['SysLog.1#Server3'] = ''
 
+   # According Dell's documentation this should give all the iDRAC settings 
+   # (Integer and String) but, it doesn't.
    res = ___enumerateIdracCard(remote)
    if res['failed']:
       return res
@@ -1262,6 +1266,16 @@ def syslogSettings(remote,servers,enable,port):
       log.debug ("hostname: %s, syslog enabled. Disabling.", remote.ip)
       msg['changed'] = True
       attributes['SysLog.1#SysLogEnable'] = 'Disabled'
+
+   # For syslog to work both syslog and ipmi have to be enabled
+   if enable and (res['iDRAC.Embedded.1#IPMILan.1#AlertEnable']['CurrentValue'] != 'Enabled'):
+      log.debug ("hostname: %s, IPMI alerting over lan not enabled. Enabling.", remote.ip)
+      msg['changed'] = True
+      attributes['IPMILan.1#AlertEnable'] = 'Enabled'
+   elif (not enable) and (res['iDRAC.Embedded.1#IPMILan.1#AlertEnable']['CurrentValue'] == 'Enabled'):
+      log.debug ("hostname: %s, IPMI alerting over lan enabled. Disabling.", remote.ip)
+      msg['changed'] = True
+      attributes['IPMILan.1#AlertEnable'] = 'Disabled'
 
    res = ___enumerateIdracCardInteger(remote)
    if res['failed']:
@@ -3112,7 +3126,7 @@ def main():
          rebootid          = dict(),
          reboot_type       = dict(default='2'),
          remove_xml        = dict(default=True),
-         servers           = dict(type='list'),
+         servers           = dict(type='dict'),
          share_ip          = dict(default=''),
          share_name        = dict(default=''),
          share_pass        = dict(default=''),
