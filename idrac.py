@@ -22,15 +22,13 @@
 # Ansible is copyright of Ansible, Inc.
 
 
-# TODO: finish documentation
-
 DOCUMENTATION = '''
 ---
 module: idrac
 short_description: Module to configure to Dell iDRAC
 description:
    - Use this module to configure Dell iDRAC.
-version: 0.0.1
+version: 0.0.2
 options:
    hostname:
       description:
@@ -329,62 +327,57 @@ import tempfile
 from distutils.version import LooseVersion, StrictVersion
 
 try:
-    import xml.etree.cElementTree as ET
+   import xml.etree.cElementTree as ET
 except ImportError:
-    import xml.etree.ElementTree as ET
+   import xml.etree.ElementTree as ET
 
-from wsman import WSMan
-from wsman.provider.remote import Remote
-from wsman.transport.process import Subprocess
-from wsman.response.reference import Reference
-from wsman.response.fault import Fault
+try:
+   from wsman import WSMan
+   from wsman.provider.remote import Remote
+   from wsman.transport.process import Subprocess
+   from wsman.response.reference import Reference
+   from wsman.response.fault import Fault
+   from wsman.format.command import OutputFormatter
+   from wsman.loghandlers.HTMLHandler import HTMLHandler
 
-
-from wsman.format.command import OutputFormatter
-from wsman.loghandlers.HTMLHandler import HTMLHandler
+   HAS_WSMAN = True
+except ImportError:
+   HAS_WSMAN = False
 
 import logging
 
 class switch(object):
-    def __init__(self, value):
-        self.value = value
-        self.fall = False
+   def __init__(self, value):
+      self.value = value
+      self.fall = False
 
-    def __iter__(self):
-        """Return the match method once, then stop"""
-        yield self.match
-        raise StopIteration
+   def __iter__(self):
+      """Return the match method once, then stop"""
+      yield self.match
+      raise StopIteration
 
-    def match(self, *args):
-        """Indicate whether or not to enter a case suite"""
-        if self.fall or not args:
-            return True
-        elif self.value in args: # changed for v1.5, see below
-            self.fall = True
-            return True
-        else:
-            return False
+   def match(self, *args):
+      """Indicate whether or not to enter a case suite"""
+      if self.fall or not args:
+         return True
+      elif self.value in args: # changed for v1.5, see below
+         self.fall = True
+         return True
+      else:
+         return False
 
-
-# Set up the text log
-fmt = OutputFormatter('%(asctime)s %(levelname)s %(name)s %(message)s %(command)s %(output)s %(duration)fs', pretty=False)
-fHandle = logging.FileHandler("test_raw.txt", mode="w")
-fHandle.setFormatter(fmt)
-
-# Set up the HTML log
-html = HTMLHandler("test_raw.html", pretty=False)
-log = logging.getLogger("")
-log.setLevel(logging.DEBUG)
-log.addHandler(fHandle)
-log.addHandler(html)
-
-wsman = WSMan(transport=Subprocess())
 debug = False
 check_mode = False
+fmt = ''
+fHandle = ''
+html = ''
+log = ''
+wsman = ''
 
 # Boot to a network ISO image. Reboot appears to be immediate.
 #
-# remote: hostname, username, password passed to Remote() of WSMan
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
 # share_user: username for the share
 #    - default: ''
 # share_pass: password for the share
@@ -518,13 +511,9 @@ def checkReadyState(remote):
    return msg
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # reboot_type:
 #    - 1 = PowerCycle, 2 = Graceful Reboot without forced shutdown, 3 = Graceful reboot with forced shutdown
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
 #
 def createRebootJob (remote,hostname,reboot_type):
    msg = { }
@@ -539,7 +528,7 @@ def createRebootJob (remote,hostname,reboot_type):
    return msg
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # force_fault:
 #    - boolean: True or False
 #    - default: False
@@ -597,7 +586,7 @@ def createTargetedConfigJobRAID(remote,hostname,remove_xml,reboot_type,
 # wsman:
 #    - provided by module
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # jobid:
 #    - default: JID_CLEARALL
 # force_fault:
@@ -753,6 +742,25 @@ def detachSDCardPartitions(remote,hostname):
    msg['failed'] = False
    return msg
 
+#
+def enumerateEventFilters(remote):
+   msg = { 'msg': {} }
+
+   res = ___enumerateEventFilters(remote)
+   if res['failed']:
+      msg['failed'] = True
+      msg['changed'] = False
+      return msg
+
+   for k in res:
+      # this k != 'failed' is needed! failed is True or False and python blows
+      # up if you try to iterate a bool object!
+      if k != 'failed':
+         msg['msg'][k] = res[k]
+
+   msg['changed'] = False
+   return msg
+
 # Puts the return values from ___enumerateSoftwareIdentity() into ansible_facts
 # 
 def enumerateSoftwareIdentity(remote):
@@ -781,6 +789,7 @@ def enumerateSoftwareIdentity(remote):
 # share before putting it back.
 #
 # remote:
+#    - ip, username, password passed to Remote() of WSMan
 # share_user:
 # share_pass:
 # share_name:
@@ -990,7 +999,7 @@ def getSystemInventory(remote):
    return msg
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # share_info:
 #    - share_user, share_pass, share_name, share_type, share_ip
 # hostname:
@@ -1078,6 +1087,19 @@ def importSystemConfiguration(remote,share_info,hostname,import_file,
 
    return msg
 
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
+# hostname:
+#    - This is used to make the generated XML file unique
+# user_to_change:
+#    the username that we are changing the password for
+# new_pass:
+#    the new password
+# force_fault:
+#    - boolean: True or False
+#    - default: False
+#       Forces a failure state.
+#
 def resetPassword(remote,hostname,user_to_change,new_pass,force_fault=False):
    msg = {}
 
@@ -1091,12 +1113,15 @@ def resetPassword(remote,hostname,user_to_change,new_pass,force_fault=False):
       msg['msg'] = 'new_pass must be defined'
       return msg
 
-   print new_pass
+   # TODO add to debug
+   #print new_pass
 
-   res = ___enumerateIdracCardString(remote,force_fault)
+   res = ___enumerateIdracCardString(remote)
    if res['failed']:
       return res
 
+   # TODO Could make this loop slightly faster if went directly to the users
+   # instead of looping thru the whole dictionary
    found = 0
    for k in res:
       #print k
@@ -1115,7 +1140,7 @@ def resetPassword(remote,hostname,user_to_change,new_pass,force_fault=False):
                attribute_name = tmp[1]+'#Password'
                attributes = {}
                attributes[attribute_name] = new_pass
-               result = ___applyAttributes(remote,hostname,target,attributes)
+               result = ___applyAttributes(remote,target,attributes)
                if result['failed']:
                   return result
 
@@ -1131,7 +1156,7 @@ def resetPassword(remote,hostname,user_to_change,new_pass,force_fault=False):
    return msg
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # force_fault:
 #    - boolean: True or False
 #    - default: False
@@ -1140,8 +1165,8 @@ def resetPassword(remote,hostname,user_to_change,new_pass,force_fault=False):
 def resetRAIDConfig(remote,hostname,remove_xml,force_fault) :
    msg = {}
 
-   # wsman invoke -a ResetConfig http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_RAIDService&SystemName=DCIM:ComputerSystem&Name=DCIM:RAIDService -h 10.22.252.15 -V -v -c Dummy -P 443 -u root -p cdadmin99 -J /tmp/resetConfig.xml -j utf-8 -y basic
-   # wsman invoke " http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService?CreationClassName="DCIM_RAIDService"&SystemName="DCIM:ComputerSystem"&Name="DCIM:RAIDService"&SystemCreationClassName="DCIM_ComputerSystem"" -a "ResetConfig" -u root -p cdadmin99 -h 10.22.252.15 -P 443 -j utf-8 -y basic -V -v -c Dummy --input="/tmp/resetConfig.xml"
+   # wsman invoke -a ResetConfig http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_RAIDService&SystemName=DCIM:ComputerSystem&Name=DCIM:RAIDService -h 10.22.252.15 -V -v -c Dummy -P 443 -u root -p <password> -J /tmp/resetConfig.xml -j utf-8 -y basic
+   # wsman invoke " http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService?CreationClassName="DCIM_RAIDService"&SystemName="DCIM:ComputerSystem"&Name="DCIM:RAIDService"&SystemCreationClassName="DCIM_ComputerSystem"" -a "ResetConfig" -u <username> -p <password> -h <hostname> -P 443 -j utf-8 -y basic -V -v -c Dummy --input="/tmp/resetConfig.xml"
    r = Reference("DCIM_RAIDService")
 
    if force_fault:
@@ -1183,7 +1208,151 @@ def resetRAIDConfig(remote,hostname,remove_xml,force_fault) :
    return msg
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
+# servers:
+#    - dicionary of servers - iDRAC limit of 3
+#
+# check_mode is working
+def syslogSettings(remote,servers,enable,port):
+   msg = {}
+   attributes = {}
+   msg['changed'] = False
+
+   if not servers:
+      msg['failed'] = True
+      msg['msg'] = 'servers must be defined'
+      if debug:
+         log.debug ("hostname: %s, servers not defined in syslogSettings", remote.ip)
+      return msg
+
+   res = ___enumerateIdracCardString(remote)
+   if res['failed']:
+      return res
+
+   target = "iDRAC.Embedded.1"
+   if ('Server1' in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server1']['CurrentValue'] != servers['Server1']):
+      msg['changed'] = True
+      attributes['SysLog.1#Server1'] = servers['Server1']
+   elif ('Server1' not in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server1']['CurrentValue'] != ''):
+      msg['changed'] = True
+      attributes['SysLog.1#Server1'] = ''
+
+
+   if ('Server2' in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server2']['CurrentValue'] != servers['Server2']):
+      msg['changed'] = True
+      attributes['SysLog.1#Server2'] = servers['Server2']
+   elif ('Server2' not in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server2']['CurrentValue'] != ''):
+      msg['changed'] = True
+      attributes['SysLog.1#Server2'] = ''
+
+   if ('Server3' in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server3']['CurrentValue'] != servers['Server3']):
+      msg['changed'] = True
+      attributes['SysLog.1#Server3'] = servers['Server3']
+   elif ('Server3' not in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server3']['CurrentValue'] != ''):
+      msg['changed'] = True
+      attributes['SysLog.1#Server3'] = ''
+
+   # According Dell's documentation this should give all the iDRAC settings 
+   # (Integer and String) but, it doesn't.
+   res = ___enumerateIdracCard(remote)
+   if res['failed']:
+      return res
+
+   if enable and (res['iDRAC.Embedded.1#SysLog.1#SysLogEnable']['CurrentValue'] != 'Enabled'):
+      log.debug ("hostname: %s, syslog not enabled. Enabling.", remote.ip)
+      msg['changed'] = True
+      attributes['SysLog.1#SysLogEnable'] = 'Enabled'
+   elif (not enable) and (res['iDRAC.Embedded.1#SysLog.1#SysLogEnable']['CurrentValue'] == 'Enabled'):
+      log.debug ("hostname: %s, syslog enabled. Disabling.", remote.ip)
+      msg['changed'] = True
+      attributes['SysLog.1#SysLogEnable'] = 'Disabled'
+
+   # For syslog to work both syslog and ipmi have to be enabled
+   if enable and (res['iDRAC.Embedded.1#IPMILan.1#AlertEnable']['CurrentValue'] != 'Enabled'):
+      log.debug ("hostname: %s, IPMI alerting over lan not enabled. Enabling.", remote.ip)
+      msg['changed'] = True
+      attributes['IPMILan.1#AlertEnable'] = 'Enabled'
+   elif (not enable) and (res['iDRAC.Embedded.1#IPMILan.1#AlertEnable']['CurrentValue'] == 'Enabled'):
+      log.debug ("hostname: %s, IPMI alerting over lan enabled. Disabling.", remote.ip)
+      msg['changed'] = True
+      attributes['IPMILan.1#AlertEnable'] = 'Disabled'
+
+   res = ___enumerateIdracCardInteger(remote)
+   if res['failed']:
+      return res
+
+   if port != int(res['iDRAC.Embedded.1#SysLog.1#Port']['CurrentValue']):
+      log.debug ("hostname: %s, syslog port doesn't match setting to %s. Enabling.",
+                 remote.ip, res['iDRAC.Embedded.1#SysLog.1#Port']['CurrentValue'])
+      msg['changed'] = True
+      attributes['SysLog.1#Port'] = res['iDRAC.Embedded.1#SysLog.1#Port']['CurrentValue']
+
+   if not check_mode:
+      if msg['changed']:
+         result = ___applyAttributes(remote,target,attributes)
+         if result['failed']:
+            return result
+
+   msg['failed'] = False
+   msg['msg'] = 'Syslog Servers Set'
+   return msg
+
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
+#
+# check_mode is working
+#def setEventFilters(remote,enable_event,enable_service,disable_event,disable_service):
+def setEventFiltersByInstanceIDs(remote):
+   msg = { 'msg': {} }
+   msg['changed'] = False
+   targets = {}
+   event_instances = {}
+
+   res = ___enumerateEventFilters(remote)
+   if res['failed']:
+      res['changed'] = False
+      return res
+
+   for k in res:
+      if k != "failed":
+         print "key: ",k
+         #msg['msg'].update(res[k])
+         # check to see if this alert supports "Remote System Log"
+         if "Remote System Log" in res[k]['PossibleNotificationDescriptions']:
+            #print "index: ", res[k]['PossibleNotificationDescriptions'].index('Remote System Log')
+            idx = res[k]['PossibleNotificationDescriptions'].index('Remote System Log')
+            #print "PossibleNotifications: ",res[k]['PossibleNotifications'][idx]
+            rsyslog_dec = res[k]['PossibleNotifications'][idx]
+            if rsyslog_dec not in res[k]['Notification']:
+               # add it to res because we are going to change it and return res
+               res[k]['Notification'].append(rsyslog_dec)
+
+               if '0' in res[k]['Notification']:
+                  res[k]['Notification'].remove('0')
+
+               if not check_mode:
+                  # Set the Event Filter
+                  tmp = dict(res[k])
+                  tmp['InstanceID'] = k
+                  set_ef_res = ___setEventFilterByInstanceID(remote,tmp)
+                  if set_ef_res['failed']:
+                     return set_ef_res
+
+               # Set changed because a change has been made
+               msg['changed'] = True
+
+         # add this Event Filter for return whether changed or not
+         msg['msg'][k] = res[k]
+
+   if debug:
+      tmp = json.dumps(msg, indent=3, separators=(',', ': '))
+      log.debug("hostname: %s, msg: %s",remote.ip,tmp)
+
+   msg['failed'] = False
+   return msg
+
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
 # jobs:
 #    - array of jobs to be executed.
 #
@@ -1568,22 +1737,19 @@ def upgradePerc(remote,hostname,share_info,firmware):
 # -h <hostname> -V -v -c dummy.cert -P 443 \
 # -u <user> -p <pass> -j utf-8 -y basic -J <file>
 #
-def ___applyAttributes(remote,hostname,target,attributes,remove_xml=True,force_fault=False):
+def ___applyAttributes(remote,target,attributes,remove_xml=True):
    ret = {}
 
    ref = Reference("DCIM_OSDeploymentService")
 
-   if force_fault:
-      ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcM_RAIDService")
-   else:
-      ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardService")
+   ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardService")
 
    ref.set("SystemCreationClassName", "DCIM_ComputerSystem")
    ref.set("CreationClassName", "DCIM_iDRACCardService")
    ref.set("SystemName", "DCIM:ComputerSystem")
    ref.set("Name","DCIM:iDRACCardService")
 
-   sffx = "_"+hostname+"_Attributes.xml"
+   sffx = "_"+remote.ip+"_Attributes.xml"
 
    fh = tempfile.NamedTemporaryFile(delete=False, mode='w', suffix=sffx)
 
@@ -1617,16 +1783,10 @@ def ___applyAttributes(remote,hostname,target,attributes,remove_xml=True,force_f
 
 # Checks the job Status of the given Job ID.
 #
-# wsman:
-#    - provided by module
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # jobid:
 #    - passed in by Ansible.
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
 #
 def ___checkJobStatus (remote,jobid):
    msg = {}
@@ -1650,14 +1810,9 @@ def ___checkJobStatus (remote,jobid):
 
 # This function will set the failure status but, it is up to the calling
 # function to set changed
+#
 def ___checkReturnValues(res, msg = {}):
    found = 0
-
-   # Steve: Always inititialize values required by other functions, this will prevent random exceptions.
-   #        If the return values are empty, means something bad happen along the "Fail" message.
-   msg['ServerStatus'] = ''
-   msg['LCStatus'] = ''
-   msg['Status'] = ''
 
    for p in res.keys:
       if debug:
@@ -1711,6 +1866,12 @@ def ___checkReturnValues(res, msg = {}):
          tmp = re.split("'", tmp)
          #print tmp[1]
          msg['Message'] = tmp[1]
+
+      if re.match('MessageID', p):
+         tmp = res.get(p).__str__()
+         tmp = re.split("'", tmp)
+         #print tmp[1]
+         msg['MessageID'] = tmp[1]
 
       if re.match('Job', p) != None:
          tmp = res.get(p).__str__() # convert to a string
@@ -1844,16 +2005,13 @@ def ___checkShareInfo(share_info):
    return msg
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # reboot_type:
 #    - 1 = PowerCycle, 2 = Graceful Reboot without forced shutdown, 3 = Graceful reboot with forced shutdown
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
 #
 # Does not return a changed status. That is up to the calling function.
 #
+# TODO: hostname is not needed in this function. Use remote.ip instead
 def ___createRebootJob (remote,hostname,reboot_type):
    msg = { }
 
@@ -1897,8 +2055,8 @@ def ___createRebootJob (remote,hostname,reboot_type):
 # disk 6. If you need to create a lot of virtual disks or are doing initial
 # setup see ___exportSystemConfiguration and ___importSystemConfiguration().
 #
-# wsman:
 # remote:
+#    - ip, username, password passed to Remote() of WSMan
 # target: This parameter is the FQDD of the DCIM_ControllerView
 #     example: RAID.Integrated.1-1
 #
@@ -2142,26 +2300,63 @@ def ___elem_to_internal(elem, strip_ns=1, strip=1):
       d = text or None
    return {elem_tag: d}
 
-def ___enumerateIdracCard(remote,force_fault=False):
+#
+# wsman enumerate \
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EventFilter" \
+# -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password> -j utf-8 \
+# -y basic
+#
+def ___enumerateEventFilters(remote):
    ret = {}
 
-   # wsman enumerate \
-   # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardEnumeration  " \
-   # -h 10.22.252.130 -V -v -c dummy.cert -P 443 -u root -p cdadmin99 -j utf-8 \
-   # -y basic
+   r = Reference("DCIM_EventFilter")
+
+   r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EventFilter")
+
+   # provides raw XML output
+   #res = wsman.enumerate(r, 'root/dcim', remote, True)
+   #print res
+   res = wsman.enumerate(r, 'root/dcim', remote)
+   if type(res) is Fault:
+      ret['failed'] = True
+      ret['result'] = "Could not enumerate Event Filters"
+      ret['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
+      return ret
+
+   for instance in res:
+      tmp = ''
+      for k,v in instance.items:
+         if k == 'InstanceID':
+            tmp = ("%s" % ("".join(map(lambda x: x if x else "" ,v)) ))
+
+      ret[tmp] = {}
+      for k,v in instance.items:
+         if k != 'InstanceID':
+            ret[tmp][k] = v
+
+   ret['failed'] = False
+   return ret
+
+# TODO consider making part of fact gathering
+#
+# wsman enumerate \
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardEnumeration" \
+# -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password> -j utf-8 \
+# -y basic
+#
+def ___enumerateIdracCard(remote):
+   ret = {}
+
    r = Reference("DCIM_iDRACCardEnumeration")
 
-   if force_fault:
-      r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcM_RAIDService")
-   else:
-      r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardEnumeration")
+   r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardEnumeration")
 
    res = wsman.enumerate(r, 'root/dcim', remote)
    if type(res) is Fault:
-      #print 'There was an error!'
-      msg['failed'] = True
-      msg['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
-      return msg
+      ret['failed'] = True
+      ret['result'] = "Could not enumerate iDRAC Card"
+      ret['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
+      return ret
 
    for instance in res:
       tmp = ''
@@ -2169,7 +2364,7 @@ def ___enumerateIdracCard(remote,force_fault=False):
          if k == 'InstanceID':
             tmp = ("%s" % ("".join(map(lambda x: x if x else "" ,v)) ))
             #ret['InstanceID'] = tmp
-            print tmp
+            #print tmp
 
       ret[tmp] = {}
       for k,v in instance.items:
@@ -2183,19 +2378,59 @@ def ___enumerateIdracCard(remote,force_fault=False):
    ret['changed'] = False
    return ret
 
-def ___enumerateIdracCardString(remote,force_fault=False):
+# TODO consider making a part of fact gathering
+#
+# wsman enumerate \
+# http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardInteger \
+# -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password> \
+# -j utf-8 -y basic
+#
+def ___enumerateIdracCardInteger(remote):
    ret = {}
 
-   # wsman enumerate \
-   # http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardString \
-   # -h <idrac hostname> -V -v -c dummy.cert -P 443 -u <idrac user> -p \
-   # <idrac pass> -j utf-8 -y basic
+   ref = Reference("DCIM_iDRACCardInteger")
+
+   ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardInteger")
+
+   res = wsman.enumerate(ref, 'root/dcim', remote)
+   if type(res) is Fault:
+      ret['failed'] = True
+      ret['changed'] = False
+      ret['result'] = 'Could not enumerate iDRAC Card Integer'
+      ret['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
+      return ret
+
+   for instance in res:
+      tmp = ''
+      for k,v in instance.items:
+         if k == 'InstanceID':
+            tmp = ("%s" % ("".join(map(lambda x: x if x else "" ,v)) ))
+            #msg['InstanceID'] = tmp
+            tmp = tmp.__str__()
+
+      ret[tmp] = {}
+      for k,v in instance.items:
+         if k != 'InstanceID':
+            value = ("%s" % ("".join(map(lambda x: x if x else "" ,v)) ))
+            k = k.__str__()
+            ret[tmp][k] = value.__str__()
+
+   ret['failed'] = False
+   return ret
+
+# TODO consider making a part of fact gathering
+#
+# wsman enumerate \
+# http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardString \
+# -h <idrac hostname> -V -v -c dummy.cert -P 443 -u <idrac user> -p \
+# <idrac pass> -j utf-8 -y basic
+#
+def ___enumerateIdracCardString(remote):
+   ret = {}
+
    ref = Reference("DCIM_iDRACCardString")
 
-   if force_fault:
-      ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcM_RAIDService")
-   else:
-      ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardString")
+   ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardString")
 
    res = wsman.enumerate(ref, 'root/dcim', remote)
    if type(res) is Fault:
@@ -2262,11 +2497,7 @@ def ___enumerateSoftwareIdentity(remote):
    return ret
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
+#    - ip, username, password passed to Remote() of WSMan
 #
 # wsman invoke -a GetRemoteServicesAPIStatus
 # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_LCService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_LCService&SystemName=DCIM:ComputerSystem&Name=DCIM:LCService
@@ -2275,6 +2506,10 @@ def ___enumerateSoftwareIdentity(remote):
 #
 def ___getRemoteServicesAPIStatus (remote):
    msg = {}
+   msg['ServerStatus'] = ''
+   msg['LCStatus'] = ''
+   msg['Status'] = ''
+   msg['ReturnValue'] = ''
 
    r = Reference("DCIM_LCService")
 
@@ -2308,7 +2543,7 @@ def ___info(object, spacing=10, collapse=1):
                     for method in methodList])
 
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
 # share_info: Consists of the below
 #    user:
 #    pass:
@@ -2319,10 +2554,6 @@ def ___info(object, spacing=10, collapse=1):
 # firmware:
 #    - default: ''
 # instanceID: The firmware instance to be changed
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
 #
 # wsman invoke -a InstallFromURI
 # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_SoftwareInstallationService?CreationClassName=DCIM_SoftwareInstallationService&SystemCreationClassName=DCIM_ComputerSystem&SystemName=IDRAC:ID&Name=SoftwareUpdate"
@@ -2528,21 +2759,118 @@ def ___listSDCardPartitions(remote, msg={}):
 
    return msg
 
+# wsman invoke -a SetEventFilterByCategory \
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationServcie?SystemCreationClassName=DCIM_SPComputerSystem&CreationClassName=DCIM_EFConfigurationServcie&SystemName=systemmc&Name=DCIM:EFConfigurationService" \
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService?SystemCreationClassName=DCIM_SPComputerSystem&CreationClassName=DCIM_EFConfigurationService&SystemName=systemmc&Name=DCIM:EFConfigurationService"
+# -h <hostname> -P 443 -u <username> -p <password> -V -v -c dummy.cert \
+# -j utf-8 -y basic -k "Category=Storage" -k "SubCategory=BAT" \
+# -k "Severity=Warning" -k "RequestedAction=0" \
+# -k "RequestedNotification=2,3,5,6,7"
+#
+def ___setEventFilterByCategory(remote,event_instance):
+   msg = {}
+
+   return msg
+
 # remote:
-#    - hostname, username, password passed to Remote() of WSMan
+#    - ip, username, password passed to Remote() of WSMan
+# eventInstance:
+#    - dict of a single Event Filter by InstanceID
+#      {
+#          "InstanceID": "iDRAC.Embedded.1#RACEvtFilterCfgRoot#BAT_2_2"
+#          "Actions": ['0','1','2','3']
+#          "Notifications": ['1','2','3','4','5','6','7']
+#      }
+#
+# See the docs/mofs/DCIM_EventFilter.mof for information on the above Actions
+# and Notifications
+#
+# This command sets one Notification at a time and turns the others off. Not
+# real useful IMO but, put here for completeness
+#
+# wsman invoke -a SetEventFilterByInstanceIDs \
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService?Name=DCIM:EFConfigurationService&CreationClassName=DCIM_EFConfigurationService&SystemName=systemmc&SystemCreationClassName=DCIM_SPComputerSystem" \
+# -h <hostname> -P 443 -u <username> -p <password> -V -v -c dummy.cert \
+# -j utf-8 -y basic \
+# -k "InstanceID=iDRAC.Embedded.1#RACEvtFilterCfgRoot#BAT_2_2" \
+# -k "RequestedAction=0" -k "RequestedNotification=5"
+#
+# This command uses an XML file to set multiple notifications but, can only set
+# one Event Filter at a time. I have put in a request will Dell to enhance the 
+# iDRAC so that multiple Event Filters can be set at a time.
+#
+# wsman invoke -a SetEventFilterByInstanceIDs \
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService?Name=DCIM:EFConfigurationService&CreationClassName=DCIM_EFConfigurationService&SystemName=systemmc&SystemCreationClassName=DCIM_SPComputerSystem" \
+# -h <hostname> -P 443 -u <username> -p <password> -V -v -c dummy.cert \
+# -j utf-8 -y basic -J <file.xml>
+#
+# <p:SetEventFilterByInstanceIDs_INPUT xmlns:p="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService">
+#    <p:InstanceID>iDRAC.Embedded.1#RACEvtFilterCfgRoot#BAT_2_2</p:InstanceID>
+#    <p:RequestedAction>0</p:RequestedAction>
+#    <p:RequestedNotification>2</p:RequestedNotification>
+#    <p:RequestedNotification>3</p:RequestedNotification>
+#    <p:RequestedNotification>5</p:RequestedNotification>
+#    <p:RequestedNotification>6</p:RequestedNotification>
+#    <p:RequestedNotification>7</p:RequestedNotification>
+# </p:SetEventFilterByInstanceIDs_INPUT>
+#
+def ___setEventFilterByInstanceID(remote,event_instance):
+   msg = {}
+
+   ref = Reference ("DCIM_EFConfigurationService")
+
+   ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService")
+
+   ref.set("SystemCreationClassName","DCIM_SPComputerSystem")
+   ref.set("CreationClassName","DCIM_EFConfigurationService")
+   ref.set("SystemName","systemmc")
+   ref.set("Name","DCIM:EFConfigurationService")
+
+   sffx = "_"+remote.ip+"_EventFilterByInstanceIDInput.xml"
+
+   fh = tempfile.NamedTemporaryFile(delete=False, mode='w', suffix=sffx)
+
+   fh.write('<p:SetEventFilterByInstanceIDs_INPUT ')
+   fh.write('xmlns:p="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService">\n')
+   fh.write('<p:InstanceID>'+event_instance['InstanceID']+'</p:InstanceID>\n')
+   for k in event_instance['Action']:
+      fh.write('<p:RequestedAction>'+k+'</p:RequestedAction>\n')
+   for k in event_instance['Notification']:
+      fh.write('<p:RequestedNotification>'+k+'</p:RequestedNotification>\n')
+   fh.write('</p:SetEventFilterByInstanceIDs_INPUT>\n')
+
+   fh.close()
+
+   res = wsman.invoke(ref, 'SetEventFilterByInstanceIDs', fh.name, remote)
+   if not debug:
+      os.remove(fh.name)
+
+   if type(res) is Fault:
+      #print 'There was an error!'
+      msg['failed'] = True
+      msg['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
+      return msg
+
+   msg = ___checkReturnValues(res,msg)
+
+   msg['failed'] = False
+   return msg
+
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
 # jobs:
-#    - array of jobs to be executed.
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
+#    - list of jobs to be executed.
 #
 # This function does not return changed status. It is up to the calling function.
+#
+# wsman invoke -a SetupJobQueue \
+# http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_JobService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_JobService&SystemName=Idrac&Name=JobService \
+# -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password> \
+# -J SetupJobQueue.xml -j utf-8 -y basic
 #
 def ___setupJobQueue(remote,hostname,jobs):
    msg = { }
 
-   # wsman invoke -a SetupJobQueue http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_JobService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_JobService&SystemName=Idrac&Name=JobService -h $IPADDRESS -V -v -c dummy.cert -P 443 -u $USERNAME -p $PASSWORD -J SetupJobQueue.xml -j utf-8 -y basic
    r = Reference ("DCIM_JobService")
 
    r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_JobService")
@@ -2770,98 +3098,125 @@ def ___upgradeFirmware(remote,hostname,share_info,firmware,instanceID):
    return msg
 
 def main():
-   global debug,check_mode
+   global debug,check_mode,fmt,fHandle,html,log,wsman
 
    module = AnsibleModule(
       argument_spec = dict(
-         hostname          = dict(required=True),
-         username          = dict(required=True),
-         password          = dict(required=True),
+         attributes        = dict(type='list'),
          command           = dict(required=True),
+         debug             = dict(default='False',type='bool'),
+         disk_cache_policy = dict(default=''),
+         enable            = dict(type='bool',default='True'),
+         firmware          = dict(default=''),
+         force_fault       = dict(default=False),
+         hostname          = dict(required=True),
+         import_file       = dict(default=''),
+         instanceID        = dict(default=''),
+         iso_image         = dict(),
          jobid             = dict(default=''),
-         target_controller = dict(default=''),
+         local_path        = dict(default='~'),
+         new_pass          = dict(),
+         old_pass          = dict(),
+         partition_ndx     = dict(),
+         password          = dict(required=True),
          physical_disks    = dict(default=''),
+         port              = dict(type='int',default=514),
          raid_level        = dict(default=''),
-         span_length       = dict(default=''),
-         virtual_disk_name = dict(default=''),
+         read_policy       = dict(default=''),
+         rebootid          = dict(),
+         reboot_type       = dict(default='2'),
+         remove_xml        = dict(default=True),
+         servers           = dict(type='dict'),
+         share_ip          = dict(default=''),
+         share_name        = dict(default=''),
+         share_pass        = dict(default=''),
+         share_type        = dict(default=''),
+         share_user        = dict(default=''),
          size              = dict(default=''),
          span_depth        = dict(default=''),
+         span_length       = dict(default=''),
          stripe_size       = dict(default=''),
-         read_policy       = dict(default=''),
-         write_policy      = dict(default=''),
-         disk_cache_policy = dict(default=''),
-         share_user        = dict(default=''),
-         share_pass        = dict(default=''),
-         share_name        = dict(default=''),
-         share_type        = dict(default=''),
-         share_ip          = dict(default=''),
-         workgroup         = dict(default=''),
-         local_path        = dict(default='~'),
-         import_file       = dict(default=''),
-         firmware          = dict(default=''),
-         reboot_type       = dict(default='2'),
+         target            = dict(default='iDRAC.Embedded.1'),
+         target_controller = dict(default=''),
          user_to_change    = dict(default=''),
-         old_pass          = dict(),
-         new_pass          = dict(),
-         rebootid          = dict(),
-         remove_xml        = dict(default=True),
-         iso_image         = dict(),
-         partition_ndx     = dict(),
-         instanceID        = dict(default=''),
-         force_fault       = dict(default=False),
-         debug             = dict(default=False)
+         username          = dict(required=True),
+         virtual_disk_name = dict(default=''),
+         workgroup         = dict(default=''),
+         write_policy      = dict(default='')
       ),
       supports_check_mode=True
    )
 
-   hostname          = module.params['hostname']
-   username          = module.params['username']
-   password          = module.params['password']
+   attributes        = module.params['attributes']
    command           = module.params['command']
+   debug             = module.params['debug']
+   disk_cache_policy = module.params['disk_cache_policy']
+   enable            = module.params['enable']
+   firmware          = module.params['firmware']
+   force_fault       = module.params['force_fault']
+   hostname          = module.params['hostname']
+   import_file       = module.params['import_file']
+   instanceID        = module.params['instanceID']
+   iso_image         = module.params['iso_image']
    jobid             = module.params['jobid']
-   target_controller = module.params['target_controller']
+   local_path        = module.params['local_path']
+   new_pass          = module.params['new_pass']
+   old_pass          = module.params['old_pass']
+   partition_ndx     = module.params['partition_ndx']
+   password          = module.params['password']
    physical_disks    = module.params['physical_disks']
+   port              = module.params['port']
    raid_level        = module.params['raid_level']
-   span_length       = module.params['span_length']
-   virtual_disk_name = module.params['virtual_disk_name']
+   read_policy       = module.params['read_policy']
+   reboot_type       = module.params['reboot_type']
+   rebootid          = module.params['rebootid']
+   remove_xml        = module.params['remove_xml']
+   servers           = module.params['servers']
+   share_ip          = module.params['share_ip']
+   share_name        = module.params['share_name']
+   share_pass        = module.params['share_pass']
+   share_type        = module.params['share_type']
+   share_user        = module.params['share_user']
    size              = module.params['size']
+   span_length       = module.params['span_length']
    span_depth        = module.params['span_depth']
    stripe_size       = module.params['stripe_size']
-   read_policy       = module.params['read_policy']
-   write_policy      = module.params['write_policy']
-   disk_cache_policy = module.params['disk_cache_policy']
-   share_user        = module.params['share_user']
-   share_pass        = module.params['share_pass']
-   share_name        = module.params['share_name']
-   share_type        = module.params['share_type']
-   share_ip          = module.params['share_ip']
-   workgroup         = module.params['workgroup']
-   local_path        = module.params['local_path']
-   import_file       = module.params['import_file']
-   firmware          = module.params['firmware']
-   reboot_type       = module.params['reboot_type']
+   target            = module.params['target']
+   target_controller = module.params['target_controller']
    user_to_change    = module.params['user_to_change']
-   old_pass          = module.params['old_pass']
-   new_pass          = module.params['new_pass']
-   rebootid          = module.params['rebootid']
-   reboot_type       = module.params['reboot_type']
-   remove_xml        = module.params['remove_xml']
-   iso_image         = module.params['iso_image']
-   partition_ndx     = module.params['partition_ndx']
-   instanceID        = module.params['instanceID']
-   force_fault       = module.params['force_fault']
-   local_debug       = module.params['debug']
+   username          = module.params['username']
+   virtual_disk_name = module.params['virtual_disk_name']
+   workgroup         = module.params['workgroup']
+   write_policy      = module.params['write_policy']
+
    check_mode        = module.check_mode
 
-   if local_debug == 'True':
-      print "Entering debug mode"
-      debug = True
+   if not HAS_WSMAN:
+      module.fail_json(msg='dell-wsman-client-api-python is required for this module http://github.com/hbeatty/dell-wsman-client-api-python')
+
+   wsman = WSMan(transport=Subprocess())
+
+   # Set up the text log
+   fmt = OutputFormatter('%(asctime)s %(levelname)s %(name)s %(message)s %(command)s %(output)s %(duration)fs', pretty=False)
+   fHandle = logging.FileHandler("test_raw.txt", mode="w")
+   fHandle.setFormatter(fmt)
+
+   # Set up the HTML log
+   html = HTMLHandler("test_raw.html", pretty=False)
+   log = logging.getLogger("")
+   log.setLevel(logging.DEBUG)
+   log.addHandler(fHandle)
+   log.addHandler(html)
+
+   if debug:
+      #debug = True
       logging.basicConfig(level=logging.DEBUG,
                           format='%(asctime)s %(levelname)-8s %(message)s',
                           datefmt='%a, %d %b %Y %H:%M:%S')
+      log.debug ("Entering debug mode")
 
    if debug and check_mode:
-      print "Entering check mode"
+      log.debug ("Entering check mode")
 
    # this gets passed to all wsman commands
    remote = Remote(hostname, username, password)
@@ -2914,6 +3269,10 @@ def main():
       res = detachSDCardPartitions(remote,hostname)
       module.exit_json(**res)
 
+   elif command == "EnumerateEventFilters":
+      res = enumerateEventFilters(remote)
+      module.exit_json(**res)
+
    # The return value is in ansible_facts
    elif command == "EnumerateSoftwareIdentity":
       res = enumerateSoftwareIdentity(remote)
@@ -2945,6 +3304,14 @@ def main():
       res = resetRAIDConfig(remote,hostname,remove_xml,force_fault)
       module.exit_json(**res)
 
+   elif command == "SetEventFiltersByInstanceIDs":
+      res = setEventFiltersByInstanceIDs(remote)
+      module.exit_json(**res)
+
+   elif command == "SyslogSettings":
+      res = syslogSettings(remote,servers,enable,port)
+      module.exit_json(**res)
+
    elif command == "SetupJobQueue":
       res = setupJobQueue(remote,hostname,jobid,rebootid)
       module.exit_json(**res)
@@ -2965,10 +3332,6 @@ def main():
       res = upgradePerc(remote,hostname,share_info,firmware)
       module.exit_json(**res)
 
-# TODO: The below commands need to be reviewed to see if they are even
-# usable as stand alone functions since we can't keep state between module
-# calls.
-
    elif command == "CreateVirtualDisk":
       res = ___createVirtualDisk(remote,target_controller,physical_disks,
                                  raid_level,span_length,virtual_disk_name,size,
@@ -2981,20 +3344,32 @@ def main():
    # have to call any of them directly. They are in this section for testing
    # purposes.
 
+   elif command == "___applyAttributes":
+      res = ___applyAttributes(remote,target,attributes)
+      module.exit_json(**res)
+
    elif command == "___checkJobStatus":
       res = ___checkJobStatus(remote,jobid)
       module.exit_json(**res)
 
-   elif command == "DetachSDCardPartition":
+   elif command == "___detachSDCardPartition":
       res = ___detachSDCardPartition(remote,hostname,partition_ndx)
       module.exit_json(**res)
 
-   elif command == "EnumerateIdracCard":
-      res = ___enumerateIdracCard(remote,force_fault)
+   elif command == "___enumerateEventFilters":
+      res = ___enumerateEventFilters(remote)
       module.exit_json(**res)
 
-   elif command == "EnumerateIdracCardString":
-      res = ___enumerateIdracCardString(remote,force_fault)
+   elif command == "___enumerateIdracCard":
+      res = ___enumerateIdracCard(remote)
+      module.exit_json(**res)
+
+   elif command == "___enumerateIdracCardInteger(remote)":
+      res = ___enumerateIdracCardInteger(remote)
+      module.exit_json(**res)
+
+   elif command == "___enumerateIdracCardString":
+      res = ___enumerateIdracCardString(remote)
       module.exit_json(**res)
 
    # The return value isn't in ansible_facts
@@ -3002,15 +3377,15 @@ def main():
       res = ___enumerateSoftwareIdentity(remote)
       module.exit_json(**res)
 
-   elif command == "InstallFromURI":
+   elif command == "___installFromURI":
       res = ___installFromURI(remote,hostname,share_info,firmware)
       module.exit_json(**res)
 
-   elif command == "ListJobs":
+   elif command == "___listJobs":
       res = ___listJobs(remote,jobid,{})
       module.exit_json(**res)
 
-   elif command == "ListSDCardPartitions":
+   elif command == "___listSDCardPartitions":
       res = ___listSDCardPartitions(remote)
       module.exit_json(**res)
 
