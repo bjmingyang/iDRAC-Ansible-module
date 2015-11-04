@@ -186,11 +186,6 @@ options:
       default:
       required:
       relevant functions:
-   force_fault:
-      description:
-      default:
-      required:
-      relevant functions: All
 
 requirements:
  - wsmancli
@@ -391,12 +386,8 @@ wsman = ''
 #    - default: ''
 # iso_image: Path to ISO image relative to the share
 #    - default: ''
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
 #
-def bootToNetworkISO(remote,share_info,iso_image,force_fault=False):
+def bootToNetworkISO(remote,share_info,iso_image):
    msg = { 'ansible_facts': {} }
    properties = {};
 
@@ -409,10 +400,7 @@ def bootToNetworkISO(remote,share_info,iso_image,force_fault=False):
 
    r = Reference("DCIM_OSDeploymentService")
 
-   if force_fault:
-      r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcM_RAIDService")
-   else:
-      r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_OSDeploymentService")
+   r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_OSDeploymentService")
 
    r.set("CreationClassName","DCIM_OSDeploymentService")
    r.set("Name","DCIM:OSDeploymentService")
@@ -529,23 +517,15 @@ def createRebootJob (remote,hostname,reboot_type):
 
 # remote:
 #    - ip, username, password passed to Remote() of WSMan
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
 #
-def createTargetedConfigJobRAID(remote,hostname,remove_xml,reboot_type,
-                                force_fault):
+def createTargetedConfigJobRAID(remote,hostname,remove_xml,reboot_type):
    # TODO ansible_facts doesn't need to be here
    msg = { 'ansible_facts': { } }
 
    # wsman invoke -a CreateTargetedConfigJob http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService?SystemCreationClassName=DCIM_ComputerSystem,CreationClassName=DCIM_RAIDService,SystemName=DCIM:ComputerSystem,Name=DCIM:RAIDService -h $IPADDRESS -V -v -c dummy.cert -P 443 -u $USERNAME -p $PASSWORD -J CreateTargetedConfigJob_RAID.xml -j utf-8 -y basic
    r = Reference("DCIM_RAIDService")
 
-   if force_fault:
-      r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcM_RAIDService")
-   else:
-      r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService")
+   r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService")
 
    r.set("SystemCreationClassName","DCIM_ComputerSystem")
    r.set("CreationClassName","DCIM_RAIDService")
@@ -589,17 +569,13 @@ def createTargetedConfigJobRAID(remote,hostname,remove_xml,reboot_type,
 #    - ip, username, password passed to Remote() of WSMan
 # jobid:
 #    - default: JID_CLEARALL
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
 #
 # wsman invoke -a DeleteJobQueue \
 # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_JobService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_JobService&SystemName=Idrac&Name=JobService \
 # -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password> \
 # -k JobID="<jobid>" -j utf-8 -y basic
 #
-def deleteJobQueue(remote,jobid,force_fault=False):
+def deleteJobQueue(remote,jobid):
    msg = {}
    properties = {}
    properties['JobID'] = jobid
@@ -619,10 +595,7 @@ def deleteJobQueue(remote,jobid,force_fault=False):
 
    r = Reference("DCIM_JobService")
 
-   if force_fault:
-      r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcM_RAIDService")
-   else:
-      r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_JobService")
+   r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_JobService")
 
    r.set("SystemCreationClassName","DCIM_ComputerSystem")
    r.set("CreationClassName","DCIM_JobService")
@@ -800,13 +773,9 @@ def enumerateSoftwareIdentity(remote):
 # workgroup:
 # local_path:
 #    - default: "/tmp"
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
 #
 def exportSystemConfiguration(remote,share_info,hostname,local_path,
-                                 remove_xml=True,force_fault=False):
+                                 remove_xml=True):
 
    ret = { 'ansible_facts': {} }
    ret['failed'] = False
@@ -842,10 +811,7 @@ def exportSystemConfiguration(remote,share_info,hostname,local_path,
    # wsman invoke -a ExportSystemConfiguration http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_LCService?SystemCreationClassName=DCIM_ComputerSystem,CreationClassName=DCIM_LCService,SystemName=DCIM:ComputerSystem,Name=DCIM:LCService -h $IPADDRESS -V -v -c dummy.cert -P 443 -u $USERNAME -p $PASSWORD -j utf-8 -y basic
    ref = Reference("DCIM_LCService")
 
-   if force_fault:
-      ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcM_RAIDService")
-   else:
-      ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_LCService")
+   ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_LCService")
 
    ref.set("SystemCreationClassName","DCIM_ComputerSystem")
    ref.set("CreationClassName","DCIM_LCService")
@@ -957,7 +923,7 @@ def exportSystemConfiguration(remote,share_info,hostname,local_path,
 # This is just a stub function. Will be removed once no playbooks are calling
 # it directly.
 #
-def getRemoteServicesAPIStatus (remote,force_fault=False):
+def getRemoteServicesAPIStatus (remote):
 
    msg = ___getRemoteServicesAPIStatus(remote)
 
@@ -1010,13 +976,9 @@ def getSystemInventory(remote):
 #    - boolean: True or False
 #    - default: True
 #       Removes the generated XML file
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
 #
 def importSystemConfiguration(remote,share_info,hostname,import_file,
-                              remove_xml,force_fault):
+                              remove_xml):
    # wsman invoke -a ImportSystemConfiguration 
    # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_LCService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_LCService&SystemName=DCIM:ComputerSystem&Name=DCIM:LCService"
    # -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password>
@@ -1043,10 +1005,7 @@ def importSystemConfiguration(remote,share_info,hostname,import_file,
 
    ref = Reference("DCIM_LCService")
 
-   if force_fault:
-      ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcM_RAIDService")
-   else:
-      ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_LCService")
+   ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_LCService")
 
    ref.set("SystemCreationClassName","DCIM_ComputerSystem")
    ref.set("CreationClassName","DCIM_LCService")
@@ -1095,12 +1054,8 @@ def importSystemConfiguration(remote,share_info,hostname,import_file,
 #    the username that we are changing the password for
 # new_pass:
 #    the new password
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
 #
-def resetPassword(remote,hostname,user_to_change,new_pass,force_fault=False):
+def resetPassword(remote,hostname,user_to_change,new_pass):
    msg = {}
 
    if not user_to_change:
@@ -1157,22 +1112,15 @@ def resetPassword(remote,hostname,user_to_change,new_pass,force_fault=False):
 
 # remote:
 #    - ip, username, password passed to Remote() of WSMan
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
 #
-def resetRAIDConfig(remote,hostname,remove_xml,force_fault) :
+def resetRAIDConfig(remote,hostname,remove_xml):
    msg = {}
 
    # wsman invoke -a ResetConfig http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_RAIDService&SystemName=DCIM:ComputerSystem&Name=DCIM:RAIDService -h 10.22.252.15 -V -v -c Dummy -P 443 -u root -p <password> -J /tmp/resetConfig.xml -j utf-8 -y basic
    # wsman invoke " http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService?CreationClassName="DCIM_RAIDService"&SystemName="DCIM:ComputerSystem"&Name="DCIM:RAIDService"&SystemCreationClassName="DCIM_ComputerSystem"" -a "ResetConfig" -u <username> -p <password> -h <hostname> -P 443 -j utf-8 -y basic -V -v -c Dummy --input="/tmp/resetConfig.xml"
    r = Reference("DCIM_RAIDService")
 
-   if force_fault:
-       r.set_resource_uri('http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcM_RAIDService')
-   else:
-      r.set_resource_uri('http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService')
+   r.set_resource_uri('http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService')
 
    r.set("SystemCreationClassName","DCIM_ComputerSystem")
    r.set("CreationClassName","DCIM_RAIDService")
@@ -1381,7 +1329,7 @@ def setupJobQueue(remote,hostname,jobid,rebootid):
 # Checks current installed version and compares to version
 # that is being installed.
 #
-def upgradeBIOS(remote,hostname,share_info,firmware,force_fault=False):
+def upgradeBIOS(remote,hostname,share_info,firmware):
    msg = { }
    jobs = []
 
@@ -1549,7 +1497,7 @@ def upgradeBIOS(remote,hostname,share_info,firmware,force_fault=False):
 # Checks current installed version and compares to version
 # that is being installed.
 #
-def upgradeIdrac(remote,hostname,share_info,firmware,force_fault=False):
+def upgradeIdrac(remote,hostname,share_info,firmware):
    msg = { }
    msg['ansible_facts'] = {}
 
@@ -2107,15 +2055,10 @@ def ___createRebootJob (remote,hostname,reboot_type):
 # disk_cache_policy: Optional.
 #     Enabled = 512
 #     Disabled = 1024
-# force_fault:
-#    - boolean: True or False
-#    - default: False
-#       Forces a failure state.
 #
 def ___createVirtualDisk(remote,target,disks,raid_level,span_length,
                          virtual_disk_name,size,span_depth,stripe_size,
-                         read_policy,write_policy,disk_cache_policy,remove_xml,
-                         force_fault=False):
+                         read_policy,write_policy,disk_cache_policy,remove_xml):
    msg = { 'ansible_facts': {} }
    # wsman invoke -a CreateVirtualDisk \
    # http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService?SystemCreationClassName=DCIM_ComputerSystem,CreationClassName=DCIM_RAIDService,SystemName=DCIM:ComputerSystem,Name=DCIM:RAIDService \
@@ -2123,10 +2066,7 @@ def ___createVirtualDisk(remote,target,disks,raid_level,span_length,
    # dummy.cert -j utf-8 -y basic -J <filename>
    r = Reference("DCIM_RAIDService")
 
-   if force_fault:
-      r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcM_RAIDService")
-   else:
-      r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService")
+   r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService")
 
    r.set("SystemCreationClassName","DCIM_ComputerSystem")
    r.set("CreationClassName","DCIM_RAIDService")
@@ -3108,7 +3048,6 @@ def main():
          disk_cache_policy = dict(default=''),
          enable            = dict(type='bool',default='True'),
          firmware          = dict(default=''),
-         force_fault       = dict(default=False),
          hostname          = dict(required=True),
          import_file       = dict(default=''),
          instanceID        = dict(default=''),
@@ -3153,7 +3092,6 @@ def main():
    disk_cache_policy = module.params['disk_cache_policy']
    enable            = module.params['enable']
    firmware          = module.params['firmware']
-   force_fault       = module.params['force_fault']
    hostname          = module.params['hostname']
    import_file       = module.params['import_file']
    instanceID        = module.params['instanceID']
@@ -3232,7 +3170,7 @@ def main():
    }
 
    if command == "BootToNetworkISO":
-      res = bootToNetworkISO(remote,share_info,iso_image,force_fault)
+      res = bootToNetworkISO(remote,share_info,iso_image)
       module.exit_json(**res)
 
    elif command == "CheckJobStatus":
@@ -3248,17 +3186,16 @@ def main():
       module.exit_json(**res)
 
    elif command == "CreateTargetedConfigJobRAID":
-      res = createTargetedConfigJobRAID(remote,hostname,remove_xml,reboot_type,
-                                        force_fault)
+      res = createTargetedConfigJobRAID(remote,hostname,remove_xml,reboot_type)
       module.exit_json(**res)
 
    elif command == "DeleteJob":
-      res = deleteJobQueue(remote,jobid,force_fault)
+      res = deleteJobQueue(remote,jobid)
       module.exit_json(**res)
 
    elif command == "DeleteJobQueue":
       jobid = 'JID_CLEARALL'
-      res = deleteJobQueue(remote,jobid,force_fault)
+      res = deleteJobQueue(remote,jobid)
       module.exit_json(**res)
 
    elif command == "DetachISOImage":
@@ -3280,7 +3217,7 @@ def main():
 
    elif command == "ExportSystemConfiguration":
       res = exportSystemConfiguration(remote,share_info,hostname,local_path,
-                                         remove_xml,force_fault)
+                                         remove_xml)
       module.exit_json(**res)
 
    elif command == "GetSystemInventory":
@@ -3288,20 +3225,20 @@ def main():
       module.exit_json(**res)
 
    elif command == "GetRemoteServicesAPIStatus":
-      res = getRemoteServicesAPIStatus(remote,force_fault)
+      res = getRemoteServicesAPIStatus(remote)
       module.exit_json(**res)
 
    elif command == "ImportSystemConfiguration":
       res = importSystemConfiguration(remote,share_info,hostname,import_file,
-                                      remove_xml,force_fault)
+                                      remove_xml)
       module.exit_json(**res)
 
    elif command == "ResetPassword":
-      res = resetPassword(remote,hostname,user_to_change,new_pass,force_fault)
+      res = resetPassword(remote,hostname,user_to_change,new_pass)
       module.exit_json(**res)
 
    elif command == "ResetRAIDConfig":
-      res = resetRAIDConfig(remote,hostname,remove_xml,force_fault)
+      res = resetRAIDConfig(remote,hostname,remove_xml)
       module.exit_json(**res)
 
    elif command == "SetEventFiltersByInstanceIDs":
@@ -3317,7 +3254,7 @@ def main():
       module.exit_json(**res)
 
    elif command == "UpgradeBIOS":
-      res = upgradeBIOS(remote,hostname,share_info,firmware,force_fault)
+      res = upgradeBIOS(remote,hostname,share_info,firmware)
       module.exit_json(**res)
 
    elif command == "UpgradeFirmware":
@@ -3325,7 +3262,7 @@ def main():
       module.exit_json(**res)
 
    elif command == "UpgradeIdrac":
-      res = upgradeIdrac(remote,hostname,share_info,firmware,force_fault)
+      res = upgradeIdrac(remote,hostname,share_info,firmware)
       module.exit_json(**res)
 
    elif command == "UpgradePerc":
@@ -3336,8 +3273,7 @@ def main():
       res = ___createVirtualDisk(remote,target_controller,physical_disks,
                                  raid_level,span_length,virtual_disk_name,size,
                                  span_depth,stripe_size,read_policy,
-                                 write_policy,disk_cache_policy,remove_xml,
-                                 force_fault)
+                                 write_policy,disk_cache_policy,remove_xml)
       module.exit_json(**res)
 
    # The below commands are considered "private" for the module. One should not
