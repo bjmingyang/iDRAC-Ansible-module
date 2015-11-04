@@ -21,14 +21,13 @@
 #
 # Ansible is copyright of Ansible, Inc.
 
-
 DOCUMENTATION = '''
 ---
 module: idrac
 short_description: Module to configure to Dell iDRAC
 description:
    - Use this module to configure Dell iDRAC.
-version: 0.0.2
+version: 0.0.3
 options:
    hostname:
       description:
@@ -318,6 +317,9 @@ import datetime
 import time
 import re # regular expressions
 import tempfile
+import string
+import random
+import logging
 
 from distutils.version import LooseVersion, StrictVersion
 
@@ -339,7 +341,6 @@ try:
 except ImportError:
    HAS_WSMAN = False
 
-import logging
 
 class switch(object):
    def __init__(self, value):
@@ -501,8 +502,9 @@ def checkReadyState(remote):
 # remote:
 #    - ip, username, password passed to Remote() of WSMan
 # reboot_type:
-#    - 1 = PowerCycle, 2 = Graceful Reboot without forced shutdown, 3 = Graceful reboot with forced shutdown
-#
+#    - 1 = PowerCycle
+#    - 2 = Graceful Reboot without forced shutdown
+#    - 3 = Graceful reboot with forced shutdown
 def createRebootJob (remote,hostname,reboot_type):
    msg = { }
 
@@ -752,7 +754,7 @@ def enumerateSoftwareIdentity(remote):
 
    if debug:
       tmp = json.dumps(msg, indent=3, separators=(',', ': '))
-      print tmp
+      log.debug(tmp)
 
    msg['changed'] = False
    msg['failed'] = False
@@ -920,7 +922,7 @@ def exportSystemConfiguration(remote,share_info,hostname,local_path,
    ret['changed'] = False
    return ret
 
-# This is just a stub function. Will be removed once no playbooks are calling
+# This is just a wrapper function. Will be removed once no playbooks are calling
 # it directly.
 #
 def getRemoteServicesAPIStatus (remote):
@@ -1046,14 +1048,156 @@ def importSystemConfiguration(remote,share_info,hostname,import_file,
 
    return msg
 
+# Install iDRAC Firmware
+# Checks current installed version, compares to version
+# that is being installed and if different performs an install.
+#
+# The iDRAC firmware is unique in that it causes an automatic reboot of the
+# iDRAC. The scheduleFirmwareInstall() will not perform an iDRAC install.
+#
+def installIdracFirmware(remote,firmware):
+   msg = { }
+
+   if not firmware:
+      msg['changed'] = False
+      msg['failed'] = True
+      msg['msg'] = "firmware must be defined."
+      return msg
+
+   if debug:
+      for k in firmware:
+         log.debug ("firmware key: %s value: %s",k,firmware[k])
+
+   if 'share_uri' in firmware:
+      uri = firmware['share_uri']
+   else:
+      uri = firmware['url']
+
+   if debug:
+      log.debug("uri: %s",uri)
+
+   # Check the Job Queue to make sure there are no pending jobs
+   res = ___listJobs(remote,'',{})
+   #print "___listJobs"
+   if res['failed']:
+      msg['failed'] = True
+      msg['changed'] = False
+      msg['msg'] = 'iDRAC not accepting commands. wsman returned: '+res['msg']
+      return msg
+
+   for k in res:
+      #print k+": "+str(res[k])
+      if (k == 'JID_CLEARALL') and (res[k]['JobStatus'] == 'Pending'):
+         continue
+      if (hasattr(res[k], 'JobStatus')) and (res[k]['JobStatus'] == 'Pending'):
+         msg['failed'] = True
+         msg['changed'] = False
+         msg['msg'] = 'Could not complete because there are pending Jobs.'
+         msg['msg'] = msg['msg']+' Pending Job: '+k+'. Please clear the Job'
+         msg['msg'] = msg['msg']+' Queue and reset the iDRAC.'
+         return msg
+
+   # Check to make sure the iDRAC is ready to accept commands
+   res = ___getRemoteServicesAPIStatus(remote)
+   for k in res:
+      #print "key: "+k+" value: "+str(res[k])
+      if (res['LCStatus'] != '0') and (res['Status'] != '0'):
+         msg['failed'] = True
+         msg['changed'] = False
+         msg['msg'] = 'iDRAC is not ready. Please check the iDRAC. It may need to be reset.'
+         return msg
+
+   res = ___enumerateSoftwareIdentity(remote)
+   if debug:
+      #print "Calling ___enumerateSoftwareIdentity() from upgradeIdrac()"
+      log.debug("Calling ___enumerateSoftwareIdentity() from upgradeIdrac()")
+   if res['failed']:
+      return res
+
+   # check to see if version trying to be installed is the same
+   for k in res:
+      #print k
+      if re.search('iDRAC', k):
+         if res[k]['Status'] == 'Installed':
+            cur_version = res[k]['VersionString']
+            instanceID = k
+
+   new_version = firmware['target_version']
+
+   if LooseVersion(new_version) != LooseVersion(cur_version):
+      msg = ___installFromURI(remote,uri,instanceID)
+      if msg['failed']:
+         msg['changed'] = False
+         return msg
+
+      # Waits 3 minutes or until the download completes
+      wait_time = 60 * 3
+      end_time = time.clock() + wait_time
+      while time.clock() < end_time:
+         res = ___checkJobStatus(remote,msg['jobid'])
+         if res['JobStatus'] == 'Completed':
+            break
+         if res['JobStatus'] == 'Failed':
+            break
+
+         time.sleep(2)
+
+      if res['JobStatus'] != 'Completed':
+         msg['failed'] = True
+         msg['changed'] = True
+         msg['idrac_msg'] = res['Message']
+         msg['msg'] = 'Download started but, not completed.'
+         return msg
+
+      # Once the download is complete the iDRAC will install the firmware
+      # automatically. Wait until the iDRAC is ready again
+
+      # Waits 15 minutes or until the iDRAC is ready
+      wait_time = 60 * 15
+      end_time = time.clock() + wait_time
+      while time.clock() < end_time:
+         res = ___getRemoteServicesAPIStatus(remote)
+         if re.search('Internal Server Error', res['msg']) != None:
+            continue
+
+         if (res['LCStatus'] == '0') and (res['Status'] == '0'):
+            break
+
+         time.sleep(10)
+
+      if (res['LCStatus'] != '0') and (res['Status'] != '0'):
+         msg['failed'] = True
+         msg['changed'] = True
+         msg['msg'] = 'Timeout during upgrade. Verify iDrac.'
+      else:
+         msg['failed'] = False
+         msg['changed'] = True
+         msg['msg'] = 'iDRAC firmware upgrade successfully completed.'
+
+   elif LooseVersion(new_version) == LooseVersion(cur_version):
+      msg['msg'] = "Installed version "+cur_version+" same as version to be"
+      msg['msg'] = msg['msg']+" installed."
+      msg['failed'] = False
+      msg['changed'] = False
+   else:
+      msg['msg'] = "Was unable to compare versions. Installed version: "
+      msg['msg'] = msg['msg']+cur_version+". New version: "+new_version
+      msg['failed'] = True
+      msg['changed'] = False
+
+   msg['ansible_facts'] = {}
+   msg['ansible_facts']['LifecycleControllerVersion'] = new_version
+
+   return msg
+
 # remote:
 #    - ip, username, password passed to Remote() of WSMan
 # hostname:
 #    - This is used to make the generated XML file unique
 # user_to_change:
-#    the username that we are changing the password for
+#    - the username that we are changing the password for
 # new_pass:
-#    the new password
+#    - the new password
 #
 def resetPassword(remote,hostname,user_to_change,new_pass):
    msg = {}
@@ -1068,7 +1212,6 @@ def resetPassword(remote,hostname,user_to_change,new_pass):
       msg['msg'] = 'new_pass must be defined'
       return msg
 
-   # TODO add to debug
    #print new_pass
 
    res = ___enumerateIdracCardString(remote)
@@ -1147,6 +1290,203 @@ def resetRAIDConfig(remote,hostname,remove_xml):
       return msg
 
    msg = ___checkReturnValues(res, msg)
+
+   if msg['failed']:
+      msg['changed'] = False
+   else:
+      msg['changed'] = True
+
+   return msg
+
+# Schedule Firmware Install
+#
+# Will not install iDRAC firmware. If you want to up/downgrade the iDRAC use
+# installIdracFirmware()
+# 
+# Returns the jobid of ___installFromURI() which can then be passed to 
+# setupJobQueue() with the rebootid returned from ___createRebootJob()
+#
+def scheduleFirmwareInstall(remote,firmware):
+   msg = { 'ansible_facts': { } }
+   msg['failed'] = False
+
+   if debug:
+      #print "scheduleFirmwareUpdate() Calling ___checkShareInfo()"
+      log.debug("scheduleFirmwareUpdate() Calling ___checkShareInfo()")
+
+   if not firmware:
+      msg['changed'] = False
+      msg['failed'] = True
+      msg['msg'] = "firmware must be defined."
+      return msg
+
+   if instanceID == '':
+      msg['failed'] = True
+      msg['changed'] = False
+      msg['msg'] = "instanceID must be defined."
+      return msg
+   elif debug:
+      print "scheduleFirmwareUpdate() instanceID: "+instanceID
+
+   if check_mode:
+      # TODO maybe put in what type of firmware.
+      msg['msg'] = "Firmware update would have been attempted."
+      msg['changed'] = True
+      msg['failed'] = False
+      return msg
+
+   # Check the Job Queue to make sure there are no pending jobs
+   if debug:
+      log.debug( "scheduleFirmwareUpdate() calling ___listJobs()")
+   res = ___listJobs(remote,'',{})
+   if res['failed']:
+      msg['failed'] = True
+      msg['changed'] = False
+      msg['msg'] = 'iDRAC not accepting commands. wsman returned: '+res['msg']
+      return msg
+
+   for k in res:
+      #print k+": "+str(res[k])
+      if (k == 'JID_CLEARALL') and (res[k]['JobStatus'] == 'Pending'):
+         if debug:
+            print "scheduleFirmwareUpdate() this server has a JID_CLEARALL pending"
+         continue
+      if (hasattr(res[k], 'JobStatus')) and (res[k]['JobStatus'] == 'Pending'):
+         if debug:
+            print "scheduleFirmwareUpdate() this server has a job pending"
+         msg['failed'] = True
+         msg['changed'] = False
+         msg['msg'] = "Could not complete because there are pending Jobs."
+         msg['msg'] = msg['msg']+" Pending Job: "+k+". Please clear the Job"
+         msg['msg'] = msg['msg']+" Queue and reset the iDRAC."
+         return msg
+   #### End of Checking Job Queue
+
+   # Check to make sure the iDRAC is ready to accept commands
+   if debug:
+      print "scheduleFirmwareUpdate() calling ___getRemoteServicesAPIStatus()"
+   res = ___getRemoteServicesAPIStatus(remote)
+   for k in res:
+      #print "key: "+k+" value: "+str(res[k])
+      if (res['LCStatus'] != '0') and (res['Status'] != '0'):
+         if debug:
+            print "scheduleFirmwareUpdate() finished ___getRemoteServicesAPIStatus and iDRAC isn't ready"
+         msg['failed'] = True
+         msg['changed'] = True
+         msg['msg'] = "iDRAC is not ready. Please check the iDRAC. It may need to be reset."
+         return msg
+   #### End of checking for iDRAC is ready
+
+   if debug:
+      print "scheduleFirmwareUpdate() calling ___installFromURI()"
+   installURI_res = ___installFromURI(remote,uri,firmware,instanceID)
+   if installURI_res['failed']:
+      msg['failed'] = True
+      msg['changed'] = True
+      msg['idrac_msg'] = installURI_res['Message']
+      msg['msg'] = "Download started but, not completed."
+
+   if not msg['failed']:
+      msg['ansible_facts']['jobid'] = installURI_res['jobid']
+
+      # Waits 3 minutes or until the download completes
+      if debug:
+         print "scheduleFirmwareUpdate() checking JobStatus"
+      for x in range(1, 90):
+         res = ___checkJobStatus(remote,installURI_res['jobid'])
+         if res['JobStatus'] == 'Downloaded':
+            break
+         if res['JobStatus'] == 'Failed':
+            break
+   
+         time.sleep(2)
+   
+      if res['JobStatus'] != 'Downloaded':
+         msg['failed'] = True
+         msg['changed'] = True
+         msg['idrac_msg'] = res['Message']
+         msg['msg'] = "Download started but, not completed."
+
+   if msg['failed']:
+      return msg
+   else:
+      msg['changed'] = True
+      msg['failed'] = False
+      msg['msg'] = "Succesfully scheduled firmware update."
+      return msg
+
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
+#
+# check_mode is working
+#def setEventFilters(remote,enable_event,enable_service,disable_event,disable_service):
+def setEventFiltersByInstanceIDs(remote):
+   msg = { 'msg': {} }
+   msg['changed'] = False
+   targets = {}
+   event_instances = {}
+
+   res = ___enumerateEventFilters(remote)
+   if res['failed']:
+      res['changed'] = False
+      return res
+
+   for k in res:
+      if k != "failed":
+         print "key: ",k
+         #msg['msg'].update(res[k])
+         # check to see if this alert supports "Remote System Log"
+         if "Remote System Log" in res[k]['PossibleNotificationDescriptions']:
+            #print "index: ", res[k]['PossibleNotificationDescriptions'].index('Remote System Log')
+            idx = res[k]['PossibleNotificationDescriptions'].index('Remote System Log')
+            #print "PossibleNotifications: ",res[k]['PossibleNotifications'][idx]
+            rsyslog_dec = res[k]['PossibleNotifications'][idx]
+            if rsyslog_dec not in res[k]['Notification']:
+               # add it to res because we are going to change it and return res
+               res[k]['Notification'].append(rsyslog_dec)
+
+               if '0' in res[k]['Notification']:
+                  res[k]['Notification'].remove('0')
+
+               if not check_mode:
+                  # Set the Event Filter
+                  tmp = dict(res[k])
+                  tmp['InstanceID'] = k
+                  set_ef_res = ___setEventFilterByInstanceID(remote,tmp)
+                  if set_ef_res['failed']:
+                     return set_ef_res
+
+               # Set changed because a change has been made
+               msg['changed'] = True
+
+         # add this Event Filter for return whether changed or not
+         msg['msg'][k] = res[k]
+
+   if debug:
+      tmp = json.dumps(msg, indent=3, separators=(',', ': '))
+      log.debug("hostname: %s, msg: %s",remote.ip,tmp)
+
+   msg['failed'] = False
+   return msg
+
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
+# jobs:
+#    - array of jobs to be executed.
+#
+# TODO: this can actually handle multile jobs. Change the jobid and rebootid to
+#   jobs and remove the combining of them in the function. Need to know how to
+#   handle arrays in passing into module.
+def setupJobQueue(remote,hostname,jobid,rebootid):
+   msg = { }
+   jobs = []
+
+   if jobid is not '':
+      jobs.append(jobid)
+   if rebootid is not '':
+      jobs.append(rebootid)
+
+   msg = ___setupJobQueue(remote,hostname,jobs)
 
    if msg['failed']:
       msg['changed'] = False
@@ -1245,89 +1585,17 @@ def syslogSettings(remote,servers,enable,port):
    msg['msg'] = 'Syslog Servers Set'
    return msg
 
-# remote:
-#    - ip, username, password passed to Remote() of WSMan
-#
-# check_mode is working
-#def setEventFilters(remote,enable_event,enable_service,disable_event,disable_service):
-def setEventFiltersByInstanceIDs(remote):
-   msg = { 'msg': {} }
-   msg['changed'] = False
-   targets = {}
-   event_instances = {}
-
-   res = ___enumerateEventFilters(remote)
-   if res['failed']:
-      res['changed'] = False
-      return res
-
-   for k in res:
-      if k != "failed":
-         print "key: ",k
-         #msg['msg'].update(res[k])
-         # check to see if this alert supports "Remote System Log"
-         if "Remote System Log" in res[k]['PossibleNotificationDescriptions']:
-            #print "index: ", res[k]['PossibleNotificationDescriptions'].index('Remote System Log')
-            idx = res[k]['PossibleNotificationDescriptions'].index('Remote System Log')
-            #print "PossibleNotifications: ",res[k]['PossibleNotifications'][idx]
-            rsyslog_dec = res[k]['PossibleNotifications'][idx]
-            if rsyslog_dec not in res[k]['Notification']:
-               # add it to res because we are going to change it and return res
-               res[k]['Notification'].append(rsyslog_dec)
-
-               if '0' in res[k]['Notification']:
-                  res[k]['Notification'].remove('0')
-
-               if not check_mode:
-                  # Set the Event Filter
-                  tmp = dict(res[k])
-                  tmp['InstanceID'] = k
-                  set_ef_res = ___setEventFilterByInstanceID(remote,tmp)
-                  if set_ef_res['failed']:
-                     return set_ef_res
-
-               # Set changed because a change has been made
-               msg['changed'] = True
-
-         # add this Event Filter for return whether changed or not
-         msg['msg'][k] = res[k]
-
-   if debug:
-      tmp = json.dumps(msg, indent=3, separators=(',', ': '))
-      log.debug("hostname: %s, msg: %s",remote.ip,tmp)
-
-   msg['failed'] = False
-   return msg
-
-# remote:
-#    - ip, username, password passed to Remote() of WSMan
-# jobs:
-#    - array of jobs to be executed.
-#
-# TODO: this can actually handle multile jobs. Change the jobid and rebootid to
-#   jobs and remove the combining of them in the function. Need to know how to
-#   handle arrays in passing into module.
-def setupJobQueue(remote,hostname,jobid,rebootid):
-   msg = { }
-   jobs = []
-
-   if jobid is not '':
-      jobs.append(jobid)
-   if rebootid is not '':
-      jobs.append(rebootid)
-
-   msg = ___setupJobQueue(remote,hostname,jobs)
-
-   if msg['failed']:
-      msg['changed'] = False
-   else:
-      msg['changed'] = True
-
-   return msg
-
 # Upgrade BIOS
 # Checks current installed version and compares to version
 # that is being installed.
+#
+# remote:
+#   - ip, username, password passed to Remote() of WSMan
+# hostname:
+#   - hostname of the iDRAC being upgraded
+#
+# This function is deprecated. TODO remove
+# Use installBIOS() instead
 #
 def upgradeBIOS(remote,hostname,share_info,firmware):
    msg = { }
@@ -1930,25 +2198,50 @@ def ___checkShareInfo(share_info):
    msg['failed'] = False
    msg['msg'] = "share_info looks good."
 
-   if share_info['user'] == '':
+   if share_info['ip'] == '':
       msg['failed'] = True
-      msg['msg'] = "share_user must be defined"
-   if share_info['pass'] == '':
-      msg['failed'] = True
-      msg['msg'] = "share_pass must be defined"
-   if share_info['name'] == '':
-      msg['failed'] = True
-      msg['msg'] = "share_name must be defined"
+      msg['msg'] = "share_ip must be defined"
 
    if share_info['type'] == '':
       msg['failed'] = True
       msg['msg'] = "share_type must be defined"
-   elif debug:
-      print "share_type: "+share_info['type']
 
-   if share_info['ip'] == '':
+   if ((share_info['type'] == 'samba') 
+      or (share_info['type'] == 'cifs') 
+      or (share_info['type'] == 'smb')):
+      if debug:
+         print "___checkShareInfo() share_type is smb"
+
+      if share_info['user'] == '':
+         msg['failed'] = True
+         msg['msg'] = "share_user must be defined"
+      if share_info['pass'] == '':
+         msg['failed'] = True
+         msg['msg'] = "share_pass must be defined"
+      if share_info['name'] == '':
+         msg['failed'] = True
+         msg['msg'] = "share_name must be defined"
+   elif (share_info['type'] == 'nfs'):
+      if debug:
+         print "___checkShareInfo() share_type is nfs"
+      if share_info['user'] == '':
+         msg['failed'] = True
+         msg['msg'] = "share_user must be defined"
+      if share_info['pass'] == '':
+         msg['failed'] = True
+         msg['msg'] = "share_pass must be defined"
+   elif (share_info['type'] == 'http'):
+      if debug:
+         print "___checkShareInfo() share_type is http"
+   elif (share_info['type'] == 'ftp'):
+      if debug:
+         print "___checkShareInfo() share_type is ftp"
+   elif (share_info['type'] == 'tftp'):
+      if debug:
+         print "___checkShareInfo() share_type is tftp"
+   else:
       msg['failed'] = True
-      msg['msg'] = "share_ip must be defined"
+      msg['msg'] = "unrecognized share_type"
 
    return msg
 
@@ -2431,7 +2724,7 @@ def ___enumerateSoftwareIdentity(remote):
 
    if debug:
       tmp = json.dumps(ret, indent=3, separators=(',', ': '))
-      print tmp
+      log.debug (tmp)
 
    ret['failed'] = False
    return ret
@@ -3233,6 +3526,10 @@ def main():
                                       remove_xml)
       module.exit_json(**res)
 
+   elif command == "InstallIdracFirmware":
+      res = installIdracFirmware(remote,firmware)
+      module.exit_json(**res)
+
    elif command == "ResetPassword":
       res = resetPassword(remote,hostname,user_to_change,new_pass)
       module.exit_json(**res)
@@ -3327,11 +3624,11 @@ def main():
 
    else:
       # Catch no matching command
-      print json.dumps({
-         "msg" : "command did not match",
-         "changed" : False
-      })
-      sys.exit(0)
+      module.fail_json(changed=False, msg="command did not match")
+      #print json.dumps({
+      #   "msg" : "command did not match",
+      #   "changed" : False
+      #})
 
 from ansible.module_utils.basic import *
 from ansible.module_utils.facts import *
