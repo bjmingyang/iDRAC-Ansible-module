@@ -440,6 +440,7 @@ def bootToNetworkISO(remote,share_info,iso_image):
 
 # Checks the job Status of the given Job ID.
 #
+# supports check_mode
 def checkJobStatus (remote,jobid):
 
    msg = ___checkJobStatus(remote,jobid)
@@ -453,7 +454,7 @@ def checkJobStatus (remote,jobid):
 
 # Checks to see if the iDRAC/LC and server are ready to accept commands.
 #
-# Steve doesn't want the serverStatus to returned failed
+# supports check_mode
 def checkReadyState(remote):
    msg = {}
    msg['msg'] = ''
@@ -505,6 +506,7 @@ def checkReadyState(remote):
 #    - 1 = PowerCycle
 #    - 2 = Graceful Reboot without forced shutdown
 #    - 3 = Graceful reboot with forced shutdown
+#
 def createRebootJob (remote,hostname,reboot_type):
    msg = { }
 
@@ -565,8 +567,6 @@ def createTargetedConfigJobRAID(remote,hostname,remove_xml,reboot_type):
 
    return msg
 
-# wsman:
-#    - provided by module
 # remote:
 #    - ip, username, password passed to Remote() of WSMan
 # jobid:
@@ -619,6 +619,7 @@ def deleteJobQueue(remote,jobid):
 # -u <username> -p <password> -h <hostname> -V -v -c dummy.cert -P 443 \
 # -j utf-8 -y basic
 #
+# supports check_mode
 def detachISOImage(remote):
 
    if check_mode:
@@ -652,6 +653,8 @@ def detachISOImage(remote):
 
    return msg
 
+# TODO remove hostname
+# supports check_mode
 def detachSDCardPartitions(remote,hostname):
    msg = {}
 
@@ -684,7 +687,8 @@ def detachSDCardPartitions(remote,hostname):
                      msg['failed'] = True
                      return msg
 
-                  # Waits 3 minutes or until the download completes
+                  # Waits 3 minutes
+                  # TODO fixme. There is a time example in another function
                   for x in range(1, 90):
                      jobStatus_res = ___checkJobStatus(remote,result['jobid'])
                      if jobStatus_res['JobStatus'] == 'Completed':
@@ -736,8 +740,13 @@ def enumerateEventFilters(remote):
    msg['changed'] = False
    return msg
 
-# Puts the return values from ___enumerateSoftwareIdentity() into ansible_facts
-# 
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
+#
+# Wrapper function the puts the return values from
+# ___enumerateSoftwareIdentity() into ansible_facts
+#
+# supports check_mode 
 def enumerateSoftwareIdentity(remote):
    msg = { 'ansible_facts': { 'software_identity': {} } }
 
@@ -1418,7 +1427,8 @@ def scheduleFirmwareInstall(remote,firmware):
 # remote:
 #    - ip, username, password passed to Remote() of WSMan
 #
-# check_mode is working
+# supports check_mode
+#
 #def setEventFilters(remote,enable_event,enable_service,disable_event,disable_service):
 def setEventFiltersByInstanceIDs(remote):
    msg = { 'msg': {} }
@@ -1500,7 +1510,7 @@ def setupJobQueue(remote,hostname,jobid,rebootid):
 # servers:
 #    - dicionary of servers - iDRAC limit of 3
 #
-# check_mode is working
+# supports check_mode
 def syslogSettings(remote,servers,enable,port):
    msg = {}
    attributes = {}
