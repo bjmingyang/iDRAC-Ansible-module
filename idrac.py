@@ -1057,6 +1057,11 @@ def importSystemConfiguration(remote,share_info,hostname,import_file,
 
    return msg
 
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
+# firmware:
+#    - dictiony of firmware to be installed
+#
 # Install iDRAC Firmware
 # Checks current installed version, compares to version
 # that is being installed and if different performs an install.
@@ -1064,6 +1069,7 @@ def importSystemConfiguration(remote,share_info,hostname,import_file,
 # The iDRAC firmware is unique in that it causes an automatic reboot of the
 # iDRAC. The scheduleFirmwareInstall() will not perform an iDRAC install.
 #
+# supports check_mode
 def installIdracFirmware(remote,firmware):
    msg = { }
 
@@ -1084,6 +1090,16 @@ def installIdracFirmware(remote,firmware):
 
    if debug:
       log.debug("uri: %s",uri)
+
+   # Check to make sure the iDRAC is ready to accept commands
+   res = ___getRemoteServicesAPIStatus(remote)
+   for k in res:
+      #print "key: "+k+" value: "+str(res[k])
+      if (res['LCStatus'] != '0') and (res['Status'] != '0'):
+         msg['failed'] = True
+         msg['changed'] = False
+         msg['msg'] = 'iDRAC is not ready. Please check the iDRAC. It may need to be reset.'
+         return msg
 
    # Check the Job Queue to make sure there are no pending jobs
    res = ___listJobs(remote,'',{})
@@ -1106,20 +1122,9 @@ def installIdracFirmware(remote,firmware):
          msg['msg'] = msg['msg']+' Queue and reset the iDRAC.'
          return msg
 
-   # Check to make sure the iDRAC is ready to accept commands
-   res = ___getRemoteServicesAPIStatus(remote)
-   for k in res:
-      #print "key: "+k+" value: "+str(res[k])
-      if (res['LCStatus'] != '0') and (res['Status'] != '0'):
-         msg['failed'] = True
-         msg['changed'] = False
-         msg['msg'] = 'iDRAC is not ready. Please check the iDRAC. It may need to be reset.'
-         return msg
-
-   res = ___enumerateSoftwareIdentity(remote)
    if debug:
-      #print "Calling ___enumerateSoftwareIdentity() from upgradeIdrac()"
       log.debug("Calling ___enumerateSoftwareIdentity() from upgradeIdrac()")
+   res = ___enumerateSoftwareIdentity(remote)
    if res['failed']:
       return res
 
@@ -1134,54 +1139,59 @@ def installIdracFirmware(remote,firmware):
    new_version = firmware['target_version']
 
    if LooseVersion(new_version) != LooseVersion(cur_version):
-      msg = ___installFromURI(remote,uri,instanceID)
-      if msg['failed']:
-         msg['changed'] = False
-         return msg
-
-      # Waits 3 minutes or until the download completes
-      wait_time = 60 * 3
-      end_time = time.clock() + wait_time
-      while time.clock() < end_time:
-         res = ___checkJobStatus(remote,msg['jobid'])
-         if res['JobStatus'] == 'Completed':
-            break
-         if res['JobStatus'] == 'Failed':
-            break
-
-         time.sleep(2)
-
-      if res['JobStatus'] != 'Completed':
-         msg['failed'] = True
+      if check_mode:
+         msg['msg'] = "Would have attempted to install iDRAC firmware."
          msg['changed'] = True
-         msg['idrac_msg'] = res['Message']
-         msg['msg'] = 'Download started but, not completed.'
-         return msg
-
-      # Once the download is complete the iDRAC will install the firmware
-      # automatically. Wait until the iDRAC is ready again
-
-      # Waits 15 minutes or until the iDRAC is ready
-      wait_time = 60 * 15
-      end_time = time.clock() + wait_time
-      while time.clock() < end_time:
-         res = ___getRemoteServicesAPIStatus(remote)
-         if re.search('Internal Server Error', res['msg']) != None:
-            continue
-
-         if (res['LCStatus'] == '0') and (res['Status'] == '0'):
-            break
-
-         time.sleep(10)
-
-      if (res['LCStatus'] != '0') and (res['Status'] != '0'):
-         msg['failed'] = True
-         msg['changed'] = True
-         msg['msg'] = 'Timeout during upgrade. Verify iDrac.'
-      else:
          msg['failed'] = False
-         msg['changed'] = True
-         msg['msg'] = 'iDRAC firmware upgrade successfully completed.'
+      else:
+         msg = ___installFromURI(remote,uri,instanceID)
+         if msg['failed']:
+            msg['changed'] = False
+            return msg
+
+         # Waits 5 minutes or until the download completes
+         wait_time = 60 * 5
+         end_time = time.clock() + wait_time
+         while time.clock() < end_time:
+            res = ___checkJobStatus(remote,msg['jobid'])
+            if res['JobStatus'] == 'Completed':
+               break
+            if res['JobStatus'] == 'Failed':
+               break
+
+            time.sleep(2)
+
+         if res['JobStatus'] != 'Completed':
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['idrac_msg'] = res['Message']
+            msg['msg'] = 'Download started but, not completed.'
+            return msg
+
+         # Once the download is complete the iDRAC will install the firmware
+         # automatically. Wait until the iDRAC is ready again
+
+         # Waits 15 minutes or until the iDRAC is ready
+         wait_time = 60 * 15
+         end_time = time.clock() + wait_time
+         while time.clock() < end_time:
+            res = ___getRemoteServicesAPIStatus(remote)
+            if re.search('Internal Server Error', res['msg']) != None:
+               continue
+
+            if (res['LCStatus'] == '0') and (res['Status'] == '0'):
+               break
+
+            time.sleep(10)
+
+         if (res['LCStatus'] != '0') and (res['Status'] != '0'):
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['msg'] = 'Timeout during upgrade. Verify iDrac.'
+         else:
+            msg['failed'] = False
+            msg['changed'] = True
+            msg['msg'] = 'iDRAC firmware upgrade successfully completed.'
 
    elif LooseVersion(new_version) == LooseVersion(cur_version):
       msg['msg'] = "Installed version "+cur_version+" same as version to be"
@@ -1194,8 +1204,162 @@ def installIdracFirmware(remote,firmware):
       msg['failed'] = True
       msg['changed'] = False
 
-   msg['ansible_facts'] = {}
-   msg['ansible_facts']['LifecycleControllerVersion'] = new_version
+   if not msg['failed'] and msg['changed']:
+      msg['ansible_facts'] = {}
+      msg['ansible_facts']['LifecycleControllerVersion'] = new_version
+
+   return msg
+
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
+# firmware:
+#    - dictiony of firmware to be installed
+#
+# Install iDRAC Firmware
+# Checks current installed version, compares to version
+# that is being installed and if different performs an install.
+#
+# The iDRAC firmware is unique in that it causes an automatic reboot of the
+# iDRAC. The scheduleFirmwareInstall() will not perform an iDRAC install.
+#
+# supports check_mode
+def installIdracFirmware(remote,firmware):
+   msg = { }
+
+   if not firmware:
+      msg['changed'] = False
+      msg['failed'] = True
+      msg['msg'] = "firmware must be defined."
+      return msg
+
+   if debug:
+      for k in firmware:
+         log.debug ("firmware key: %s value: %s",k,firmware[k])
+
+   if 'share_uri' in firmware:
+      uri = firmware['share_uri']
+   else:
+      uri = firmware['url']
+
+   if debug:
+      log.debug("uri: %s",uri)
+
+   # Check to make sure the iDRAC is ready to accept commands
+   res = ___getRemoteServicesAPIStatus(remote)
+   for k in res:
+      #print "key: "+k+" value: "+str(res[k])
+      if (res['LCStatus'] != '0') and (res['Status'] != '0'):
+         msg['failed'] = True
+         msg['changed'] = False
+         msg['msg'] = 'iDRAC is not ready. Please check the iDRAC. It may need to be reset.'
+         return msg
+
+   # Check the Job Queue to make sure there are no pending jobs
+   res = ___listJobs(remote,'',{})
+   #print "___listJobs"
+   if res['failed']:
+      msg['failed'] = True
+      msg['changed'] = False
+      msg['msg'] = 'iDRAC not accepting commands. wsman returned: '+res['msg']
+      return msg
+
+   for k in res:
+      #print k+": "+str(res[k])
+      if (k == 'JID_CLEARALL') and (res[k]['JobStatus'] == 'Pending'):
+         continue
+      if (hasattr(res[k], 'JobStatus')) and (res[k]['JobStatus'] == 'Pending'):
+         msg['failed'] = True
+         msg['changed'] = False
+         msg['msg'] = 'Could not complete because there are pending Jobs.'
+         msg['msg'] = msg['msg']+' Pending Job: '+k+'. Please clear the Job'
+         msg['msg'] = msg['msg']+' Queue and reset the iDRAC.'
+         return msg
+
+   if debug:
+      log.debug("Calling ___enumerateSoftwareIdentity() from upgradeIdrac()")
+   res = ___enumerateSoftwareIdentity(remote)
+   if res['failed']:
+      return res
+
+   # check to see if version trying to be installed is the same
+   for k in res:
+      #print k
+      if re.search('iDRAC', k):
+         if res[k]['Status'] == 'Installed':
+            cur_version = res[k]['VersionString']
+            instanceID = k
+
+   new_version = firmware['target_version']
+
+   if LooseVersion(new_version) != LooseVersion(cur_version):
+      if check_mode:
+         msg['msg'] = "Would have attempted to install iDRAC firmware."
+         msg['changed'] = True
+         msg['failed'] = False
+      else:
+         msg = ___installFromURI(remote,uri,instanceID)
+         if msg['failed']:
+            msg['changed'] = False
+            return msg
+
+         # Waits 5 minutes or until the download completes
+         wait_time = 60 * 5
+         end_time = time.clock() + wait_time
+         while time.clock() < end_time:
+            res = ___checkJobStatus(remote,msg['jobid'])
+            if res['JobStatus'] == 'Completed':
+               break
+            if res['JobStatus'] == 'Failed':
+               break
+
+            time.sleep(2)
+
+         if res['JobStatus'] != 'Completed':
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['idrac_msg'] = res['Message']
+            msg['msg'] = 'Download started but, not completed.'
+            return msg
+
+         # Once the download is complete the iDRAC will install the firmware
+         # automatically. Wait until the iDRAC is ready again
+
+         # Waits 15 minutes or until the iDRAC is ready
+         wait_time = 60 * 15
+         end_time = time.clock() + wait_time
+         while time.clock() < end_time:
+            res = ___getRemoteServicesAPIStatus(remote)
+            if re.search('Internal Server Error', res['msg']) != None:
+               continue
+
+            if (res['LCStatus'] == '0') and (res['Status'] == '0'):
+               break
+
+            time.sleep(10)
+
+         if (res['LCStatus'] != '0') and (res['Status'] != '0'):
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['msg'] = 'Timeout during upgrade. Verify iDrac.'
+         else:
+            msg['failed'] = False
+            msg['changed'] = True
+            msg['msg'] = 'iDRAC firmware upgrade successfully completed.'
+
+   elif LooseVersion(new_version) == LooseVersion(cur_version):
+      msg['msg'] = "Installed version "+cur_version+" same as version to be"
+      msg['msg'] = msg['msg']+" installed."
+      msg['failed'] = False
+      msg['changed'] = False
+   else:
+      msg['msg'] = "Was unable to compare versions. Installed version: "
+      msg['msg'] = msg['msg']+cur_version+". New version: "+new_version
+      msg['failed'] = True
+      msg['changed'] = False
+
+   if not msg['failed'] and msg['changed']:
+      msg['ansible_facts'] = {}
+      msg['ansible_facts']['LifecycleControllerVersion'] = new_version
 
    return msg
 
