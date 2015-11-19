@@ -1,8 +1,8 @@
-# InstallIdracFirmware
+# InstallBIOS
 
 ## Introduction
 
-This causes an automatic reboot of the iDRAC because of the iDRAC not because of this module.
+Used to install the BIOS. Needs to be run seperately from other firmware installs.
 
 ## Variables
 
@@ -19,7 +19,7 @@ This causes an automatic reboot of the iDRAC because of the iDRAC not because of
   * default: null
   * required: true
 * command:
-  * Description: This command is 'InstallIdracFirmware'
+  * Description: This command is 'InstallBIOS'
   * default: null
   * required: true
 * debug:
@@ -27,19 +27,18 @@ This causes an automatic reboot of the iDRAC because of the iDRAC not because of
   * default: false
   * required: false
 
-
 ## Playbook Example
 
 ```
-- name: Install iDRAC firmware
+- name: Install Firmware
   local_action:
     module: idrac
     username: "{{lom_user}}"
     password: "{{lom_pass}}"
     hostname: "{{lom_hostname}}"
-    command: "InstallIdracFirmware"
+    command: "InstallFirmware"
     firmware:
-      "{{firmware[Model].idrac}}"
+      "{{firmware[Model].bios}}"
 ```
 
 The firmware variable above comes from the firmware.yml file and the 'Model' index comes from the idrac-roles/facts.

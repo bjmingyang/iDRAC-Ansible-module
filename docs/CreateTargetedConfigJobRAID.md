@@ -1,3 +1,7 @@
+# CreateTargetedConfigJobRAID
+
+## Playbook Example
+
 ```
 - name: Create Targeted Config Job RAID
   local_action: idrac username={{lom_user}} password={{lom_pass}}

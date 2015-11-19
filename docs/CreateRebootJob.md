@@ -1,3 +1,7 @@
+# CreateRebootJob
+
+## Playbook Example
+
 ```
 - name: Create Reboot job
   local_action: idrac username={{ lom_user }} password={{ lom_pass }}

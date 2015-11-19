@@ -1,14 +1,18 @@
-Welcome to the iDRAC-Ansible-module docs!
+# Welcome to the iDRAC-Ansible-module docs!
 
-# Roles
+## Roles
 
-* [idrac-facts](https://github.com/hbeatty/idrac-facts)
-* [idrac-alerts](https://github.com/hbeatty/idrac-alerts)
+* [idrac-roles/alerts](https://github.com/hbeatty/idrac-roles/tree/master/alerts)
+* [idrac-roles/facts](https://github.com/hbeatty/idrac-roles/tree/master/facts)
+* [idrac-roles/firmware](https://github.com/hbeatty/idrac-roles/tree/master/firmware)
+* [idrac-roles/local](https://github.com/hbeatty/idrac-roles/tree/master/local)
+* [idrac-roles/os-install](https://github.com/hbeatty/idrac-roles/tree/master/os-install)
+* [idrac-roles/storage](https://github.com/hbeatty/idrac-roles/tree/master/storage)
 
-# Methods
+## Methods
 
 * BIOS Methods  
-  * [UpgradeBIOS](UpgradeBIOS.md)  
+  * [InstallBIOS](InstallBIOS.md)  
 * Boot Methods  
 * Event Filter Methods  
   * [EnumerateEventFilters](EnumerateEventFilters.md)

@@ -1062,7 +1062,7 @@ def importSystemConfiguration(remote,share_info,hostname,import_file,
 # firmware:
 #    - dictiony of firmware to be installed
 #
-# Install iDRAC Firmware
+# Install BIOS
 # Checks current installed version, compares to version
 # that is being installed and if different performs an install.
 #
@@ -1070,7 +1070,7 @@ def importSystemConfiguration(remote,share_info,hostname,import_file,
 # iDRAC. The scheduleFirmwareInstall() will not perform an iDRAC install.
 #
 # supports check_mode
-def installIdracFirmware(remote,firmware):
+def installBIOS (remote,firmware):
    msg = { }
 
    if not firmware:
@@ -1131,7 +1131,7 @@ def installIdracFirmware(remote,firmware):
    # check to see if version trying to be installed is the same
    for k in res:
       #print k
-      if re.search('iDRAC', k):
+      if re.search('BIOS', k):
          if res[k]['Status'] == 'Installed':
             cur_version = res[k]['VersionString']
             instanceID = k
@@ -1140,20 +1140,62 @@ def installIdracFirmware(remote,firmware):
 
    if LooseVersion(new_version) != LooseVersion(cur_version):
       if check_mode:
-         msg['msg'] = "Would have attempted to install iDRAC firmware."
+         msg['msg'] = "Would have attempted to install BIOS."
          msg['changed'] = True
          msg['failed'] = False
       else:
-         msg = ___installFromURI(remote,uri,instanceID)
-         if msg['failed']:
+         installURI_res = ___installFromURI(remote,uri,instanceID)
+         if installURI_res['failed']:
+            msg['failed'] = True
             msg['changed'] = False
+            msg['idrac_msg'] = installURI_res['Message']
+            msg['msg'] = "Download started but, not completed."
             return msg
+
+         jobs.append(installURI_res['jobid'])
 
          # Waits 5 minutes or until the download completes
          wait_time = 60 * 5
          end_time = time.clock() + wait_time
          while time.clock() < end_time:
             res = ___checkJobStatus(remote,msg['jobid'])
+            if res['JobStatus'] == 'Downloaded':
+               break
+            if res['JobStatus'] == 'Failed':
+               break
+
+            time.sleep(2)
+
+         if res['JobStatus'] != 'Downloaded':
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['idrac_msg'] = res['Message']
+            msg['msg'] = 'Download started but, not completed.'
+            return msg
+
+         # Create a reboot job
+         rebootJob_res = ___createRebootJob(remote,hostname,1)
+         if rebootJob_res['failed']:
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['msg'] = "Download completed but, could not create reboot job."
+            return msg
+
+         jobs.append(rebootJob_res['rebootid'])
+
+         jobQueue_res = ___setupJobQueue(remote,hostname,jobs)
+         if jobQueue_res['failed']:
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['msg'] = "Download completed and reboot job created but, could"
+            msg['msg'] = msg['msg']+" not execute reboot."
+            return msg
+
+         # Waits 6 minutes or until the bios upgrade completes
+         wait_time = 60 * 6
+         end_time = time.clock() + wait_time
+         while time.clock() < end_time:
+            res = ___checkJobStatus(remote,installURI_res['jobid'])
             if res['JobStatus'] == 'Completed':
                break
             if res['JobStatus'] == 'Failed':
@@ -1164,22 +1206,17 @@ def installIdracFirmware(remote,firmware):
          if res['JobStatus'] != 'Completed':
             msg['failed'] = True
             msg['changed'] = True
-            msg['idrac_msg'] = res['Message']
-            msg['msg'] = 'Download started but, not completed.'
+            msg['msg'] = "BIOS upgrade failed."
             return msg
-
-         # Once the download is complete the iDRAC will install the firmware
-         # automatically. Wait until the iDRAC is ready again
 
          # Waits 15 minutes or until the iDRAC is ready
          wait_time = 60 * 15
          end_time = time.clock() + wait_time
          while time.clock() < end_time:
             res = ___getRemoteServicesAPIStatus(remote)
-            if re.search('Internal Server Error', res['msg']) != None:
-               continue
-
-            if (res['LCStatus'] == '0') and (res['Status'] == '0'):
+            # TODO What is the 'ServerStatus' when there is no OS installed?
+            if ((res['LCStatus'] == '0') and (res['Status'] == '0')
+                and (res['ServerStatus'] == '2')):
                break
 
             time.sleep(10)
@@ -1187,11 +1224,11 @@ def installIdracFirmware(remote,firmware):
          if (res['LCStatus'] != '0') and (res['Status'] != '0'):
             msg['failed'] = True
             msg['changed'] = True
-            msg['msg'] = 'Timeout during upgrade. Verify iDrac.'
+            msg['msg'] = "iDRAC never came back after BIOS install."
          else:
             msg['failed'] = False
             msg['changed'] = True
-            msg['msg'] = 'iDRAC firmware upgrade successfully completed.'
+            msg['msg'] = "BIOS upgrade successfully completed."
 
    elif LooseVersion(new_version) == LooseVersion(cur_version):
       msg['msg'] = "Installed version "+cur_version+" same as version to be"
@@ -1206,7 +1243,7 @@ def installIdracFirmware(remote,firmware):
 
    if not msg['failed'] and msg['changed']:
       msg['ansible_facts'] = {}
-      msg['ansible_facts']['LifecycleControllerVersion'] = new_version
+      msg['ansible_facts']['BIOSVersionString'] = new_version
 
    return msg
 
@@ -1344,7 +1381,7 @@ def installIdracFirmware(remote,firmware):
          else:
             msg['failed'] = False
             msg['changed'] = True
-            msg['msg'] = 'iDRAC firmware upgrade successfully completed.'
+            msg['msg'] = 'iDRAC firmware install successfully completed.'
 
    elif LooseVersion(new_version) == LooseVersion(cur_version):
       msg['msg'] = "Installed version "+cur_version+" same as version to be"

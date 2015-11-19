@@ -1,9 +1,11 @@
 [Home](README.md)
 
-# Introduction
+# EnumerateSoftwareIdentity
+
+## Introduction
 
 
-# Variables
+## Variables
 
 * username:
   * Description: A user that has admin access to the iDRAC
@@ -27,7 +29,7 @@
   * required: false
 
 
-# Playbook example
+## Playbook example
 
 ```
 - name: Get Firmware Info
@@ -35,7 +37,7 @@
     hostname={{ lom_hostname }} command=EnumerateSoftwareIdentity
 ```
 
-# Return values
+## Return values
 
 * changed:
   * Desciption: This command only gets information.
@@ -1525,7 +1527,7 @@ Example:
 
 ```
 
-# Roles
+## Roles
 
 * [idrac-facts](https://github.com/hbeatty/idrac-roles/tree/master/facts)
 
