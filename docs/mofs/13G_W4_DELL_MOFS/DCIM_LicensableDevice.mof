@@ -1,0 +1,101 @@
+// ==================================================================
+// DCIM_LicensableDevice 
+// ==================================================================  
+[Description (
+        "DCIM_LicensableDevice is a derivation of"
+        "CIM_ManagedElement, and represents a"
+        "device in the system that has registered"
+        "with the License Manager")]
+class DCIM_LicensableDevice : CIM_ManagedElement 
+{   
+        [Key,Description (
+         "This property is usually set to the FQDD value.")]
+    string InstanceID;
+
+        [Description (
+         "Defines current device state as it pertains to the license "
+         "management."), 
+         ValueMap { "1","2"},
+         Values { "DeviceNotReady","DevicePresent"}] 
+    uint32 DeviceState;
+    
+        [Description (
+         "Defines device type."), 
+         ValueMap { "0", "1", "2"},
+         Values { "Internal","External", "Virtual"}]
+    uint32 DeviceType;
+    
+        [Description (
+         "The unique ID for the device to be used for binding with "
+         "license(s).")]
+    string UniqueID;
+    
+        [Description (
+         "A string containing the device's unique FQDD. The field contains "
+         "the device type (e.g. NIC) and location (e.g. SLOT 1)")] 
+    string FQDD;
+    
+        [Description (
+         "PCI Device ID.")]
+    string DeviceID;
+    
+        [Description (
+         "Device manufacture ID, e.g. Broadcom.")] 
+    string VendorID;
+    
+        [Description (
+         "PCI subsystem ID.")]
+    string SubsystemID;
+    
+        [Description (
+         "PCI subsystem vendor ID.")]
+    string SubsystemVendorID;
+    
+        [Description (
+         "A model description of the the device.")]
+    string Model;
+
+        [Description (
+         "List of Entitlement IDs for licenses that are assigned to this device.")]    
+    string LicenseList[];
+    
+        [Description (
+         "Status message associated with the DevicePrimaryStatus.")]
+    string DeviceStatusMessage;
+    
+        [Description (
+         "MessageID associated with the DevicePrimaryStatus.")]
+    string DeviceStatusMessageID;
+    
+        [Description (
+          "DevicePrimaryStatus provides a the device status value with, "
+          "respect to License Management.It should be used in conjunction "
+          "with DeviceStatusMessage and DeviceStatusMessageID to provide high "
+          "level and detailed health status of the ManagedElement."
+          "DevicePrimaryStatus consists of one of the following values: Unknown, OK,"
+          "Degraded or Error. \"Unknown\" indicates the implementation is in"
+          "general capable of returning this property, but is unable to do so"
+          "at this time. \"OK\" indicates the ManagedElement is functioning "
+          "normally. \"Degraded\" indicates the ManagedElement is functioning"
+          "below normal. \"Error\" indicates the ManagedElement is in an Error"
+          "condition. " ),
+       ValueMap { "0", "1", "2", "3" },
+       Values { "Unknown", "OK", "Degraded", "Error" }]
+    uint16 DevicePrimaryStatus;
+    
+         [Description (
+          "RollupStatus provides a high level status value, "
+          "intended to align with Red-Yellow-Green type representation of status."
+          "It should be used in conjunction with DetailedStatus to provide high "
+          "level and detailed health status of the ManagedElement and its subcomponents."
+          "RollupStatus consists of one of the following values: Unknown, OK,"
+          "Degraded or Error. \"Unknown\" indicates the implementation is in"
+          "general capable of returning this property, but is unable to do so"
+          "at this time. \"OK\" indicates the ManagedElement is functioning "
+          "normally. \"Degraded\" indicates the ManagedElement is functioning"
+          "below normal. \"Error\" indicates the ManagedElement is in an Error"
+          "condition. " ),
+         ValueMap { "0", "1", "2", "3"},
+         Values { "Unknown", "OK", "Degraded", "Error"}]    
+    uint16 RollupStatus;
+};

@@ -1,0 +1,12 @@
+// ==================================================================
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_OSDElementConformsToProfile
+// ==================================================================
+  [Association, Version ( "1.0.0" ), Description(
+       "DCIM_OSDElementConformsToProfile is a derivation of "
+       "CIM_ElementConformsToProfile" )]
+class DCIM_OSDElementConformsToProfile : CIM_ElementConformsToProfile
+{
+};
+

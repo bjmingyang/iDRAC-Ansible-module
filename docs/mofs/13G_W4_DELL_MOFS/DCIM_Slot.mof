@@ -1,0 +1,28 @@
+// Copyright (c) 2012 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_Slot
+// ==================================================================
+  [Version ( "1.0.0" ), Description(
+       "DCIM_Slot is a derivation of CIM_Slot "
+       "which is extended to add the slot occupancy and device correlation information" )]
+class DCIM_Slot : CIM_Slot {
+      [Description (
+          "A string containing the Fully Qualified Device Description"
+          "A user-friendly name for the device that occupy the slot. "
+          )]
+   string DeviceFQDD;
+      [Description (
+          "This property represents whether the slot is not occupied. "
+          )]
+   boolean EmptySlot;
+      [Description (
+          "The property represents whether the slot is enabled. "),
+       ValueMap { "2", "3" }, 
+       Values {"Enabled",  "Disabled" }]
+   uint16 SlotEnabledState;
+      [Description (
+          "A string containing the slot number information "
+          )]
+   string NumberDescription;
+};
+

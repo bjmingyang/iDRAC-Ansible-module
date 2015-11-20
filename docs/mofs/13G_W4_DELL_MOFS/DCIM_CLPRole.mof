@@ -1,0 +1,3 @@
+class DCIM_CLPRole : CIM_Role
+{
+};

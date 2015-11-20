@@ -1,0 +1,11 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_SystemPSDevice
+// ==================================================================  
+[Association, Description(
+      "DCIM_SystemPSDevice is a derivation of "
+      "CIM_SystemDevice, and represents a System Device.")]
+class DCIM_SystemPSDevice : CIM_SystemDevice
+{
+};
+

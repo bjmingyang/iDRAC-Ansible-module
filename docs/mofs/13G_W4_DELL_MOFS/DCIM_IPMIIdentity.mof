@@ -1,0 +1,14 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_IPMIIdentity
+// ==================================================================  
+  [ 
+      Description (
+      "DCIM_IPMIIdentity is a derivation of DCIM_Identity."
+      "An instance of an Identity represents a ManagedElement that "
+      "acts as a security principal within the scope in which it is defined and " 
+      "authenticated.")
+]
+class DCIM_IPMIIdentity : DCIM_Identity
+{ 
+};

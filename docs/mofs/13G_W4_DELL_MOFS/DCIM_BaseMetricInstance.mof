@@ -1,0 +1,7 @@
+[Association, Description (
+       "DCIM_BaseMetricInstance is a derivation of CIM_MetricInstance "
+       "and represents an association that ties an instance of " 
+       "DCIM_BaseMetricDefinition to its DCIM_BaseMetricValue." ) ]
+class DCIM_BaseMetricInstance : CIM_MetricInstance
+{
+};

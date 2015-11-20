@@ -1,0 +1,7 @@
+[Association, Description (
+       "DCIM_AggrMetricInstance is a derivation of CIM_MetricInstance "
+       "and represents an association that ties an instance of " 
+       "DCIM_AggregationMetricDefinition to its DCIM_AggregationMetricValue." ) ]
+class DCIM_AggrMetricInstance : CIM_MetricInstance
+{
+};

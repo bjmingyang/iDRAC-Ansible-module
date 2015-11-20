@@ -1,0 +1,6 @@
+[ Association, Description ("ElementCapabilities represents the association between "
+   "ManagedElements and their Capabilities." )
+]
+class DCIM_PMSElementCapabilities : CIM_ElementCapabilities
+{
+};

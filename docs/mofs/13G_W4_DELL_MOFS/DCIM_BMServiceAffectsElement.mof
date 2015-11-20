@@ -1,0 +1,7 @@
+[Association, Description (
+       "DCIM_BMServiceAffectsElement is a derivation of CIM_ServiceAffectsElement "
+       "and represents an association between a Service and the ManagedElements "
+       "that might be affected by its execution." ) ]
+class DCIM_BMServiceAffectsElement : CIM_ServiceAffectsElement
+{
+};

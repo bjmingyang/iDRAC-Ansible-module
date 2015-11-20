@@ -1,0 +1,70 @@
+// Copyright (c) 2009 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_PCIeSSDBackPlaneView
+// ==================================================================
+
+      [Description(
+       "DCIM_PCIeSSDBackPlaneView is a derivation of DCIM_View "
+       "with SSD Backplane specific data.") ]
+class DCIM_PCIeSSDBackPlaneView : DCIM_View {
+      [Key, Description (
+          "A string containing the Fully Qualified Device Description "
+          "A user-friendly name for the object. This property allows each "
+          "instance to define a user-friendly name in addition to its key "
+          "properties, identity data, and description information. "
+          )]
+  string InstanceID;
+
+      [Description (
+          "A string containing the Fully Qualified Device Description "
+          "A user-friendly name for the object. This property allows each "
+          " instance to define a user-friendly name in addition to its key "
+          " properties, identity data, and description information. "
+          )]
+  string FQDD;   
+
+      [Description (
+          "RollupStatus provides a high level status value, intended to "
+          "align with Red-Yellow-Green type representation of status. "
+          "It should be used to provide "
+          "high level and detailed health status of the enclosure and "
+          "its subcomponents. PrimaryStatus consists of one of the following "
+          "values: Unknown, OK, Degraded or Error. \"Unknown\" indicates the "
+          "implementation is in general capable of returning this property, "
+          "but is unable to do so at this time. \"OK\" indicates the "
+          "enclosure is functioning normally. \"Degraded\" indicates the "
+          "enclosure is functioning below normal. \"Error\" indicates the "
+          "enclosure is in an Error condition. " ),
+       ValueMap { "0", "1", "2", "3", "0x8000", "0xFFFF" },
+       Values { "Unknown", "OK", "Degraded", "Error",
+               "DMTF Reserved", "Vendor Reserved" }]
+  uint32 RollupStatus;	  
+
+      [Description (
+          "A string containing the friendly Fully Qualified Device Description "
+          "A property that describes the device and its location"
+          )]
+  string DeviceDescription;   
+
+      [Description (
+          "This is Model Name of the PCIeSSD BackPlane Name. " )]
+  string ProductName;
+
+      [Description (
+          "This field indicates Type of the physical disk "
+          "The physical disk type can be: \"Hard Disk Drive\" "
+          "\"Solid State Drive\" "),
+        ValueMap { "0", "1"},
+        Values { "Hard Disk Drive", "Solid State Drive" }]
+  uint32 MediaType;
+
+      [Description (
+          "This is the number of slots on the BackPlane ")]
+  uint8 SlotCount;  
+
+      [Description (
+          "This property gives information about the "
+          "Firmware Version installed on the BackPlane ")]
+  string FirmwareVersion; 
+
+};  

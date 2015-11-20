@@ -1,0 +1,18 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_LocalUserAccountManagementCapabilities
+// ==================================================================  
+  [ 
+      Description (
+      "DCIM_LocalUserAccountManagementCapabilities is a derivation of  "
+      "DCIM_AccountManagementCapabilities.")
+  ]
+class DCIM_LocalUserAccountManagementCapabilities : DCIM_AccountManagementCapabilities 
+{
+    [ Description (
+     "An array representing the supported authentication method."), 
+     ValueMap { "0", "1", "2", "3","4" },
+     Values { "Normal","SmartCard without CRL","SmartCard with CRL","biometrics without CRL",
+              "biometrics with CRL" }]
+     uint16 SupportedAuthenticationMethod[];
+};

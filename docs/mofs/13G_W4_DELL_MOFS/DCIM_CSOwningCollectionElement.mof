@@ -1,0 +1,11 @@
+// ==================================================================
+// DCIM_CSOwningCollectionElement
+// ==================================================================
+
+    [Association, Description(
+        "DCIM_CSOwningCollectionElement is a"
+        "trivial derivation of CIM_OwningCollectionElement") ]
+class DCIM_CSOwningCollectionElement : CIM_OwningCollectionElement 
+{
+
+};

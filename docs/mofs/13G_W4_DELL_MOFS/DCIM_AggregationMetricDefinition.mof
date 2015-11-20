@@ -1,0 +1,7 @@
+[Description (
+       "DCIM_AggregationMetricDefinition is a derivation of  "
+       "CIM_AggregationMetricDefinition and represents the"
+       "definitional aspects of a metric." ) ]
+class DCIM_AggregationMetricDefinition : CIM_AggregationMetricDefinition
+{
+};

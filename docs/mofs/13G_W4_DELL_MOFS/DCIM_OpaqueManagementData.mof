@@ -1,0 +1,31 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_OpaqueManagementData 
+// ==================================================================  
+  [Description(
+       "DCIM_OpaqueManagementData is a derivation of  "
+       "CIM_OpaqueManagementData and represents a partition "
+       "on a storage device like the VFlash." ) ]
+class DCIM_OpaqueManagementData : CIM_OpaqueManagementData {
+
+      [Required, Description (
+          "This property represents the index of the partition. ")]
+   uint16 PartitionIndex;
+
+      [Required, Description (
+          "This property represents the type of the partition which "
+          "is specified at creation time. ")]
+   string PartitionType;
+
+      [Required, Description (
+          "This property represents if the partition is attached to OS. ")]
+   string AttachedState;
+
+      [Required, Description (
+          "This property represents the access type of the partition. ")]
+   string AccessType;
+
+      [Required, Description (
+          "This property represents the size of the partition. ")]
+   uint32 Size;
+};

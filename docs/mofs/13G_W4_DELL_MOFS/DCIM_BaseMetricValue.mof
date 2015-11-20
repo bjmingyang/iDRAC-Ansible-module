@@ -1,0 +1,6 @@
+[Description (
+       "DCIM_CumBaseMetricValue is a derivation of CIM_BaseMetricValue "
+       "and represents the instance value of a metric." ) ]
+class DCIM_BaseMetricValue : CIM_BaseMetricValue
+{
+};

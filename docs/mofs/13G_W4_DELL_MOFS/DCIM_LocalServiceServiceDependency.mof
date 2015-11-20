@@ -1,0 +1,4 @@
+[Association]
+class DCIM_LocalServiceServiceDependency : DCIM_RBAServiceServiceDependency
+{
+};

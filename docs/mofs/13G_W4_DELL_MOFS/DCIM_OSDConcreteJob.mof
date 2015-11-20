@@ -1,0 +1,19 @@
+// ==================================================================
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_OSDConcreteJob
+// ==================================================================
+  [Version ( "1.0.0" ), Description(
+       "DCIM_OSDConcreteJob is a derivation of CIM_ConcreteJob "
+       "with OSD specific data" )]
+class DCIM_OSDConcreteJob : CIM_ConcreteJob
+{
+      [Description (
+          "The user-friendly name for this instance of a Job"
+          )]
+   string JobName;
+   string MessageID;
+   string Message;
+   string MessageArguments[];
+};
+

@@ -1,0 +1,38 @@
+[Description(
+      "DCIM_SPComputer is a derivation of "
+      "CIM_ComputerSystem, and represents a service processor.")]
+class DCIM_SPComputerSystem : CIM_ComputerSystem
+{
+    [Override ( "RequestStateChange" ),
+        Description ("Requests that the state of the element be "
+        "changed to the value specified in the RequestedState "
+        "parameter.") ]
+    uint32 RequestStateChange (
+            [IN, Description ( "The power state for ManagedElement." ),
+             ValueMap { "2", "3", "11" },
+             Values { "Enabled", "Disabled", "Reset" }]
+        uint16 RequestedState,
+            [IN ( false ), OUT, Description (
+             "Reference to the job (can be null if the task is completed)."
+              )]
+        CIM_ConcreteJob REF Job,
+            [IN, Description (
+             "A timeout period that specifies the maximum amount "
+             "of time that the client expects the transition to "
+             "the new state to take. The interval format must be "
+             "used to specify the TimeoutPeriod. A value of 0 or "
+             "a null parameter indicates that the client has no "
+             "time requirements for the transition. \n"
+             "If this property does not contain 0 or null and "
+             "the implementation does not support this "
+             "parameter, a return code of \'Use Of Timeout "
+             "Parameter Not Supported\' must be returned." )]
+        datetime TimeoutPeriod,
+            [OUT, Description ( "Message ID" )]
+        string MessageID,
+            [OUT, Description ( "Message" )]
+        string Message,
+            [OUT, Description ( "Message Args" )]
+        string MessageArguments[]
+   );
+};

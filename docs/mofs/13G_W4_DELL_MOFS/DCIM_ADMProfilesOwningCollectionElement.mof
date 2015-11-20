@@ -1,0 +1,11 @@
+// ==================================================================
+// DCIM_ADMProfilesOwningCollectionElement
+// ==================================================================
+
+    [Association, Description(
+        "DCIM_ADMProfilesOwningCollection is a"
+        "trivial derivation of CIM_OwningCollectionElement") ]
+class DCIM_ADMProfilesOwningCollectionElement : CIM_OwningCollectionElement 
+{
+
+};

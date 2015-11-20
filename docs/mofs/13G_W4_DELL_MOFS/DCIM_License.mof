@@ -1,0 +1,113 @@
+// ==================================================================
+// DCIM_License 
+// ==================================================================  
+[Description (
+        "DCIM_License is a derivation of"
+        "CIM_ManagedElement, and represents a"
+        "feature license installed on a system")]
+class DCIM_License : CIM_ManagedElement 
+{   
+        [Key,Description (
+         "Entitlement ID of the license.")]
+    string InstanceID;
+
+        [Description (
+         "Entitlement ID of the license which is a unique "
+         "identifier that identifies the license.")]
+    string EntitlementID;
+ 
+        [Description (
+         "Defines the solution set enabled by the license "
+         "in different languages. "
+         "Example: iDRAC Express.")]
+    string LicenseDescription[];
+
+        [Description (
+         "License type of the license."), 
+         ValueMap { "1", "2", "3", "4"},
+         Values { "Perpertual", "Leased", "Evaluation", "Site"}]    
+    uint32 LicenseType;
+    
+        [Description (
+         "License bound state: whether license has been "
+         "bounded to a device."
+	 "Upgraded:installed evaluation license is"
+	 "upgraded from a previously installed"
+	 "Valid Subcomponent:This value tells the license "
+	 "manager that the subsystemvendor and subsystemvendorid"
+	 "values are valid"), 
+         ValueMap { "0", "1","2","4","5","6"},
+         Values { "Unbound", "Bound","Upgraded","Valid Subcomponent","Bound_Valid Subcomponent","Upgraded_Valid Subcomponent"}]
+    uint32 LicenseAttributes;
+       
+        [Description (
+         "The date the license was created.")]
+    datetime LicenseSoldDate;
+    
+        [Description (
+         "The starting date the license is valid. Extracted from "
+         "license file.")]
+    datetime LicenseStartDate;
+    
+        [Description (
+         "The starting date the license expires. Valid for leased "
+         "and site licenses.")]
+    datetime LicenseEndDate;
+
+        [Description (
+         "The duration of the license in days.")]
+    uint16 LicenseDuration;
+    
+        [Description (
+         "The installation date of the license.")]
+    datetime LicenseInstallDate;
+   
+        [Description (
+         "Evaluation License time remaining until expiration.")]
+    uint16 EvalLicenseTimeRemaining;
+    
+        [Description (
+         "List of PCI DeviceIDs of supported devices.")]
+    string DeviceFamilyDeviceID[];
+   
+        [Description (
+         "List of PCI VendorIDs of supported devices.")]
+    string DeviceFamilyVendorID[];
+   
+        [Description (
+         "List of PCI SubsystemIDs of supported devices.")]
+    string DeviceFamilySubsystemID[];
+   
+        [Description (
+         "List of PCI SubsystemVendorIDs of supported devices.")]
+    string DeviceFamilySubsystemVendorID[];
+        
+        [Description (
+         "List of FQDDs for devices the license is assigned to.")]
+    string AssignedDevices[];
+    
+        [Description (
+         "Status message associated with the LicensePrimaryStatus.")]
+    string LicenseStatusMessage;
+    
+        [Description (
+         "MessageID associated with the LicensePrimaryStatus.")]
+    string LicenseStatusMessageID;
+    
+        [Description (
+          "LicensePrimaryStatus provides a the device status value with, "
+          "respect to License Management.It should be used in conjunction "
+          "with LicenseStatusMessage and LicenseStatusMessageID to provide high "
+          "level and detailed health status of the ManagedElement."
+          "LicensePrimaryStatus consists of one of the following values: Unknown, OK,"
+          "Degraded or Error. \"Unknown\" indicates the implementation is in"
+          "general capable of returning this property, but is unable to do so"
+          "at this time. \"OK\" indicates the ManagedElement is functioning "
+          "normally. \"Degraded\" indicates the ManagedElement is functioning"
+          "below normal. \"Error\" indicates the ManagedElement is in an Error"
+          "condition. " ),
+         ValueMap { "0", "1", "2", "3"},
+         Values { "Unknown", "OK", "Warning", "Critical"}]      
+    uint16 LicensePrimaryStatus;
+    
+};

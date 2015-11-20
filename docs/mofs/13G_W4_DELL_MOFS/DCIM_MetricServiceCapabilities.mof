@@ -1,0 +1,7 @@
+[Description (
+       "DCIM_MetricServiceCapabilities is a derivation of "
+       "CIM_MetricServiceCapabilities and describes the capabilities "
+       "of the associated DCIM_MetricService." ) ]
+class DCIM_MetricServiceCapabilities : CIM_MetricServiceCapabilities
+{
+};

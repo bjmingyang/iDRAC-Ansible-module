@@ -1,0 +1,7 @@
+[Association, Description (
+       "DCIM_MetricDefForME is a derivation of CIM_MetricDefForME "
+       "and represents an association that ties a DCIM_BaseMetricDefinition "
+       "to a CIM_ManagedElement to define metrics for the latter." ) ]
+class DCIM_MetricDefForME : CIM_MetricDefForME
+{
+};

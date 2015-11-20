@@ -1,0 +1,4 @@
+[Association]
+class DCIM_RBAOwningCollectionElement : CIM_OwningCollectionElement
+{
+};

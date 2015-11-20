@@ -1,0 +1,3 @@
+class DCIM_LocalRoleBasedManagementCapabilities : CIM_RoleBasedManagementCapabilities
+{
+};

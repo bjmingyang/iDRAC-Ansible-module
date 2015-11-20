@@ -1,0 +1,164 @@
+[Description (
+       "DCIM_MetricService is a derivation of CIM_MetricService "
+       "and provides the ability to manage metrics. The capabilities "
+       "of the DCIM_MetricService instance are advertised through an "
+       "instance of DCIM_MetricServiceCapabilities." ) ]
+class DCIM_MetricService : CIM_MetricService
+{
+    [ Override ("ControlMetrics") ]
+    uint32 ControlMetrics(
+             [IN, Description ( 
+                 "The Definition parameter identifies a "
+                 "CIM_BaseMetricDefinition for which metrics will be "
+                 "controlled." )]
+        CIM_BaseMetricDefinition REF Definition, 
+             
+            [Required, IN, Description ( 
+                "The MetricCollectionEnabled parameter indicates "
+                " desired operation to perform on the metrics." ), 
+                ValueMap { "2", "3", "4", "..", "32768..65535" }, 
+                Values { "Enable", "Disable", "Reset", "DMTF Reserved", "Vendor Reserved" }]
+        uint16 MetricCollectionEnabled,
+      
+            [OUT, Description ( 
+                "Error Message ID returned if method fails to execute."
+                )]
+        string MessageID[],
+        
+            [OUT, Description ( 
+                "Error message in English corresponding to MessageID is"
+                "returned if the method fails to execute."
+                )]
+        string Message[],
+        
+            [OUT, Description ( 
+                "Substitution variables for dynamic error messages."
+                )]
+        string MessageArgs[]
+    );
+   
+   [Description ( "PeakReset. " ),
+       ValueMap { "0",       "1",             "2"},
+       Values   { "Success", "Not Supported", "Failed"}] 
+
+    uint32 PeakReset(
+            [Required, IN, Description (
+                "The UsageType parameter indicates type (CPU,IO,MEMORY,SYS)"
+                " of statistics whose peak value to reset." )]
+        string UsageType,
+
+            [OUT, Description (
+                "Error Message ID returned if method fails to execute."
+                )]
+        string MessageID[],
+
+            [OUT, Description (
+                "Error message in English corresponding to MessageID is"
+                "returned if the method fails to execute."
+                )]
+        string Message[],
+
+            [OUT, Description (
+                "Substitution variables for dynamic error messages."
+                )]
+        string MessageArgs[]
+    );
+
+   [Description ( "GetAvgPowerConsumptionByInterval. "),
+       ValueMap { "0",       "1",             "2"},
+       Values   { "Success", "Not Supported", "Failed"}] 
+
+    uint32 GetAvgPowerConsumptionByInterval(
+            [Required, IN, Description ( 
+                 "Interval ranges from 30 seconds to 15 minutes")]
+        dateTime Interval, 
+             
+            [IN, Description ( 
+                "Enumerated value containing the following devices:"
+                "   -   System"
+                "   -   CPU (Not supported in 12G)"
+                "   -   Memory (Not supported in 12G)" )]
+        uint16 Device,
+      
+            [OUT, Description ( 
+                "Minimum power consumed in the specified averaging interval."
+                )]
+        uint32 Min,
+
+            [OUT, Description ( 
+                "Maximum power consumed in the specified averaging interval."
+                )]
+        uint32 Max,
+
+            [OUT, Description ( 
+                "Average power consumed in the specified averaging interval."
+                )]
+        uint32 Average,
+        
+            [OUT, Description ( 
+                "Error Message ID returned if method fails to execute."
+                )]
+        string MessageID[],
+        
+            [OUT, Description ( 
+                "Error message in English corresponding to MessageID is"
+                "returned if the method fails to execute."
+                )]
+        string Message[],
+        
+            [OUT, Description ( 
+                "Substitution variables for dynamic error messages."
+                )]
+        string MessageArgs[]
+    );
+
+      [Description ( 
+             "This method is called to export the stored"
+             "temperature data to a network share"),
+       ValueMap { "1", "2", "4096"}, 
+       Values   { "Not Supported", "Failed", "Job Created"}]
+   uint32 ExportThermalHistory(
+         [Required, IN, Description (
+             "IP address of the network share" )]
+      string IPAddress,
+         [Required, IN, Description (
+             "netowrk share name" )]
+      string ShareName,
+         [Required, IN, Description (
+             "File Name" )]
+      string FileName,
+         [Required, IN, Description (
+             "Type of file" ),
+             ValueMap { "0",   "1"},
+             Values   { "XML", "CSV" }]
+      uint16 FileType,
+         [Required, IN, Description (
+             "Type of the share" ),
+             ValueMap { "0",   "2"},
+             Values   { "NFS", "CIFS" }]
+      uint16 ShareType,
+         [IN, Description (
+             "Username of the account to access the share" )]
+      string Username,
+         [IN, Description (
+             "Password of the account to access the share" )]
+      string Password,
+         [IN, Description (
+             "Workgroup of the account to access the share" )]
+      string Workgroup,
+         [OUT, Description (
+             "a reference to the ConcreteJob is returned" )]
+      CIM_ConcreteJob REF Job,
+         [OUT, Description (
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+         [OUT, Description (
+             "Error Message in english corresponding to the "
+             "MessageID" )]
+      string Message,
+         [OUT, Description (
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+
+};

@@ -1,0 +1,10 @@
+// ==================================================================
+//  DCIM_ComputerSystemPackage
+// ==================================================================
+[ Association,
+  Description ("LogicalDevices can be aggregated by a System. "
+  "This relationship is made explicit by the SystemDevice association." )
+]
+class DCIM_ComputerSystemPackage : CIM_ComputerSystemPackage {
+
+};

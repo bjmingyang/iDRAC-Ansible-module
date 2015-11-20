@@ -941,14 +941,16 @@ def getRemoteServicesAPIStatus (remote):
    msg['changed'] = False
    return msg
 
+# wsman enumerate \
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_SystemView" \
+#  -h <hostname> -V -v -c dummy.cert -P 443 -u <user> -p <pass> -j utf-8 \
+#  -y basic
+#
+# supports check_mode
 def getSystemInventory(remote):
 
    msg = { 'ansible_facts': {} }
 
-   # wsman enumerate \
-   # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_SystemView" \
-   #  -h <hostname> -V -v -c dummy.cert -P 443 -u <user> -p <pass> -j utf-8 \
-   #  -y basic
    r = Reference("DCIM_SystemView")
    r.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_SystemView")
    res = wsman.enumerate(r, 'root/dcim', remote)
@@ -964,10 +966,12 @@ def getSystemInventory(remote):
       for k,v in instance.items:
          tmp = ("%s" % ("".join(map(lambda x: x if x else "" ,v)) ))
          if re.match('Model', k) != None:
-            print "matched Model"
+            #print "matched Model"
+            tmp = tmp.replace(" ", "_")
+         elif re.match('SystemGeneration', k) != None:
             tmp = tmp.replace(" ", "_")
          if debug:
-            print "key: "+k+" value: "+tmp
+            #print "key: "+k+" value: "+tmp
          msg['ansible_facts'][k] = tmp
 
    msg['changed'] = False

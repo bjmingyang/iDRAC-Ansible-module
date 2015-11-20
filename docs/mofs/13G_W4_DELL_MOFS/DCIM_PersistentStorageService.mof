@@ -1,0 +1,364 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_PersistentStorageService 
+// ==================================================================
+  [Description(
+       "DCIM_PersistentStorageService is a derivation of CIM_Service "
+       "with extrinsic method extensions to support "
+       "VFlash functionality")]
+class DCIM_PersistentStorageService : CIM_Service {
+      [Experimental, Description ( 
+          "This method is called to initialize or format virtual "
+          "flash media." ), 
+       ValueMap { "1", "2", "4096" },
+       Values { "Not Supported", "Error", "Job Created" }]
+   uint32 InitializeMedia(
+         [OUT, Description ( 
+             "a reference to the ConcreateJob is returned" ) ]
+      CIM_ConcreteJob REF Job,                          
+         [OUT, Description (   
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+         [OUT, Description ( 
+             "Error Message in English corresponding to the "
+             "MessageID " )]
+      string Message,
+         [OUT, Description ( 
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+   // end of InitializeMedia()
+
+      [Experimental, Description ( 
+          "This method is called to enable, disable or reset virtual "
+          "flash media." ), 
+       ValueMap { "0", "1", "2" }, 
+       Values { "Completed with No Error", "Not Supported", "Error" }]
+   uint32 VFlashStateChange(
+         [IN, Description ( 
+             "The state to set to" ),
+          ValueMap { "1", "2", "3..32767", "32768..65535" }, 
+          Values { "Enable", "Disable", "DMTF Reserved", "Vendor Specified" }]
+      uint16 RequestedState,
+         [OUT, Description ( 
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+         [OUT, Description ( 
+             "Error Message in English corresponding to the "
+             "MessageID " )]
+      string Message,
+         [OUT, Description ( 
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+   // end of VFlashStateChange()
+
+      [Experimental, Description ( 
+          "This method is called to create a new partition on a "
+          "storage device. " ), 
+       ValueMap { "1", "2", "4096" },
+       Values { "Not Supported", "Error", "Job Created" }]
+   uint32 CreatePartition(
+         [IN, Description ( 
+             "The index of the partition. 1..16 " )]
+      uint16 PartitionIndex, 
+         [IN, Description ( 
+             "The size of the partition to be created." )]
+      uint16 Size,
+         [IN, Description ( 
+             "The unit of the size " ), 
+          ValueMap { "1", "2", "4..32767", "32768..65535" }, 
+          Values { "MB", "GB", "DMTF Reserved", "Vendor Specified" }]
+      uint16 SizeUnit,
+         [IN, Description ( 
+             "The Partition Type" ), 
+          ValueMap { "1", "2", "4..32767", "32768..65535" }, 
+          Values { "Floppy", "Hard Disk", 
+             "DMTF Reserved", "Vendor Specified" }]
+      uint16 PartitionType,
+         [IN, Description ( 
+             "Label seen in the OS after attaching the partition"
+             "Limit to 6 characters. " )]
+      string OSVolumeLabel, 
+
+         [OUT, Description ( 
+             "a reference to the ConcreateJob is returned" )]
+      CIM_ConcreteJob REF Job,
+         [OUT, Description ( 
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+         [OUT, Description ( 
+             "Error Message in English corresponding to the "
+             "MessageID " )]
+      string Message,
+         [OUT, Description ( 
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+   // end of CreatePartition()
+
+      [Experimental, Description ( 
+          "This method is called to create a partition using an image "
+          "provided by the user. " ), 
+       ValueMap { "1", "2", "4096" },
+       Values { "Not Supported", "Error", "Job Created" }]
+   uint32 CreatePartitionUsingImage(
+         [IN, Description ( 
+             "The index of the partition.  1..16 " )]
+      uint16 PartitionIndex, 
+         [IN, Description ( 
+             "The Partition Type" ), 
+          ValueMap { "1", "2", "3", "4..32767", "32768..65535" }, 
+          Values { "Floppy", "Hard Disk", "CDROM", "DMTF Reserved", 
+                   "Vendor Specified" }]
+      uint16 PartitionType,
+         [IN, Description ( 
+             "Label seen in the OS after attaching the partition"
+             "Limit to 6 characters. " )]
+      string OSVolumeLabel, 
+         [IN,Description(
+           "URI location of firmware to update a component "
+           "Supported protocols are FTP,HTTP. ")]
+      string URI,       
+         [IN, Description ( 
+             "IP address of TFTP or NFS share ")]
+      string IPAddress, 
+         [IN, Description ( 
+             "Type of share "),
+          ValueMap { "0", "1", "2", "3", "4" }, 
+          Values { "NFS", "TFTP", "CIFS", "FTP", "HTTP" }]
+      uint16 ShareType, 
+         [IN, Description ( 
+             "NFS sharepoint address ")]
+      string SharePath, 
+         [IN, Description ( 
+             "Name of the ISO or IMG image ")]
+      string ImageName, 
+         [IN, Description ( 
+             "Name of the workgroup depending on if its needed ")]
+      string Workgroup, 
+         [IN, Description ( 
+             "The username to be used to access the file ")]
+      string Username, 
+         [IN, Description ( 
+             "The password to be used to access the file ")]
+      string Password, 
+	 [IN, Description (	
+             "The port number to be used ")]
+      uint16 Port,    
+         [IN, Description ( 
+             "The hash type "),
+          ValueMap { "1", "2", "3..32767", "32768..65535" }, 
+          Values { "MD5", "SHA1", "DMTF Reserved", "Vendor Specified" }]
+      uint16 HashType, 
+         [IN, Description ( 
+             "The hash value string based on the HashType parameter ")]
+      string HashValue, 
+
+         [OUT, Description ( 
+             "a reference to the ConcreateJob is returned" )]
+      CIM_ConcreteJob REF Job,
+         [OUT, Description ( 
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+         [OUT, Description ( 
+             "Error Message in English corresponding to the "
+             "MessageID " )]
+      string Message,
+         [OUT, Description ( 
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+   // end of CreatePartitionUsingImage()
+
+      [Experimental, Description ( 
+          "This method is called to delete a partition on a "
+          "storage device. " ), 
+       ValueMap { "0", "1", "2" }, 
+       Values { "Completed with No Error", "Not Supported", "Error" }]
+   uint32 DeletePartition(
+         [Required, IN, Description ( 
+             "The index of the partitions.  1..16 " )]
+      uint16 PartitionIndex, 
+
+         [OUT, Description ( 
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+         [OUT, Description ( 
+             "Error Message in English corresponding to the "
+             "MessageID " )]
+      string Message,
+         [OUT, Description ( 
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+   // end of DeletePartition()
+
+      [Experimental, Description ( 
+          "This method is called to format partitions on a "
+          "storage device. " ), 
+       ValueMap { "1", "2", "4096" },
+       Values { "Not Supported", "Error", "Job Created" }]
+   uint32 FormatPartition(
+         [Required, IN, Description ( 
+             "The partition index of which is to be formatted " )]
+      uint16 PartitionIndex, 
+         [Required, IN, Description ( 
+             "The list of types to format to. " ),
+          ValueMap { "1", "2", "3", "4", "5..32767", "32768..65535" }, 
+          Values { "EXT2", "EXT3", "FAT16", "FAT32", "DMTF Reserved", 
+                   "Vendor Specified" }]
+      uint16 FormatType, 
+
+         [OUT, Description ( 
+             "a reference to the ConcreateJob is returned" )]
+      CIM_ConcreteJob REF Job,
+         [OUT, Description ( 
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+         [OUT, Description ( 
+             "Error Message in English corresponding to the "
+             "MessageID " )]
+      string Message,
+         [OUT, Description ( 
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+   // end of FormatPartition()
+
+      [Experimental, Description ( 
+          "This method is called to modify a partition on a "
+          "storage device. " ), 
+       ValueMap { "0", "1", "2" }, 
+       Values { "Completed with No Error", "Not Supported", "Error" }]
+   uint32 ModifyPartition(
+         [Required, IN, Description ( 
+             "The partition index of which is to be formatted " )]
+      uint16 PartitionIndex, 
+         [IN, Description ( 
+             "Type of access level "),
+          ValueMap { "1", "3", "4..32767", "32768..65535" }, 
+          Values { "Read-Only", "Read-Write", "DMTF Reserved", 
+                   "Vendor Specified" }]
+      uint16 AccessType,
+
+         [OUT, Description ( 
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+         [OUT, Description ( 
+             "Error Message in English corresponding to the "
+             "MessageID " )]
+      string Message,
+         [OUT, Description ( 
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+   // end of ModifyPartition()
+
+      [Experimental, Description (
+          "This method is called to attach partitions to OS " ),
+       ValueMap { "1", "2", "4096" },
+       Values { "Not Supported", "Error", "Job Created" }]
+   uint32 AttachPartition( 
+         [Required, IN, Description ( 
+             "The index of the partitions.  1..16  " )]
+      uint16 PartitionIndex,
+
+         [OUT, Description ( 
+             "a reference to the ConcreateJob is returned" )]
+      CIM_ConcreteJob REF Job,
+         [OUT, Description (
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID, 
+         [OUT, Description ( 
+             "Error Message in English corresponding to the "
+             "MessageID " )]
+      string Message,
+         [OUT, Description (  
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+   // end of AttachPartition()
+
+      [Experimental, Description (
+          "This method is called to detach partitions from OS " ),
+       ValueMap { "1", "2", "4096" },
+       Values { "Not Supported", "Error", "Job Created" }]
+   uint32 DetachPartition(
+         [Required, IN, Description ( 
+             "The index of the partitions.  1..16 " )]
+      uint16 PartitionIndex,
+
+         [OUT, Description ( 
+             "a reference to the ConcreateJob is returned" )]
+      CIM_ConcreteJob REF Job,
+         [OUT, Description (  
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+         [OUT, Description ( 
+             "Error Message in English corresponding to the "
+             "MessageID " )]
+      string Message,
+         [OUT, Description ( 
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+   // end of DetachPartition()
+
+      [Experimental, Description (  
+          "This method is called to export an image from a partition. "
+          " " ),  
+       ValueMap { "1", "2", "4096" },
+       Values { "Not Supported", "Error", "Job Created" }]
+   uint32 ExportDataFromPartition(
+         [Required, IN, Description (
+             "The partition index of which is to be formatted " )]
+      uint16 PartitionIndex,
+         [IN, Description (
+             "IP address of TFTP or NFS share ")]
+      string IPAddress,
+         [IN, Description (
+             "Type of share "),
+          ValueMap { "0", "1", "2", "3..32767", "32768..65535" },
+          Values { "NFS","TFTP","CIFS", "DMTF Reserved", "Vendor Specified" }]
+      uint16 ShareType,
+         [IN, Description (
+             "NFS sharepoint address ")]
+      string SharePath,
+         [IN, Description (
+             "Name of the ISO or IMG image ")]
+      string ImageName,
+         [IN, Description (
+             "Name of the workgroup depending on if its needed ")]
+      string Workgroup,
+         [IN, Description (
+             "The username to be used to access the file ")]
+      string Username,
+         [IN, Description (
+             "The password to be used to access the file ")]
+      string Password,
+         [IN, Description (
+             "The port number if applicable ")]
+      uint16 Port,
+         [IN, Description (
+             "Not documented ")]
+      uint16 HashType,
+         [IN, Description (
+             "Not documented ")]
+      string HashValue,
+         [OUT, Description ( 
+             "a reference to the ConcreateJob is returned" ) ]
+      CIM_ConcreteJob REF Job,
+         [OUT, Description (
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+         [OUT, Description (
+             "Error Message in English corresponding to the "
+             "MessageID " )]
+      string Message,
+         [OUT, Description (
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+   // end of ExportDataFromPartition()
+};

@@ -1,0 +1,14 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_LocalUserServiceAffectsIdentity
+// ==================================================================  
+  [ 
+     Association, Description (
+      "DCIM_LocalUserServiceAffectsIdentity is a derivation of  "
+      "CIM_ServiceAffectsElement."
+      "ServiceAffectsElement represents an association between a "
+      "Service and the ManagedElements that might be affected by its execution.")
+  ]
+class DCIM_LocalUserServiceAffectsIdentity : CIM_ServiceAffectsElement
+{                                      
+};

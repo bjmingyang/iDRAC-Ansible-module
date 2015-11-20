@@ -1,0 +1,4 @@
+[ Association, provider("cmpi:dciminterop") ]
+class DCIM_ElementConformsToProfile : CIM_ElementConformsToProfile
+{
+};

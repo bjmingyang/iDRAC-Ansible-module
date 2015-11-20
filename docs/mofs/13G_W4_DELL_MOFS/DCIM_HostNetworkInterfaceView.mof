@@ -1,0 +1,94 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_HostNetworkInterfaceView
+// ==================================================================
+  [Version ( "1.0.0" ), Description(
+       "DCIM_HostNetworkInterfaceView is a derivation of CIM_View "
+       "with System specific data" )]
+class DCIM_HostNetworkInterfaceView : DCIM_View {
+      [Key, Description (
+          "A string containing the Fully Qualified Device Description "
+          "A user-friendly name for the object. This property allows each "
+          " instance to define a user-friendly name in addition to its key "
+          " properties, identity data, and description information." )]
+   string InstanceID;
+
+      [Description (
+          "Array of FQDD of participating device(s).  "
+          "FQDD is a user-friendly name for the object. This property allows each "
+          " instance to define a user-friendly name in addition to its key "
+          " properties, identity data, and description information." )]
+   string DeviceFQDD[];
+
+      [Description (
+          "A string containing the friendly Fully Qualified Device Description "
+          "A property that describes the device and its location"
+          )]
+   string DeviceDescription;
+
+   [Description ( 
+          "Status of the Interface " )]
+   uint8 Status;
+
+   [Description ( 
+          "This property states wthether DHCP is enabled or not" )]
+   boolean DHCPEnabled;
+
+   [Description ( 
+          "Type of Interface " )]
+   uint8 Type;
+
+   [Description (
+          "Interface's  Name of the interface " )]
+   string Name;
+
+   [Description (
+          "Interface's  mac address " )]
+   string MACAddr;
+
+   [Description ( 
+          "Indexed array of IPv4Addresses" )]
+   string IPv4Address[];
+
+   [Description (
+          "DHCP Server for IPv4 addressing" )]
+   string IPv4DHCPServer;
+
+   [Description (
+	  "Host Networks Mask. Only valid for IPv4 addresses")]
+   string IPv4SubnetMask[];
+
+   [Description (
+          "Array of IPv4 Gateway addresses" )]
+   string IPv4Gateway[];
+
+   [Description (
+	  "Array of IPv6 Gateway addresses" )]
+   string IPv6Gateway[];
+
+   [Description (
+          "Indexed array of IPv4 DNS Server addresses" )]
+   string IPv4DNSServer[];
+
+    [Description (
+	  "Indexed array of IPv6 DNS Server addresses" )]
+   string IPv6DNSServer[];
+
+   [Description (
+          "Indexed array of IPv6Addresses" )]
+   string IPv6Address[];
+
+     [Description (
+          "Array of IPv6 Prefix Length (Per IPv6 address) " )]
+   uint8 IPv6PrefixLength[];
+
+   [Description (
+          "Array of IPv6 address scope (Per IPv6 address) " )]
+   uint32 IPv6AddrScope[];
+
+  [Description (
+          "DHCP Server for IPv6 addressing" )]
+   string IPv6DHCPServer;
+
+
+};

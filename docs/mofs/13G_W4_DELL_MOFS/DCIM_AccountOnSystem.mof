@@ -1,0 +1,14 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_AccountOnSystem
+// ==================================================================  
+  [ 
+      Association,
+      Description (
+      "DCIM_AccountOnSystem is a derivation of CIM_AccountOnSystem."
+      "A system aggregates Accounts and scopes the uniqueness of "
+      "the Account names." )
+  ]
+class DCIM_AccountOnSystem : CIM_AccountOnSystem
+{ 
+};

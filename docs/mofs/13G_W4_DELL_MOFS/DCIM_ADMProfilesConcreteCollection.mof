@@ -1,0 +1,11 @@
+// ==================================================================
+// DCIM_ADMProfilesConcreteCollection
+// ==================================================================
+
+    [Description(
+        "DCIM_ADMProfilesConcreteCollection is a"
+        "trivial derivation of CIM_ConcreteCollection") ]
+class DCIM_ADMProfilesConcreteCollection : CIM_ConcreteCollection 
+{
+
+};

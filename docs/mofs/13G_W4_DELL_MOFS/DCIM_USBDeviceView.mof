@@ -1,0 +1,95 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_USBDeviceView
+// ==================================================================
+[Version ( "1.0.0" ), Description(
+       "DCIM_USBDeviceView is a derivation of CIM_View "
+       "with USB Device specific data" )]
+class DCIM_USBDeviceView : DCIM_View {
+      [Key, Description (
+          "A string containing the Fully Qualified Device Description "
+          "A user-friendly name for the object. This property allows each "
+          "instance to define a user-friendly name in addition to its key "
+          "properties, identity data, and description information." )]
+   string InstanceID;
+
+      [Description (
+          "A string containing the Fully Qualified Device Description "
+          "A user-friendly name for the object. This property allows each "
+          " instance to define a user-friendly name in addition to its key "
+          " properties, identity data, and description information." )]
+   string FQDD;
+
+      [Description (
+          "A string containing the friendly Fully Qualified Device Description "
+          "A user-friendly name for the object. This property allows each "
+          "instance to define a user-friendly name "
+          "A property that describes the device and its location"
+          )]
+   string DeviceDescription;
+
+      [Description (
+          "Base Class is used in this description to identify"
+          " the first byte of the Class Code triple "
+          )]
+   string BaseClass;
+
+       [Description (
+          "Sub Class is used in this description to identify"
+          " the second byte of the Class Code triple "
+          )]
+   string SubClass;
+
+       [Description (
+          "Protocol is used in this description to identify"
+          "the third byte of the Class Code triple "
+          )]
+   string Protocol;
+
+      [Description (
+          "Used to identify the manufacturer of the device,assigned by usb.org"
+          )]
+   string VendorID;
+
+      [Description (
+          "Used identify the type of the product,assigned by manufacturer."
+          )]
+   string ProductID;
+
+      [Description (
+           "A manufacturer-allocated number used to identify the "
+           "Physical Element."
+           )]
+   string SerialNumber;
+
+      [Description (
+          "A string containing the manufacturer name."
+          )]
+   string Manufacturer;
+
+      [Description (
+          "A string containing the product name."
+          )]
+   string ProductName;
+
+       [Description (
+          "The highest USB specification supported by a device. If a device supports"
+          "two versions, only the highest version is reported. Often, USB devices"
+          "encode this value as a binary coded decimal with a format of 0xAABC"
+          "where AA is the major version number, B is the minor version number"
+          "and C is the sub minor version number"
+          )]
+   string USBVersion;
+
+       [Description (
+          "A string containing the version of the device,assigned by manufacturer."
+          )]
+   string DeviceVersion;
+
+      [Description (
+          "A USB device can have more than one configuration with each configuration"
+          "having a different power requirement. This property reports the maximum current drawn"
+          "by a USB device across all available configurations."
+          )]
+   string MaximumCurrentDrawn;
+};

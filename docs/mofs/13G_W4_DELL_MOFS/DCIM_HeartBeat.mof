@@ -1,0 +1,11 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_HeartBeat
+// ==================================================================
+  [Version ( "1.0.0" ), Description(
+       "Internally used to get heartbeat through SFCBD" )]
+class DCIM_HeartBeat {
+      [Key, Description (
+          "Just a string value." )]
+   string InstanceID;
+};

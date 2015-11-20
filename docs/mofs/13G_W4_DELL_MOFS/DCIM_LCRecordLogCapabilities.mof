@@ -1,0 +1,11 @@
+// ==================================================================
+//  DCIM_LCRecordLogCapabilities
+// ==================================================================
+[Description (
+       "A class derived from RecordLogCapabilities "        
+       "to represent the LifeCycle Log Capabilities." ) ]
+class DCIM_LCRecordLogCapabilities : CIM_RecordLogCapabilities
+{
+	
+};
+

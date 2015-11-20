@@ -1,0 +1,33 @@
+class DCIM_CLPRoleBasedAuthorizationService : CIM_RoleBasedAuthorizationService
+{
+    [Override ( "AssignRoles" ),
+    Description ( 
+          "AssignRoles() removes a security principal from any "
+          "Rolesto which it currently belongs and assigns it to the "
+          "Roles identified by the Roles[] parameter. Upon "
+          "successful completion of the method, the instance of "
+          "CIM_Identity identified by the Identity parameter shall "
+          "be associated to each Role referenced by the Roles "
+          "parameter through the CIM_MemberOfCollection association "
+          "and shall not be associated to an instance of CIM_Role "
+          "unless a reference to it is contained in the Roles "
+          "parameter." ), 
+       ValueMap { "0", "1", "2", "..", "32000..65535" }, 
+       Values { "Success", "Not Supported", "Failed", 
+          "Method Reserved", "Vendor Specific" }]
+   uint32 AssignRoles(
+         [Required, IN, Description ( 
+             "The Identity instance representing the security "
+             "principalwhose role membership is being modified." )]
+      CIM_Identity REF Identity, 
+         [Required, IN, Description ( 
+             "The set of Roles to which the Identity will be "
+             "associated through CIM_MemberOfCollection." )]
+      CIM_Role REF Roles[],
+        [OUT, Description ( "Message ID" )]
+      string MessageID,
+        [OUT, Description ( "Message" )]
+      string Message,
+        [OUT, Description ( "Message Args" )]
+      string MessageArguments[]);
+};

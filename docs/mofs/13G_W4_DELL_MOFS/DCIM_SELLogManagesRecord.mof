@@ -1,0 +1,12 @@
+// ==================================================================
+//  DCIM_SELLogManagesRecord
+// ==================================================================
+[Association, Description (
+       "A class derived from LogManagesRecord "        
+       "that associates the System Event Record Log "
+       "to the System Event Log Entry." ) ]
+class DCIM_SELLogManagesRecord : CIM_LogManagesRecord
+{
+    
+};
+

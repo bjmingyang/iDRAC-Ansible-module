@@ -1,0 +1,20 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_View
+// ==================================================================
+  [Description(
+       "DCIM_View is a derivation of CIM_View." )]
+class DCIM_View : CIM_View {
+      [Key, Description (
+          "This property provides the last time \"System "
+          "\"Inventory Collection On Reboot(CSIOR)\" was "
+          "performed. The value is represented as "
+          "yyyymmddHHMMSS " )]
+  string LastSystemInventoryTime;
+
+      [Description (
+          "This property provides the last time the data was "
+          "updaed. The value is represented as yyyymmddHHMMSS " )]
+  string LastUpdateTime;
+};
+

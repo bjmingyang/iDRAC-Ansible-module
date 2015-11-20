@@ -1,0 +1,10 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_CSHostedPowerRedundancy 
+// ==================================================================  
+[
+       Association, Description ("DCIM_CSHostedPowerRedundancy is a derivation of  "
+       "CIM_HostedCollection. " ) ]
+class DCIM_CSHostedPowerRedundancy : CIM_HostedCollection 
+{   
+};

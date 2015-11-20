@@ -1,0 +1,11 @@
+// ==================================================================
+// DCIM_CSLogsMemberOfCollection
+// ==================================================================
+
+    [Association, Description(
+        "DCIM_CSLogsMemberOfCollection is a"
+        "trivial derivation of CIM_MemberOfCollection") ]
+class DCIM_CSLogsMemberOfCollection : CIM_MemberOfCollection 
+{
+
+};

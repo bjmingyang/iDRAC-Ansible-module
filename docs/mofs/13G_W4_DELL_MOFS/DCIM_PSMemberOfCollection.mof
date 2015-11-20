@@ -1,0 +1,10 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_PSMemberOfCollection 
+// ==================================================================  
+[
+       Association, Description ("DCIM_PSMemberOfCollection is a derivation of  "
+       "CIM_MemberOfCollection. " ) ]
+class DCIM_PSMemberOfCollection : CIM_MemberOfCollection 
+{   
+};

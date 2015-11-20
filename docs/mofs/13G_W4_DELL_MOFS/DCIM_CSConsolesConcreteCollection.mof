@@ -1,0 +1,11 @@
+// ==================================================================
+// DCIM_CSConolesConcreteCollection
+// ==================================================================
+
+    [Description(
+        "DCIM_CSConsolesConcreteCollection is a"
+        "trivial derivation of CIM_ConcreteCollection") ]
+class DCIM_CSConsolesConcreteCollection : CIM_ConcreteCollection 
+{
+
+};

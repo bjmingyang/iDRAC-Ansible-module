@@ -1,0 +1,13 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_AssignedAcctIdent
+// ==================================================================  
+  [ 
+      Association, Description (
+      "DCIM_AssignedAcctIdent is a derivation of CIM_AssignedIdentity."
+      "This relationship associates an Identity to a specific "
+      "ManagedElement, whose trust and account information is represented." )
+  ]
+class DCIM_AssignedAcctIdent : CIM_AssignedIdentity
+{                                      
+};

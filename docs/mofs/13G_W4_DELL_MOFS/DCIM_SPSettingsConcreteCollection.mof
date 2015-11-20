@@ -1,0 +1,11 @@
+// ==================================================================
+// DCIM_SPSettingsConcreteCollection
+// ==================================================================
+
+    [Description(
+        "DCIM_SPSettingsConcreteCollection is a"
+        "trivial derivation of CIM_ConcreteCollection") ]
+class DCIM_SPSettingsConcreteCollection : CIM_ConcreteCollection 
+{
+
+};
