@@ -3445,7 +3445,9 @@ def ___setEventFilterByInstanceID(remote,event_instance):
 # remote:
 #    - ip, username, password passed to Remote() of WSMan
 # jobs:
-#    - list of jobs to be executed.
+#    - list of jobs to be executed. The last job in the list should be a reboot job.
+# description:
+#    - 
 #
 # This function does not return changed status. It is up to the calling function.
 #
@@ -3901,22 +3903,6 @@ def main():
 
    elif command == "SetupJobQueue":
       res = setupJobQueue(remote,hostname,jobid,rebootid)
-      module.exit_json(**res)
-
-   elif command == "UpgradeBIOS":
-      res = upgradeBIOS(remote,hostname,share_info,firmware)
-      module.exit_json(**res)
-
-   elif command == "UpgradeFirmware":
-      res = ___upgradeFirmware(remote,hostname,share_info,firmware,instanceID)
-      module.exit_json(**res)
-
-   elif command == "UpgradeIdrac":
-      res = upgradeIdrac(remote,hostname,share_info,firmware)
-      module.exit_json(**res)
-
-   elif command == "UpgradePerc":
-      res = upgradePerc(remote,hostname,share_info,firmware)
       module.exit_json(**res)
 
    elif command == "CreateVirtualDisk":
