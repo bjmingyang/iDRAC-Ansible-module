@@ -27,7 +27,7 @@ module: idrac
 short_description: Module to configure to Dell iDRAC
 description:
    - Use this module to configure Dell iDRAC.
-version: 0.0.3
+version: 0.1.0
 options:
    hostname:
       description:
@@ -971,7 +971,7 @@ def getSystemInventory(remote):
          elif re.match('SystemGeneration', k) != None:
             tmp = tmp.replace(" ", "_")
          if debug:
-            #print "key: "+k+" value: "+tmp
+            log.debug("key: %s value: %s",k,tmp)
          msg['ansible_facts'][k] = tmp
 
    msg['changed'] = False
@@ -1107,7 +1107,6 @@ def installBIOS (remote,firmware):
 
    # Check the Job Queue to make sure there are no pending jobs
    res = ___listJobs(remote,'',{})
-   #print "___listJobs"
    if res['failed']:
       msg['failed'] = True
       msg['changed'] = False
@@ -1127,10 +1126,13 @@ def installBIOS (remote,firmware):
          return msg
 
    if debug:
-      log.debug("Calling ___enumerateSoftwareIdentity() from upgradeIdrac()")
+      log.debug("Calling ___enumerateSoftwareIdentity() from installBIOS()")
    res = ___enumerateSoftwareIdentity(remote)
    if res['failed']:
-      return res
+      msg['failed'] = True
+      msg['changed'] = False
+      msg['msg'] = res['msg']
+      return msg
 
    # check to see if version trying to be installed is the same
    for k in res:
@@ -1254,7 +1256,192 @@ def installBIOS (remote,firmware):
 # remote:
 #    - ip, username, password passed to Remote() of WSMan
 # firmware:
-#    - dictiony of firmware to be installed
+#    - dictionary of all firmware to be installed
+#
+# supports check_mode
+def installFirmware(remote,firmware):
+   msg = { }
+
+   if not firmware:
+      msg['changed'] = False
+      msg['failed'] = True
+      msg['msg'] = "firmware must be defined."
+      return msg
+
+   if debug:
+      for k in firmware:
+         log.debug ("firmware key: %s value: %s",k,firmware[k])
+
+   #if 'share_uri' in firmware:
+   #   uri = firmware['share_uri']
+   #else:
+   #   uri = firmware['url']
+   #
+   #if debug:
+   #   log.debug("uri: %s",uri)
+
+   # Check to make sure the iDRAC is ready to accept commands
+   res = ___getRemoteServicesAPIStatus(remote)
+   for k in res:
+      #print "key: "+k+" value: "+str(res[k])
+      if (res['LCStatus'] != '0') and (res['Status'] != '0'):
+         msg['failed'] = True
+         msg['changed'] = False
+         msg['msg'] = 'iDRAC is not ready. Please check the iDRAC. It may need to be reset.'
+         return msg
+
+   # Check the Job Queue to make sure there are no pending jobs
+   res = ___listJobs(remote,'',{})
+   if res['failed']:
+      msg['failed'] = True
+      msg['changed'] = False
+      msg['msg'] = 'iDRAC not accepting commands. wsman returned: '+res['msg']
+      return msg
+
+   for k in res:
+      #print k+": "+str(res[k])
+      if (k == 'JID_CLEARALL') and (res[k]['JobStatus'] == 'Pending'):
+         continue
+      if (hasattr(res[k], 'JobStatus')) and (res[k]['JobStatus'] == 'Pending'):
+         msg['failed'] = True
+         msg['changed'] = False
+         msg['msg'] = 'Could not complete because there are pending Jobs.'
+         msg['msg'] = msg['msg']+' Pending Job: '+k+'. Please clear the Job'
+         msg['msg'] = msg['msg']+' Queue and reset the iDRAC.'
+         return msg
+
+   if debug:
+      log.debug("Calling ___enumerateSoftwareIdentity() from installFirmware()")
+   res = ___enumerateSoftwareIdentity(remote)
+   if res['failed']:
+      msg['failed'] = True
+      msg['changed'] = False
+      msg['msg'] = res['msg']
+      return msg
+
+   # check to see if version trying to be installed is the same
+   for k in res:
+      #print k
+      if re.search('BIOS', k):
+         if res[k]['Status'] == 'Installed':
+            cur_version = res[k]['VersionString']
+            instanceID = k
+
+   new_version = firmware['target_version']
+
+   if LooseVersion(new_version) != LooseVersion(cur_version):
+      if check_mode:
+         msg['msg'] = "Would have attempted to install BIOS."
+         msg['changed'] = True
+         msg['failed'] = False
+      else:
+         installURI_res = ___installFromURI(remote,uri,instanceID)
+         if installURI_res['failed']:
+            msg['failed'] = True
+            msg['changed'] = False
+            msg['idrac_msg'] = installURI_res['Message']
+            msg['msg'] = "Download started but, not completed."
+            return msg
+
+         jobs.append(installURI_res['jobid'])
+
+         # Waits 5 minutes or until the download completes
+         wait_time = 60 * 5
+         end_time = time.clock() + wait_time
+         while time.clock() < end_time:
+            res = ___checkJobStatus(remote,msg['jobid'])
+            if res['JobStatus'] == 'Downloaded':
+               break
+            if res['JobStatus'] == 'Failed':
+               break
+
+            time.sleep(2)
+
+         if res['JobStatus'] != 'Downloaded':
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['idrac_msg'] = res['Message']
+            msg['msg'] = 'Download started but, not completed.'
+            return msg
+
+         # Create a reboot job
+         rebootJob_res = ___createRebootJob(remote,hostname,1)
+         if rebootJob_res['failed']:
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['msg'] = "Download completed but, could not create reboot job."
+            return msg
+
+         jobs.append(rebootJob_res['rebootid'])
+
+         jobQueue_res = ___setupJobQueue(remote,hostname,jobs)
+         if jobQueue_res['failed']:
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['msg'] = "Download completed and reboot job created but, could"
+            msg['msg'] = msg['msg']+" not execute reboot."
+            return msg
+
+         # Waits 6 minutes or until the bios upgrade completes
+         wait_time = 60 * 6
+         end_time = time.clock() + wait_time
+         while time.clock() < end_time:
+            res = ___checkJobStatus(remote,installURI_res['jobid'])
+            if res['JobStatus'] == 'Completed':
+               break
+            if res['JobStatus'] == 'Failed':
+               break
+
+            time.sleep(2)
+
+         if res['JobStatus'] != 'Completed':
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['msg'] = "BIOS upgrade failed."
+            return msg
+
+         # Waits 15 minutes or until the iDRAC is ready
+         wait_time = 60 * 15
+         end_time = time.clock() + wait_time
+         while time.clock() < end_time:
+            res = ___getRemoteServicesAPIStatus(remote)
+            # TODO What is the 'ServerStatus' when there is no OS installed?
+            if ((res['LCStatus'] == '0') and (res['Status'] == '0')
+                and (res['ServerStatus'] == '2')):
+               break
+
+            time.sleep(10)
+
+         if (res['LCStatus'] != '0') and (res['Status'] != '0'):
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['msg'] = "iDRAC never came back after BIOS install."
+         else:
+            msg['failed'] = False
+            msg['changed'] = True
+            msg['msg'] = "BIOS upgrade successfully completed."
+
+   elif LooseVersion(new_version) == LooseVersion(cur_version):
+      msg['msg'] = "Installed version "+cur_version+" same as version to be"
+      msg['msg'] = msg['msg']+" installed."
+      msg['failed'] = False
+      msg['changed'] = False
+   else:
+      msg['msg'] = "Was unable to compare versions. Installed version: "
+      msg['msg'] = msg['msg']+cur_version+". New version: "+new_version
+      msg['failed'] = True
+      msg['changed'] = False
+
+   if not msg['failed'] and msg['changed']:
+      msg['ansible_facts'] = {}
+      msg['ansible_facts']['BIOSVersionString'] = new_version
+
+   return msg
+
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
+# firmware:
+#    - dictionary of iDRAC firmware to be installed
 #
 # Install iDRAC Firmware
 # Checks current installed version, compares to version
@@ -1317,10 +1504,13 @@ def installIdracFirmware(remote,firmware):
          return msg
 
    if debug:
-      log.debug("Calling ___enumerateSoftwareIdentity() from upgradeIdrac()")
+      log.debug("Calling ___enumerateSoftwareIdentity() from installIdracFirmware()")
    res = ___enumerateSoftwareIdentity(remote)
    if res['failed']:
-      return res
+      msg['failed'] = True
+      msg['changed'] = False
+      msg['msg'] = res['msg']
+      return msg
 
    # check to see if version trying to be installed is the same
    for k in res:
@@ -1563,11 +1753,11 @@ def scheduleFirmwareInstall(remote,firmware):
       #print k+": "+str(res[k])
       if (k == 'JID_CLEARALL') and (res[k]['JobStatus'] == 'Pending'):
          if debug:
-            print "scheduleFirmwareUpdate() this server has a JID_CLEARALL pending"
+            log.debug("scheduleFirmwareUpdate() this server has a JID_CLEARALL pending")
          continue
       if (hasattr(res[k], 'JobStatus')) and (res[k]['JobStatus'] == 'Pending'):
          if debug:
-            print "scheduleFirmwareUpdate() this server has a job pending"
+            log.debug("scheduleFirmwareUpdate() this server has a job pending")
          msg['failed'] = True
          msg['changed'] = False
          msg['msg'] = "Could not complete because there are pending Jobs."
@@ -1578,13 +1768,13 @@ def scheduleFirmwareInstall(remote,firmware):
 
    # Check to make sure the iDRAC is ready to accept commands
    if debug:
-      print "scheduleFirmwareUpdate() calling ___getRemoteServicesAPIStatus()"
+      log.debug("scheduleFirmwareUpdate() calling ___getRemoteServicesAPIStatus()")
    res = ___getRemoteServicesAPIStatus(remote)
    for k in res:
       #print "key: "+k+" value: "+str(res[k])
       if (res['LCStatus'] != '0') and (res['Status'] != '0'):
          if debug:
-            print "scheduleFirmwareUpdate() finished ___getRemoteServicesAPIStatus and iDRAC isn't ready"
+            log.debug("scheduleFirmwareUpdate() finished ___getRemoteServicesAPIStatus and iDRAC isn't ready")
          msg['failed'] = True
          msg['changed'] = True
          msg['msg'] = "iDRAC is not ready. Please check the iDRAC. It may need to be reset."
@@ -1592,7 +1782,7 @@ def scheduleFirmwareInstall(remote,firmware):
    #### End of checking for iDRAC is ready
 
    if debug:
-      print "scheduleFirmwareUpdate() calling ___installFromURI()"
+      log.debug("scheduleFirmwareUpdate() calling ___installFromURI()")
    installURI_res = ___installFromURI(remote,uri,firmware,instanceID)
    if installURI_res['failed']:
       msg['failed'] = True
@@ -2106,58 +2296,6 @@ def upgradeIdrac(remote,hostname,share_info,firmware):
 
    # Steve: If it got here, software didn't change.
    # msg['ansible_facts']['LifecycleControllerVersion'] = new_version
-
-   return msg
-
-# DCIM:INSTALLED:PCI:14E4:1639:0237:1028
-# It is installed firmware on a PCI device.
-# VID (Vendor ID)= 14E4
-# DID (Device ID) = 1636
-# SSID (Subsystem ID) = 0237
-# SVID (Subvendor ID) = 1028
-# This refers to a Broadcom NetXtreme II BCM5709 network adaptor7.
-def upgradeNIC(remote,hostname,share_info,firmware):
-   if debug:
-      print "upgrading NIC"
-
-#
-#
-def upgradePerc(remote,hostname,share_info,firmware):
-   msg = {}
-   msg['failed'] = False
-   instanceID = ''
-
-   res = ___enumerateSoftwareIdentity(remote)
-   if debug:
-      print "Calling ___enumerateSoftwareIdentity() from upgradePerc()"
-   if res['failed']:
-      return res
-
-   for k in res:
-      if ((k != 'failed') and (k != 'changed')):
-         if re.search('PERC', res[k]['ElementName']):
-            if res[k]['Status'] == 'Installed':
-               instanceID = k
-
-   if instanceID is not '':
-      if check_mode:
-         msg['msg'] = "Found: "+InstanceID+" would have tried to install firmware"
-      else:
-         if debug:
-            print "Calling ___upgradeFirmware() from upgradePerc()"
-         res = ___upgradeFirmware(remote,hostname,share_info,firmware,instanceID)
-         if res['failed']:
-            return res
-   else:
-      msg['failed'] = True
-      msg['changed'] = False
-      msg['msg'] = "Unable to find Perc to install firmware."
-
-
-   if msg['failed'] or check_mode:
-      msg['changed'] = False
-   else:
-      msg['changed'] = True
 
    return msg
 

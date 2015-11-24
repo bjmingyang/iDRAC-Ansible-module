@@ -6,7 +6,7 @@ Ansible module to manage the Dell iDRAC
 * In your 'library' directory run
 
 ```
-$ git clone git@github.com/hbeatty/iDRAC-Ansible-module.git idrac
+$ git clone git@github.com:hbeatty/iDRAC-Ansible-module.git idrac
 ```
 
 OR  

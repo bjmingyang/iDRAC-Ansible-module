@@ -1,54 +1,35 @@
 # BootToNetworkISO
 
-## Introduction
+## Synopsis
 
 Used to boot to a Network ISO image.
 
-## Variables
+## Requirements
 
-* username:
-  * Description: A user that has admin access to the iDRAC
-  * default: null
-  * required: true
-* password:
-  * Description: Password of the above user
-  * default: null
-  * required: true 
-* hostname:
-  * Description: Hostname or IP of the iDRAC
-  * default: null
-  * required: true
-* command:
-  * Description: This command is 'BootToNetworkISO'
-  * default: null
-  * required: true
-* share_user:
-  * Description: username for the share
-  * default: null
-  * required: true
-* share_pass:
-  * Description: password for the share_user
-  * default: null
-  * required: true
-* share_ip:
-  * Description: IP or hostname of the share
-  * default: null
-  * required: true
-* share_name:
-  * Description: Name of the share
-  * default: null
-  * required: false
-* share_type:
-  * Description: Name of the share
-  * default: null
-  * required: true
-* debug:
-  * Description: Turn on debug logging. This will also leave any xml files that might be generated.
-  * default: false
-  * required: false
+* [Dell WSMan Client API Python](https://github.com/hbeatty/dell-wsman-client-api-python)
+* wsmancli and libwsman1 from [OpenWSMAN](https://openwsman.github.io/)
+  * I would like to get rid of this dependency (for various reasons) by enhancing the Dell WSMan Client API Python with a new transport.
+  * I know it works with these versions of Openwsman. Success may vary with other versions.
+    * wsmancli (2.3.2-54.5) from Openwsman
+    * libwsman1 (2.4.15-148.1) from Openwsman
 
+## Options
 
-## Playbook example
+| parameter  | required | default | choices   | comments                                  |
+| ---------  | -------- | ------- | -------   | --------                                  |
+| username   | yes      |         |           | A user that has admin access to the iDRAC |
+| password   | yes      |         |           | Password of the above user                |
+| hostname   | yes      |         |           | Hostname or IP of the iDRAC               |
+| command    | yes      |         |           | This command is 'BootToNetworkISO'        |
+| share_user | yes      |         |           | username for the share                    |
+| share_pass | yes      |         |           | password for the share_user               |
+| share_ip   | yes      |         |           | IP or hostname of the share               |
+| share_name | yes      |         |           | Name of the share                         |
+| share_type | yes      |         | cifs, nfs | Share type                                |
+| iso_image  | yes      |         |           | The ISO image file                        |
+| debug      | no       |         |           | Turn on debug logging. This will also leave any xml files that might be generated. |
+
+## Examples
 
 ```
 - name: Boot to network ISO
@@ -99,6 +80,6 @@ Used to boot to a Network ISO image.
       * OSD50: Lifecycle Controller is in field service mode
       * OSD51: Reboot the system to run pending Lifecycle Controller Tasks
 
-## Roles
+## Notes
 
 * [idrac-roles/os-install](https://github.com/hbeatty/idrac-roles/tree/master/os-install)
