@@ -1904,10 +1904,14 @@ def setupJobQueue(remote,hostname,jobid,rebootid):
 #    - ip, username, password passed to Remote() of WSMan
 # servers:
 #    - dicionary of servers - iDRAC limit of 3
+# enable:
+#    - true or false
+# port:
+#    - UDP port
 #
 # supports check_mode
 def syslogSettings(remote,servers,enable,port):
-   msg = {}
+   msg = { 'ansible_facts': {} }
    attributes = {}
    msg['changed'] = False
 
@@ -1920,65 +1924,93 @@ def syslogSettings(remote,servers,enable,port):
 
    res = ___enumerateIdracCardString(remote)
    if res['failed']:
-      return res
+      msg['failed'] = True
+      msg['msg'] = res['msg']
+      msg['result'] = res['result']
+      return msg
 
+   # TODO target probably needs to be a variable
    target = "iDRAC.Embedded.1"
    if ('Server1' in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server1']['CurrentValue'] != servers['Server1']):
       msg['changed'] = True
       attributes['SysLog.1#Server1'] = servers['Server1']
+      msg['ansible_facts']['SysLog.1#Server1'] = servers['Server1']
    elif ('Server1' not in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server1']['CurrentValue'] != ''):
       msg['changed'] = True
-      attributes['SysLog.1#Server1'] = ''
-
+      attributes['SysLog.1#Server1'] = ""
+      msg['ansible_facts']['SysLog.1#Server1'] = ""
 
    if ('Server2' in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server2']['CurrentValue'] != servers['Server2']):
       msg['changed'] = True
       attributes['SysLog.1#Server2'] = servers['Server2']
+      msg['ansible_facts']['SysLog.1#Server2'] = servers['Server2']
    elif ('Server2' not in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server2']['CurrentValue'] != ''):
       msg['changed'] = True
-      attributes['SysLog.1#Server2'] = ''
+      attributes['SysLog.1#Server2'] = ""
+      msg['ansible_facts']['SysLog.1#Server2'] = ""
 
    if ('Server3' in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server3']['CurrentValue'] != servers['Server3']):
       msg['changed'] = True
       attributes['SysLog.1#Server3'] = servers['Server3']
+      msg['ansible_facts']['SysLog.1#Server3'] = servers['Server3']
    elif ('Server3' not in servers) and (res['iDRAC.Embedded.1#SysLog.1#Server3']['CurrentValue'] != ''):
       msg['changed'] = True
-      attributes['SysLog.1#Server3'] = ''
+      attributes['SysLog.1#Server3'] = ""
+      msg['ansible_facts']['SysLog.1#Server3'] = ""
 
    # According Dell's documentation this should give all the iDRAC settings 
    # (Integer and String) but, it doesn't.
    res = ___enumerateIdracCard(remote)
    if res['failed']:
-      return res
+      msg['changed'] = False
+      msg['failed'] = True
+      msg['msg'] = res['msg']
+      msg['result'] = res['result']
+      msg['ansible_facts'] = {}
+      return msg
 
    if enable and (res['iDRAC.Embedded.1#SysLog.1#SysLogEnable']['CurrentValue'] != 'Enabled'):
       log.debug ("hostname: %s, syslog not enabled. Enabling.", remote.ip)
       msg['changed'] = True
-      attributes['SysLog.1#SysLogEnable'] = 'Enabled'
+      attributes['SysLog.1#SysLogEnable'] = "Enabled"
+      msg['ansible_facts']['SysLog.1#SysLogEnable'] = "Enabled"
    elif (not enable) and (res['iDRAC.Embedded.1#SysLog.1#SysLogEnable']['CurrentValue'] == 'Enabled'):
       log.debug ("hostname: %s, syslog enabled. Disabling.", remote.ip)
       msg['changed'] = True
-      attributes['SysLog.1#SysLogEnable'] = 'Disabled'
+      attributes['SysLog.1#SysLogEnable'] = "Disabled"
+      msg['ansible_facts']['SysLog.1#SysLogEnable'] = "Disabled"
 
    # For syslog to work both syslog and ipmi have to be enabled
    if enable and (res['iDRAC.Embedded.1#IPMILan.1#AlertEnable']['CurrentValue'] != 'Enabled'):
       log.debug ("hostname: %s, IPMI alerting over lan not enabled. Enabling.", remote.ip)
       msg['changed'] = True
-      attributes['IPMILan.1#AlertEnable'] = 'Enabled'
+      attributes['IPMILan.1#AlertEnable'] = "Enabled"
+      msg['ansible_facts']['IPMILan.1#AlertEnable'] = "Enabled"
    elif (not enable) and (res['iDRAC.Embedded.1#IPMILan.1#AlertEnable']['CurrentValue'] == 'Enabled'):
       log.debug ("hostname: %s, IPMI alerting over lan enabled. Disabling.", remote.ip)
       msg['changed'] = True
-      attributes['IPMILan.1#AlertEnable'] = 'Disabled'
+      attributes['IPMILan.1#AlertEnable'] = "Disabled"
+      msg['ansible_facts']['IPMILan.1#AlertEnable'] = "Disabled"
 
    res = ___enumerateIdracCardInteger(remote)
    if res['failed']:
-      return res
+      msg['changed'] = False
+      msg['failed'] = True
+      msg['msg'] = res['msg']
+      msg['result'] = res['result']
+      msg['ansible_facts'] = {}
+      return msg
 
-   if port != int(res['iDRAC.Embedded.1#SysLog.1#Port']['CurrentValue']):
-      log.debug ("hostname: %s, syslog port doesn't match setting to %s. Enabling.",
-                 remote.ip, res['iDRAC.Embedded.1#SysLog.1#Port']['CurrentValue'])
-      msg['changed'] = True
-      attributes['SysLog.1#Port'] = res['iDRAC.Embedded.1#SysLog.1#Port']['CurrentValue']
+   if port != 0:
+      if port != int(res['iDRAC.Embedded.1#SysLog.1#Port']['CurrentValue']):
+         log.debug ("hostname: %s, syslog port doesn't match setting to %s. Enabling.",
+                    remote.ip, port)
+         msg['changed'] = True
+         attributes['SysLog.1#Port'] = port
+         msg['ansible_facts']['SysLog.1#Port'] = port
+      else:
+         msg['ansible_facts']['SysLog.1#Port'] = res['iDRAC.Embedded.1#SysLog.1#Port']['CurrentValue']
+
 
    if not check_mode:
       if msg['changed']:
@@ -1990,323 +2022,19 @@ def syslogSettings(remote,servers,enable,port):
    msg['msg'] = 'Syslog Servers Set'
    return msg
 
-# Upgrade BIOS
-# Checks current installed version and compares to version
-# that is being installed.
-#
 # remote:
-#   - ip, username, password passed to Remote() of WSMan
-# hostname:
-#   - hostname of the iDRAC being upgraded
-#
-# This function is deprecated. TODO remove
-# Use installBIOS() instead
-#
-def upgradeBIOS(remote,hostname,share_info,firmware):
-   msg = { }
-   jobs = []
-
-   res = ___checkShareInfo(share_info)
-   if res['failed']:
-      return res
-
-   if firmware == '':
-      msg['changed'] = False
-      msg['failed'] = True
-      msg['msg'] = "firmware must be defined."
-      return msg
-
-   # Check the Job Queue to make sure there are no pending jobs
-   res = ___listJobs(remote,'',{})
-   #print "___listJobs"
-   if res['failed']:
-      msg['failed'] = True
-      msg['changed'] = False
-      msg['msg'] = 'iDRAC not accepting commands. wsman returned: '+res['msg']
-      return msg
-
-   for k in res:
-      #print k+": "+str(res[k])
-      if (k == 'JID_CLEARALL') and (res[k]['JobStatus'] == 'Pending'):
-         continue
-      if (hasattr(res[k], 'JobStatus')) and (res[k]['JobStatus'] == 'Pending'):
-         msg['failed'] = True
-         msg['changed'] = False
-         msg['msg'] = 'Could not complete because there are pending Jobs.'
-         msg['msg'] = msg['msg']+' Pending Job: '+k+'. Please clear the Job'
-         msg['msg'] = msg['msg']+' Queue and reset the iDRAC.'
-         return msg
-   #### End of Checking Job Queue
-
-   # Check to make sure the iDRAC is ready to accept commands
-   res = ___getRemoteServicesAPIStatus(remote)
-   for k in res:
-      #print "key: "+k+" value: "+str(res[k])
-      if (res['LCStatus'] != '0') and (res['Status'] != '0'):
-         msg['failed'] = True
-         msg['changed'] = False
-         msg['msg'] = 'iDRAC is not ready. Please check the iDRAC. It may need to be reset.'
-         return msg
-   #### End of checking for iDRAC is ready
-
-   res = ___enumerateSoftwareIdentity(remote)
-   if res['failed'] == True:
-      return res
-
-   # check to see if version trying to be installed is newer or same
-   # if not install
-   for k in res:
-      if re.search('BIOS', k):
-         if res[k]['Status'] == 'Installed':
-            cur_version = res[k]['VersionString']
-            instanceID = k
-
-   tmp = re.split('/', firmware)
-   tmp = tmp[-1]
-   tmp = re.split('\.', tmp)
-   new_version = tmp[0]+'.'+tmp[1]+'.'+tmp[2]
-
-   if StrictVersion(new_version) > StrictVersion(cur_version):
-      if check_mode:
-         msg['msg'] = "BIOS upgrade would have been attempted."
-         msg['changed'] = False
-         msg['failed'] = False
-      else:
-         installURI_res = ___installFromURI(remote,hostname,share_info,firmware,
-                                            instanceID)
-         if installURI_res['failed']:
-            msg['failed'] = True
-            msg['changed'] = False
-            msg['idrac_msg'] = installURI_res['Message']
-            msg['msg'] = "Download started but, not completed."
-            return msg
-
-         jobs.append(installURI_res['jobid'])
-
-         # Waits 3 minutes or until the download completes
-         for x in range(1, 90):
-            res = ___checkJobStatus(remote,installURI_res['jobid'])
-            if res['JobStatus'] == 'Downloaded':
-               break
-            if res['JobStatus'] == 'Failed':
-               break
-
-            time.sleep(2)
-
-         if res['JobStatus'] != 'Downloaded':
-            msg['failed'] = True
-            msg['changed'] = True
-            msg['idrac_msg'] = res['Message']
-            msg['msg'] = "Download started but, not completed."
-            return msg
-
-         # Create a reboot job
-         rebootJob_res = ___createRebootJob(remote,hostname,1)
-         if rebootJob_res['failed']:
-            msg['failed'] = True
-            msg['changed'] = True
-            msg['msg'] = "Download completed but, could not create reboot job."
-            return msg
-
-         jobs.append(rebootJob_res['rebootid'])
-
-         jobQueue_res = ___setupJobQueue(remote,hostname,jobs)
-         if jobQueue_res['failed']:
-            msg['failed'] = True
-            msg['changed'] = True
-            msg['msg'] = "Download completed and reboot job created but, could"
-            msg['msg'] = msg['msg']+" not execute reboot."
-            return msg
-
-         # Waits 6 minutes or until the bios upgrade completes
-         for x in range(1, 1800):
-            res = ___checkJobStatus(remote,installURI_res['jobid'])
-            if res['JobStatus'] == 'Completed':
-               break
-            if res['JobStatus'] == 'Failed':
-               break
-
-            time.sleep(2)
-
-         if res['JobStatus'] != 'Completed':
-            msg['failed'] = True
-            msg['changed'] = True
-            msg['msg'] = "BIOS upgrade failed."
-            return msg
-
-         # Waits 15 minutes or until the iDRAC is ready
-         for x in range(1, 90) :
-            res = ___getRemoteServicesAPIStatus(remote)
-            if ((res['LCStatus'] == '0') and (res['Status'] == '0')
-                and res['ServerStatus'] == '2'):
-               break
-
-            time.sleep(10)
-
-         if (res['LCStatus'] != '0') and (res['Status'] != '0'):
-            msg['failed'] = True
-            msg['changed'] = True
-            msg['msg'] = "iDRAC never came back after BIOS upgrade."
-         else:
-            msg['failed'] = False
-            msg['changed'] = True
-            msg['msg'] = "BIOS upgrade successfully completed."
-
-   elif StrictVersion(new_version) == StrictVersion(cur_version):
-      msg['msg'] = "Installed version same as version to be installed."
-      msg['failed'] = False
-      msg['changed'] = False
-   else:
-      msg['msg'] = "Installed version newer than version to be installed."
-      msg['failed'] = False
-      msg['changed'] = False
-
-   if check_mode:
-      msg['check_mode'] = "Running in check mode."
-
-   return msg
-
-# Upgrade iDRAC
-# Checks current installed version and compares to version
-# that is being installed.
-#
-def upgradeIdrac(remote,hostname,share_info,firmware):
-   msg = { }
-   msg['ansible_facts'] = {}
-
-   res = ___checkShareInfo(share_info)
-   if res['failed']:
-      return res
-
-   if firmware == '':
-      msg['changed'] = False
-      msg['failed'] = True
-      msg['msg'] = "firmware must be defined."
-      return msg
-
-   # Check the Job Queue to make sure there are no pending jobs
-   res = ___listJobs(remote,'',{})
-   #print "___listJobs"
-   if res['failed']:
-      msg['failed'] = True
-      msg['changed'] = False
-      msg['msg'] = 'iDRAC not accepting commands. wsman returned: '+res['msg']
-      return msg
-
-   for k in res:
-      #print k+": "+str(res[k])
-      if (k == 'JID_CLEARALL') and (res[k]['JobStatus'] == 'Pending'):
-         continue
-      if (hasattr(res[k], 'JobStatus')) and (res[k]['JobStatus'] == 'Pending'):
-         msg['failed'] = True
-         msg['changed'] = False
-         msg['msg'] = 'Could not complete because there are pending Jobs.'
-         msg['msg'] = msg['msg']+' Pending Job: '+k+'. Please clear the Job'
-         msg['msg'] = msg['msg']+' Queue and reset the iDRAC.'
-         return msg
-
-   # Check to make sure the iDRAC is ready to accept commands
-   res = ___getRemoteServicesAPIStatus(remote)
-   for k in res:
-      #print "key: "+k+" value: "+str(res[k])
-      if (res['LCStatus'] != '0') and (res['Status'] != '0'):
-         msg['failed'] = True
-         msg['changed'] = False
-         msg['msg'] = 'iDRAC is not ready. Please check the iDRAC. It may need to be reset.'
-         return msg
-
-   res = ___enumerateSoftwareIdentity(remote)
-   if debug:
-      print "Calling ___enumerateSoftwareIdentity() from upgradeIdrac()"
-   if res['failed']:
-      return res
-
-   # check to see if version trying to be installed is newer
-   for k in res:
-      #print k
-      if re.search('iDRAC', k):
-         if res[k]['Status'] == 'Installed':
-            cur_version = res[k]['VersionString']
-            instanceID = k
-
-   tmp = re.split('/', firmware)
-   tmp = tmp[-1]
-   tmp = re.split('\.', tmp)
-   new_version = tmp[0]+'.'+tmp[1]+'.'+tmp[2]+'.'+tmp[3]
-
-   if LooseVersion(new_version) > LooseVersion(cur_version):
-      msg = ___installFromURI(remote,hostname,share_info,firmware,instanceID)
-      if msg['failed']:
-         msg['changed'] = False
-         return msg
-
-      # Waits 3 minutes or until the download completes
-      for x in range(1, 90):
-         res = ___checkJobStatus(remote,msg['jobid'])
-         if res['JobStatus'] == 'Completed':
-            break
-         if res['JobStatus'] == 'Failed':
-            break
-
-         time.sleep(2)
-
-      if res['JobStatus'] != 'Completed':
-         msg['failed'] = True
-         msg['changed'] = True
-         msg['idrac_msg'] = res['Message']
-         msg['msg'] = 'Download started but, not completed.'
-         return msg
-
-      # Once the download is complete the iDRAC will install the firmware
-      # automatically. Wait until the iDRAC is ready again
-
-      # STEVE: Setting the upgrade timer to 20 minutes, variable should be global?
-      wait_time = 60 * 20
-      end_time = time.clock() + wait_time
-      while time.clock() < end_time:
-         res = ___getRemoteServicesAPIStatus(remote)
-         if re.search('Internal Server Error', res['msg']) != None:
-            msg['idrac_msg'] = res['msg']
-            continue
-
-         if (res['LCStatus'] == '0') and (res['Status'] == '0'):
-            msg['failed'] = False
-            msg['changed'] = True
-            msg['msg'] = 'iDRAC firmware upgrade successfully completed.'
-            msg['ansible_facts']['LifecycleControllerVersion'] = new_version
-            return msg
-
-         time.sleep(10)
-
-      if (res['LCStatus'] != '0') and (res['Status'] != '0'):
-         msg['failed'] = True
-         msg['changed'] = True
-         msg['msg'] = 'Timeout during upgrade. Verify iDrac.'
-
-   elif LooseVersion(new_version) == LooseVersion(cur_version):
-      msg['msg'] = "Installed version "+cur_version+" same as version to be"
-      msg['msg'] = msg['msg']+" installed."
-      msg['failed'] = False
-      msg['changed'] = False
-   else:
-      msg['msg'] = "Installed version: "+cur_version+" newer than version:"
-      msg['msg'] = msg['msg']+" "+new_version+" to be installed."
-      msg['failed'] = False
-      msg['changed'] = False
-
-   # Steve: If it got here, software didn't change.
-   # msg['ansible_facts']['LifecycleControllerVersion'] = new_version
-
-   return msg
-
-# Currently used to reset password
+#    - ip, username, password passed to Remote() of WSMan
+# target:
+#    - the iDRAC to apply attributes
+# attributes:
+#    - dictionary of key value pairs of attributes
 #
 # wsman invoke -a ApplyAttributes \
 # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardService?SystemCreationClassName=DCIM_ComputerSystem&CreationClassName=DCIM_iDRACCardService&SystemName=DCIM:ComputerSystem&Name=DCIM:iDRACCardService" \
 # -h <hostname> -V -v -c dummy.cert -P 443 \
 # -u <user> -p <pass> -j utf-8 -y basic -J <file>
 #
-def ___applyAttributes(remote,target,attributes,remove_xml=True):
+def ___applyAttributes(remote,target,attributes):
    ret = {}
 
    ref = Reference("DCIM_OSDeploymentService")
@@ -2333,7 +2061,7 @@ def ___applyAttributes(remote,target,attributes,remove_xml=True):
    fh.close()
 
    res = wsman.invoke(ref, 'ApplyAttributes', fh.name, remote)
-   if remove_xml:
+   if not debug:
       os.remove(fh.name)
 
    if type(res) is Fault:
@@ -2964,12 +2692,17 @@ def ___enumerateIdracCard(remote):
    ret['changed'] = False
    return ret
 
-# TODO consider making a part of fact gathering
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
+#
+# Does not set 'changed'. It is up to the calling function to test for fail. 
 #
 # wsman enumerate \
 # http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_iDRACCardInteger \
 # -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password> \
 # -j utf-8 -y basic
+#
+# TODO consider making a part of fact gathering
 #
 def ___enumerateIdracCardInteger(remote):
    ret = {}
@@ -2981,7 +2714,6 @@ def ___enumerateIdracCardInteger(remote):
    res = wsman.enumerate(ref, 'root/dcim', remote)
    if type(res) is Fault:
       ret['failed'] = True
-      ret['changed'] = False
       ret['result'] = 'Could not enumerate iDRAC Card Integer'
       ret['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
       return ret
@@ -3021,7 +2753,6 @@ def ___enumerateIdracCardString(remote):
    res = wsman.enumerate(ref, 'root/dcim', remote)
    if type(res) is Fault:
       ret['failed'] = True
-      ret['changed'] = False
       ret['result'] = 'Could not enumerate iDRAC Card String'
       ret['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
       return ret
@@ -3707,7 +3438,7 @@ def main():
          partition_ndx     = dict(),
          password          = dict(required=True),
          physical_disks    = dict(default=''),
-         port              = dict(type='int',default=514),
+         port              = dict(type='int',default=0),
          raid_level        = dict(default=''),
          read_policy       = dict(default=''),
          rebootid          = dict(),

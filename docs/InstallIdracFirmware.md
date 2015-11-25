@@ -79,4 +79,4 @@ This causes an automatic reboot of the iDRAC because of the iDRAC not because of
       - minimum_version: none
 ```
 
-The firmware variable above comes from the firmware.yml file and the 'Model' index comes from the idrac-roles/facts.
+The firmware variable above comes from the firmware.yml file and the 'SystemGeneration' index comes from the idrac-roles/facts.

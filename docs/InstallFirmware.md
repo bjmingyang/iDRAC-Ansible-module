@@ -137,4 +137,4 @@ Installs all firmware except iDRAC and BIOS.
         - component_id: 25851
 ```
 
-The firmware variable above comes from the firmware.yml file and the 'Model' index comes from the idrac-roles/facts.
+The firmware variable above comes from the firmware.yml file and the 'SystemGeneration' index comes from the idrac-roles/facts.

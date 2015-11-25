@@ -42,7 +42,6 @@ Used to set the 'Remote System Log' servers.
     enable: true
     port: 514
     debug: True
-  when: syslog_servers is defined
   tags:
     - idrac_syslog
 ```
