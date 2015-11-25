@@ -1,5 +1,9 @@
 # DetachSDCardPartitions
 
+## Synopsis
+
+Detaches all SD Card partitions.
+
 ## Requirements
 
 * [Dell WSMan Client API Python](https://github.com/hbeatty/dell-wsman-client-api-python)

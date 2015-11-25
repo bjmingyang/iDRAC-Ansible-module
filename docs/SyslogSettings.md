@@ -1,6 +1,8 @@
 # SyslogSettings
 
-Used to set the Remote syslog server 
+## Synopsis
+
+Used to set the 'Remote System Log' servers. 
 
 ## Requirements
 
@@ -13,13 +15,13 @@ Used to set the Remote syslog server
 
 ## Options
 
-| parameter  | required | default | choices                   | comments                                  |
-| ---------  | -------- | ------- | -------                   | --------                                  |
-| username   | yes      |         |                           | A user that has admin access to the iDRAC |
-| password   | yes      |         |                           | Password of the above user                |
-| hostname   | yes      |         |                           | Hostname or IP of the iDRAC               |
-| command    | yes      |         |                           | This command is 'SyslogSettings'          |
-| servers    | yes      |         | Server1, Server2, Server3 | Dictionary of syslog servers. iDRAC limits to 3. |
+| parameter  | required | default | choices                   | comments                                                                           |
+| ---------  | -------- | ------- | -------                   | --------                                                                           |
+| username   | yes      |         |                           | A user that has admin access to the iDRAC                                          |
+| password   | yes      |         |                           | Password of the above user                                                         |
+| hostname   | yes      |         |                           | Hostname or IP of the iDRAC                                                        |
+| command    | yes      |         |                           | This command is 'SyslogSettings'                                                   |
+| servers    | yes      |         | Server1, Server2, Server3 | Dictionary of syslog servers. iDRAC limits to 3.                                   |
 | enable     | no       | true    | true, false               | If you are calling this command I assume you want to turn on syslog.               |
 | port       | no       |         |                           | If you don't specify a port this won't change what is set on the iDRAC.            |
 | debug      | no       |         |                           | Turn on debug logging. This will also leave any xml files that might be generated. |
@@ -47,5 +49,5 @@ Used to set the Remote syslog server
 
 ## Role
 
-* [idrac-alerts](https://github.com/hbeatty/idrac-alerts)
+* [idrac-alerts](https://github.com/hbeatty/idrac-roles/alerts)
 

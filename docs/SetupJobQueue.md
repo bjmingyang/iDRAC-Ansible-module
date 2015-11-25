@@ -1,5 +1,7 @@
 # SetupJobQueue
 
+## Synopsis
+
 I need to look at this funtion. I'm not sure it is useful anymore.
 
 ## Requirements
@@ -18,7 +20,7 @@ I need to look at this funtion. I'm not sure it is useful anymore.
 | username   | yes      |         |         | A user that has admin access to the iDRAC        |
 | password   | yes      |         |         | Password of the above user                       |
 | hostname   | yes      |         |         | Hostname or IP of the iDRAC                      |
-| command    | yes      |         |         | This command is 'SyslogSettings'                 |
+| command    | yes      |         |         | This command is 'SetupJobQueue'                  |
 | jobid      | yes      |         |         | The jobid to execute.                            |
 | rebootid   | yes      |         |         | The rebootid to execute.                         |
 | debug      | no       |         |         | Turn on debug logging. This will also leave any xml files that might be generated. |

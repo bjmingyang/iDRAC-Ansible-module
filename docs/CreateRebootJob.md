@@ -1,5 +1,9 @@
 # CreateRebootJob
 
+## Synopsis
+
+Creates a reboot job.
+
 ## Requirements
 
 * [Dell WSMan Client API Python](https://github.com/hbeatty/dell-wsman-client-api-python)

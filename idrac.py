@@ -3964,10 +3964,6 @@ def main():
    else:
       # Catch no matching command
       module.fail_json(changed=False, msg="command did not match")
-      #print json.dumps({
-      #   "msg" : "command did not match",
-      #   "changed" : False
-      #})
 
 from ansible.module_utils.basic import *
 from ansible.module_utils.facts import *

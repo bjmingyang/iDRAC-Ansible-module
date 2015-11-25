@@ -32,7 +32,7 @@ Used to get a lising of all the Event Filters
     password: password
     hostname: host.example.com
     command: 'EnumerateEventFilters'
-    debug: True
+    debug: true
 ```
 
 # Return Values

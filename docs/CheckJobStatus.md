@@ -1,5 +1,9 @@
 # CheckJobStatus
 
+## Synopsis
+
+Checks the completion status of a job. This is used in conjunction with other commands.
+
 ## Requirements
 
 * [Dell WSMan Client API Python](https://github.com/hbeatty/dell-wsman-client-api-python)

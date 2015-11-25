@@ -1,5 +1,9 @@
 # DeleteJob
 
+## Synopsis
+
+Deletes a singe job from the queue.
+
 ## Requirements
 
 * [Dell WSMan Client API Python](https://github.com/hbeatty/dell-wsman-client-api-python)

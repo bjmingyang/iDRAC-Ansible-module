@@ -1,35 +1,29 @@
-[Home](README.md)
-
 # EnumerateSoftwareIdentity
 
-## Introduction
+## Synopsis
 
+Gets all the firmware versions and stores them in ansible_facts.
 
-## Variables
+## Requirements
 
-* username:
-  * Description: A user that has admin access to the iDRAC
-  * default: null
-  * required: true
-* password:
-  * Description: Password of the above user
-  * default: null
-  * required: true 
-* hostname:
-  * Description: Hostname or IP of the iDRAC
-  * default: null
-  * required: true
-* command:
-  * Description: This command is 'EnumerateSoftwareIdentity'
-  * default: null
-  * required: true
-* debug:
-  * Description: Turn on debug logging. This will also leave any xml files that might be generated.
-  * default: false
-  * required: false
+* [Dell WSMan Client API Python](https://github.com/hbeatty/dell-wsman-client-api-python)
+* wsmancli and libwsman1 from [OpenWSMAN](https://openwsman.github.io/)
+  * I would like to get rid of this dependency (for various reasons) by enhancing the Dell WSMan Client API Python with a new transport.
+  * I know it works with these versions of Openwsman. Success may vary with other versions.
+    * wsmancli (2.3.2-54.5) from Openwsman
+    * libwsman1 (2.4.15-148.1) from Openwsman
 
+## Options
 
-## Playbook example
+| parameter  | required | default | choices   | comments                                    |
+| ---------  | -------- | ------- | -------   | --------                                    |
+| username   | yes      |         |           | A user that has admin access to the iDRAC   |
+| password   | yes      |         |           | Password of the above user                  |
+| hostname   | yes      |         |           | Hostname or IP of the iDRAC                 |
+| command    | yes      |         |           | This command is 'EnumerateSoftwareIdentity' |
+| debug      | no       |         |           | Turn on debug logging. This will also leave any xml files that might be generated. |
+
+## Examples
 
 ```
 - name: Get Firmware Info

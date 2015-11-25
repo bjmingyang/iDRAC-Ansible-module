@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-This is used to detach the ISO image after a call of BootToISOImage has been completed.
+This is used to detach the ISO image after a call of [BootToNetworkISO](BootToNetworkISO.md) has been completed.
 
 ## Requirements
 

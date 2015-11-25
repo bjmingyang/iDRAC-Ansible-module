@@ -1,35 +1,34 @@
 # GetSystemInventory
 
-## Variables
+## Synopsis
 
-* username:
-  * Description: A user that has admin access to the iDRAC
-  * default: null
-  * required: true
-* password:
-  * Description: Password of the above user
-  * default: null
-  * required: true 
-* hostname:
-  * Description: Hostname or IP of the iDRAC
-  * default: null
-  * required: true
-* command:
-  * Description: This command is 'GetSystemInventory'
-  * default: null
-  * required: true
-* debug:
-  * Description: Turn on debug logging. This will also leave any xml files that might be generated.
-  * default: false
-  * required: false
+Gets the system inventory and stores in ansible_facts.
 
-## Playbook Example
+## Requirements
+
+* [Dell WSMan Client API Python](https://github.com/hbeatty/dell-wsman-client-api-python)
+* wsmancli and libwsman1 from [OpenWSMAN](https://openwsman.github.io/)
+  * I would like to get rid of this dependency (for various reasons) by enhancing the Dell WSMan Client API Python with a new transport.
+  * I know it works with these versions of Openwsman. Success may vary with other versions.
+    * wsmancli (2.3.2-54.5) from Openwsman
+    * libwsman1 (2.4.15-148.1) from Openwsman
+
+## Options
+
+| parameter  | required | default | choices   | comments                                  |
+| ---------  | -------- | ------- | -------   | --------                                  |
+| username   | yes      |         |           | A user that has admin access to the iDRAC |
+| password   | yes      |         |           | Password of the above user                |
+| hostname   | yes      |         |           | Hostname or IP of the iDRAC               |
+| command    | yes      |         |           | This command is 'GetSystemInventory'      |
+| debug      | no       |         |           | Turn on debug logging. This will also leave any xml files that might be generated. |
+
+## Examples
 
 ```
 - name: Get System Inventory
   local_action: idrac username={{ lom_user }} password={{ lom_pass }}
                 hostname={{ lom_hostname }} command=GetSystemInventory
-  register: result
 ```
 
 ## Return Values
@@ -58,7 +57,7 @@
         "ExpressServiceCode": "10698022333", 
         "FQDD": "System.Embedded.1", 
         "FanRollupStatus": "1", 
-        "HostName": "SS-CONTROLLER-2.idmshowcase.dsc", 
+        "HostName": "host.example.com", 
         "IDSDMRollupStatus": "1", 
         "InstanceID": "System.Embedded.1", 
         "IntrusionRollupStatus": "1", 
@@ -92,7 +91,7 @@
         "SysMemMaxCapacitySize": "1572864", 
         "SysMemPrimaryStatus": "1", 
         "SysMemTotalSize": "131072", 
-        "SystemGeneration": "12G Monolithic", 
+        "SystemGeneration": "12G_Monolithic", 
         "SystemID": "1164", 
         "SystemRevision": "0", 
         "TempRollupStatus": "1", 

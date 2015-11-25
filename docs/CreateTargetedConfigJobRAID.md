@@ -1,5 +1,9 @@
 # CreateTargetedConfigJobRAID
 
+## Synopsis
+
+Used to apply changed to the RAID controller and then reboot.
+
 ## Requirements
 
 * [Dell WSMan Client API Python](https://github.com/hbeatty/dell-wsman-client-api-python)

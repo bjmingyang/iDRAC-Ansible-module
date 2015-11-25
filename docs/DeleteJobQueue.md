@@ -1,5 +1,9 @@
 # DeleteJobQueue
 
+## Synopsis
+
+Deletes the entire job queue.
+
 ## Requirements
 
 * [Dell WSMan Client API Python](https://github.com/hbeatty/dell-wsman-client-api-python)

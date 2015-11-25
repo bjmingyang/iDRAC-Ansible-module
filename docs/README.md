@@ -35,6 +35,7 @@
   * [DetachISOImage](DetachISOImage.md)
 * RAID Methods  
   * [CreateTargetedConfigJobRAID](CreateTargetedConfigJobRAID.md)  
+  * [CreateVirtualDisk](CreateVirtualDisk.md)  
   * [ResetRAIDConfig](ResetRAIDConfig.md)  
 * Software Inventory Methods
   * [EnumerateSoftwareIdentity](EnumerateSoftwareIdentity.md)

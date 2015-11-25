@@ -40,7 +40,7 @@ Used to boot to a Network ISO image.
     share_type={{share_type}} iso_image={{inventory_hostname}}.iso
 ```
 
-## Return values
+## Return Values
 
   * changed:
     * Desciption: Whether or not changes were made.

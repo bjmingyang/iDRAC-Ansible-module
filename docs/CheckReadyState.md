@@ -1,5 +1,9 @@
 # CheckReadyState
 
+## Synopsis
+
+Checks to see if the iDRAC is ready to accept commands. Does not check the status of the server. See [GetRemoteServicesAPIStatus](GetRemoteServicesAPIStatus.md) for server status.
+
 ## Requirements
 
 * [Dell WSMan Client API Python](https://github.com/hbeatty/dell-wsman-client-api-python)
