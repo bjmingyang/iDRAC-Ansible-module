@@ -320,7 +320,9 @@ import tempfile
 import string
 import random
 import logging
+import yaml
 
+from copy import copy,deepcopy
 from distutils.version import LooseVersion, StrictVersion
 
 try:
@@ -961,15 +963,69 @@ def generateFirmwareVars(remote,firmware_file):
       return msg
 
    sys_gen = sys_view_res['SystemGeneration']
+   if debug:
+      log.debug("sys_gen: %s", sys_gen)
 
-   # TODO read in firmware from current firmware file and set the various counts
+   psu_cnt = 0
+   raid_cnt = 0
+   raid_backplane_cnt = 0
+   disk_cnt = 0
+   enclosure_cnt = 0
+   nic_cnt = 0
+   unknown_cnt = 0
+
    if firmware_file == '':
-      psu_cnt = 0
-      raid_cnt = 0
-      disk_cnt = 0
-      enclosure_cnt = 0
       firmware = {}
       firmware[sys_gen] = {}
+   else:
+      with open(firmware_file, 'r') as stream:
+         tmp = yaml.load(stream)
+         firmware = tmp['firmware']
+         if debug:
+            tmp = json.dumps(firmware, indent=3, separators=(',', ': '))
+            log.debug("hostname: %s, msg: %s",remote.ip,tmp)
+
+      if sys_gen not in firmware:
+         if debug:
+            log.debug("sys_gen not in firmware")
+         firmware[sys_gen] = {}
+      else:
+         if debug:
+            log.debug("sys_gen in firmware")
+         # set the counts
+         for fw in firmware[sys_gen]:
+            if re.search('^disk', fw):
+               if debug:
+                  log.debug("incrementing disk_cnt")
+               disk_cnt += 1
+            if re.search('^psu', fw):
+               if debug:
+                  log.debug("incrementing psu_cnt")
+               psu_cnt += 1
+            if re.search('^raid\.', fw):
+               if debug:
+                  log.debug("incrementing raid_cnt")
+               raid_cnt += 1
+            if re.search('^raid_backplane', fw):
+               if debug:
+                  log.debug("incrementing raid_backplane_cnt")
+               raid_backplane_cnt += 1
+            if re.search('^enclosure', fw):
+               if debug:
+                  log.debug("incrementing enclosure_cnt")
+               enclosure_cnt += 1
+            if re.search('^nic', fw):
+               if debug:
+                  log.debug("incrementing nic_cnt")
+               nic_cnt += 1
+               if re.search('^nic', fw):
+                  if debug:
+                     log.debug("incrementing nic_cnt")
+                  nic_cnt += 1
+
+   if debug:
+      tmp = json.dumps(firmware, indent=3, separators=(',', ': '))
+      log.debug("hostname: %s, msg: %s",remote.ip,tmp)
 
    for sw in software_res:
       if sw == 'failed':
@@ -977,113 +1033,224 @@ def generateFirmwareVars(remote,firmware_file):
       if software_res[sw]['Status'] == "Installed":
          if debug:
             log.debug("found installed software")
-         if re.search('^BIOS',software_res[sw]['FQDD']):
+         if re.search('^USC',software_res[sw]['FQDD']):
+            # USC is the Lifecycle Controller
+            # Lifecycle Controller and iDRAC firmware are combined
+            continue
+         elif re.search('^BIOS',software_res[sw]['FQDD']):
             if 'bios' not in firmware[sys_gen]:
                firmware[sys_gen]['bios'] = {}
                firmware[sys_gen]['bios']['element_name'] = software_res[sw]['ElementName']
                firmware[sys_gen]['bios']['url'] = "Fill in this value by going to support.dell.com"
-               firmware[sys_gen]['bios']['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
+               firmware[sys_gen]['bios']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
+         elif re.search('^iDRAC',software_res[sw]['FQDD']):
+            if 'idrac' not in firmware[sys_gen]:
+               firmware[sys_gen]['idrac'] = {}
+               firmware[sys_gen]['idrac']['element_name'] = software_res[sw]['ElementName']
+               firmware[sys_gen]['idrac']['url'] = "Fill in this value by going to support.dell.com"
+               firmware[sys_gen]['idrac']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
+         elif re.search('^OSCollector',software_res[sw]['FQDD']):
+            # I'm assuming there can be only one per generation of iDRAC
+            if 'os_collector' not in firmware[sys_gen]:
+               firmware[sys_gen]['os_collector'] = {}
+               firmware[sys_gen]['os_collector']['element_name'] = software_res[sw]['ElementName']
+               firmware[sys_gen]['os_collector']['url'] = "Fill in this value by going to support.dell.com"
+               firmware[sys_gen]['os_collector']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
+         elif re.search('^Diagnostics',software_res[sw]['FQDD']):
+            # I'm assuming there can be only one per generation of iDRAC
+            if 'diagnostics' not in firmware[sys_gen]:
+               firmware[sys_gen]['diagnostics'] = {}
+               firmware[sys_gen]['diagnostics']['element_name'] = software_res[sw]['ElementName']
+               firmware[sys_gen]['diagnostics']['url'] = "Fill in this value by going to support.dell.com"
+               firmware[sys_gen]['diagnostics']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
+         elif re.search('^DriverPack',software_res[sw]['FQDD']):
+            # I'm assuming there can be only one per generation of iDRAC
+            if 'driver_pack' not in firmware[sys_gen]:
+               firmware[sys_gen]['driver_pack'] = {}
+               firmware[sys_gen]['driver_pack']['element_name'] = software_res[sw]['ElementName']
+               firmware[sys_gen]['driver_pack']['url'] = "Fill in this value by going to support.dell.com"
+               firmware[sys_gen]['driver_pack']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
          elif re.search('^PSU',software_res[sw]['FQDD']):
             if psu_cnt == 0:
                psu_cnt += 1
                firmware[sys_gen]['psu.1'] = {}
                firmware[sys_gen]['psu.1']['element_name'] = software_res[sw]['ElementName']
                firmware[sys_gen]['psu.1']['url'] = "Fill in this value by going to support.dell.com"
-               firmware[sys_gen]['psu.1']['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
+               firmware[sys_gen]['psu.1']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
                firmware[sys_gen]['psu.1']['component_id'] = software_res[sw]['ComponentID']
             else:
                # check to see if we already have this one
-               tmp_fw = firmware.copy()
-               for fw in tmp_fw[sys_gen]:
+               found = False
+               for fw in firmware[sys_gen]:
                   if re.search('^psu',fw):
-                     if tmp_fw[sys_gen][fw]['component_id'] == software_res[sw]['ComponentID']:
-                        continue
-                     else:
-                        psu_cnt += 1
-                        psu_key = "psu."+str(psu_cnt)
-                        firmware[sys_gen][psu_key] = {}
-                        firmware[sys_gen][psu_key]['element_name'] = software_res[sw]['ElementName']
-                        firmware[sys_gen][psu_key]['url'] = "Fill in this value by going to support.dell.com"
-                        firmware[sys_gen][psu_key]['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
-                        firmware[sys_gen][psu_key]['component_id'] = software_res[sw]['ComponentID']
+                     if int(firmware[sys_gen][fw]['component_id']) == int(software_res[sw]['ComponentID']):
+                        found = True
+                        break
+               if not found:
+                  psu_cnt += 1
+                  psu_key = "disk."+str(psu_cnt)
+                  firmware[sys_gen][psu_key] = {}
+                  firmware[sys_gen][psu_key]['element_name'] = software_res[sw]['ElementName']
+                  firmware[sys_gen][psu_key]['url'] = "Fill in this value by going to support.dell.com"
+                  firmware[sys_gen][psu_key]['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
+                  firmware[sys_gen][psu_key]['component_id'] = software_res[sw]['ComponentID']
+         elif re.search('^RAID.Backplane',software_res[sw]['FQDD']):
+            if raid_backplane_cnt == 0:
+               raid_backplane_cnt += 1
+               firmware[sys_gen]['raid_backplane.1'] = {}
+               firmware[sys_gen]['raid_backplane.1']['element_name'] = software_res[sw]['ElementName']
+               firmware[sys_gen]['raid_backplane.1']['url'] = "Fill in this value by going to support.dell.com"
+               firmware[sys_gen]['raid_backplane.1']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
+               firmware[sys_gen]['raid_backplane.1']['component_id'] = software_res[sw]['ComponentID']
+            else:
+               # check to see if we already have this one
+               found = False
+               for fw in firmware[sys_gen]:
+                  if re.search('^raid_backplane',fw):
+                     if int(firmware[sys_gen][fw]['component_id']) == int(software_res[sw]['ComponentID']):
+                        found = True
+                        break
+               if not found:
+                  raid_backplane_cnt += 1
+                  raid_backplane_key = "raid_backplane."+str(raid_backplane_cnt)
+                  firmware[sys_gen][raid_backplane_key] = {}
+                  firmware[sys_gen][raid_backplane_key]['element_name'] = software_res[sw]['ElementName']
+                  firmware[sys_gen][raid_backplane_key]['url'] = "Fill in this value by going to support.dell.com"
+                  firmware[sys_gen][raid_backplane_key]['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
+                  firmware[sys_gen][raid_backplane_key]['component_id'] = software_res[sw]['ComponentID']
          elif re.search('^RAID',software_res[sw]['FQDD']):
+            # TODO the above may not be specific enough.
             if raid_cnt == 0:
                raid_cnt += 1
                firmware[sys_gen]['raid.1'] = {}
                firmware[sys_gen]['raid.1']['element_name'] = software_res[sw]['ElementName']
                firmware[sys_gen]['raid.1']['url'] = "Fill in this value by going to support.dell.com"
-               firmware[sys_gen]['raid.1']['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
+               firmware[sys_gen]['raid.1']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
                firmware[sys_gen]['raid.1']['indentity_info_value'] = software_res[sw]['IdentityInfoValue']
             else:
                # check to see if we already have this one
-               tmp_fw = firmware.copy()
-               for fw in tmp_fw[sys_gen]:
-                  if re.search('^raid',fw):
-                     if tmp_fw[sys_gen][fw]['indentity_info_value'] == software_res[sw]['IdentityInfoValue']:
-                        continue
-                     else:
-                        raid_cnt += 1
-                        raid_key = "raid."+str(raid_cnt)
-                        firmware[sys_gen][raid_key] = {}
-                        firmware[sys_gen][raid_key]['element_name'] = software_res[sw]['ElementName']
-                        firmware[sys_gen][raid_key]['url'] = "Fill in this value by going to support.dell.com"
-                        firmware[sys_gen][raid_key]['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
-                        firmware[sys_gen][raid_key]['indentity_info_value'] = software_res[sw]['IdentityInfoValue']
+               found = False
+               for fw in firmware[sys_gen]:
+                  if re.search('^raid\.',fw):
+                     if firmware[sys_gen][fw]['indentity_info_value'] == software_res[sw]['IdentityInfoValue']:
+                        found = True
+                        break
+               if not found:
+                  raid_cnt += 1
+                  raid_key = "raid."+str(raid_cnt)
+                  firmware[sys_gen][raid_key] = {}
+                  firmware[sys_gen][raid_key]['element_name'] = software_res[sw]['ElementName']
+                  firmware[sys_gen][raid_key]['url'] = "Fill in this value by going to support.dell.com"
+                  firmware[sys_gen][raid_key]['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
+                  firmware[sys_gen][raid_key]['indentity_info_value'] = software_res[sw]['IdentityInfoValue']
+         elif re.search('^NIC',software_res[sw]['FQDD']):
+            if nic_cnt == 0:
+               nic_cnt += 1
+               firmware[sys_gen]['nic.1'] = {}
+               firmware[sys_gen]['nic.1']['element_name'] = software_res[sw]['ElementName']
+               firmware[sys_gen]['nic.1']['url'] = "Fill in this value by going to support.dell.com"
+               firmware[sys_gen]['nic.1']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
+               firmware[sys_gen]['nic.1']['indentity_info_value'] = software_res[sw]['IdentityInfoValue']
+            else:
+               # check to see if we already have this one
+               found = False
+               for fw in firmware[sys_gen]:
+                  if re.search('^nic',fw):
+                     if firmware[sys_gen][fw]['indentity_info_value'] == software_res[sw]['IdentityInfoValue']:
+                        found = True
+                        break
+               if not found:
+                  nic_cnt += 1
+                  nic_key = "nic."+str(nic_cnt)
+                  firmware[sys_gen][nic_key] = {}
+                  firmware[sys_gen][nic_key]['element_name'] = software_res[sw]['ElementName']
+                  firmware[sys_gen][nic_key]['url'] = "Fill in this value by going to support.dell.com"
+                  firmware[sys_gen][nic_key]['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
+                  firmware[sys_gen][nic_key]['indentity_info_value'] = software_res[sw]['IdentityInfoValue']
          elif re.search('^Disk',software_res[sw]['FQDD']):
             if disk_cnt == 0:
                disk_cnt += 1
                firmware[sys_gen]['disk.1'] = {}
                firmware[sys_gen]['disk.1']['element_name'] = software_res[sw]['ElementName']
                firmware[sys_gen]['disk.1']['url'] = "Fill in this value by going to support.dell.com"
-               firmware[sys_gen]['disk.1']['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
+               firmware[sys_gen]['disk.1']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
                firmware[sys_gen]['disk.1']['component_id'] = software_res[sw]['ComponentID']
             else:
                # check to see if we already have this one
-               tmp_fw = firmware.copy()
-               for fw in tmp_fw[sys_gen]:
+               found = False
+               for fw in firmware[sys_gen]:
                   if re.search('^disk',fw):
-                     if tmp_fw[sys_gen][fw]['component_id'] == software_res[sw]['ComponentID']:
-                        continue
-                     else:
-                        disk_cnt += 1
-                        disk_key = "disk."+str(disk_cnt)
-                        firmware[sys_gen][disk_key] = {}
-                        firmware[sys_gen][disk_key]['element_name'] = software_res[sw]['ElementName']
-                        firmware[sys_gen][disk_key]['url'] = "Fill in this value by going to support.dell.com"
-                        firmware[sys_gen][disk_key]['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
-                        firmware[sys_gen][disk_key]['component_id'] = software_res[sw]['ComponentID']
+                     if int(firmware[sys_gen][fw]['component_id']) == int(software_res[sw]['ComponentID']):
+                        found = True
+                        break
+               if not found:
+                  disk_cnt += 1
+                  disk_key = "disk."+str(disk_cnt)
+                  firmware[sys_gen][disk_key] = {}
+                  firmware[sys_gen][disk_key]['element_name'] = software_res[sw]['ElementName']
+                  firmware[sys_gen][disk_key]['url'] = "Fill in this value by going to support.dell.com"
+                  firmware[sys_gen][disk_key]['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
+                  firmware[sys_gen][disk_key]['component_id'] = software_res[sw]['ComponentID']
          elif re.search('^Enclosure',software_res[sw]['FQDD']):
             if enclosure_cnt == 0:
                enclosure_cnt += 1
                firmware[sys_gen]['enclosure.1'] = {}
                firmware[sys_gen]['enclosure.1']['element_name'] = software_res[sw]['ElementName']
                firmware[sys_gen]['enclosure.1']['url'] = "Fill in this value by going to support.dell.com"
-               firmware[sys_gen]['enclosure.1']['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
+               firmware[sys_gen]['enclosure.1']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
                firmware[sys_gen]['enclosure.1']['component_id'] = software_res[sw]['ComponentID']
             else:
                # check to see if we already have this one
-               tmp_fw = firmware.copy()
-               for fw in tmp_fw[sys_gen]:
+               found = False
+               for fw in firmware[sys_gen]:
                   if re.search('^enclosure',fw):
-                     if tmp_fw[sys_gen][fw]['component_id'] == software_res[sw]['ComponentID']:
-                        continue
-                     else:
-                        enclosure_cnt += 1
-                        enclosure_key = "enclosure."+str(enclosure_cnt)
-                        firmware[sys_gen][enclosure_key] = {}
-                        firmware[sys_gen][enclosure_key]['element_name'] = software_res[sw]['ElementName']
-                        firmware[sys_gen][enclosure_key]['url'] = "Fill in this value by going to support.dell.com"
-                        firmware[sys_gen][enclosure_key]['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
-                        firmware[sys_gen][enclosure_key]['component_id'] = software_res[sw]['ComponentID']
+                     if int(firmware[sys_gen][fw]['component_id']) == int(software_res[sw]['ComponentID']):
+                        found = True
+                        break
+               if not found:
+                  enclosure_cnt += 1
+                  enclosure_key = "disk."+str(enclosure_cnt)
+                  firmware[sys_gen][enclosure_key] = {}
+                  firmware[sys_gen][enclosure_key]['element_name'] = software_res[sw]['ElementName']
+                  firmware[sys_gen][enclosure_key]['url'] = "Fill in this value by going to support.dell.com"
+                  firmware[sys_gen][enclosure_key]['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
+                  firmware[sys_gen][enclosure_key]['component_id'] = software_res[sw]['ComponentID']
+         else:
+            # TODO Haven't been able to find firmware for the CPLD so leaving as unknown (and can there be more than one?)
+            if unknown_cnt == 0:
+               unknown_cnt += 1
+               firmware[sys_gen]['unknown.1'] = {}
+               firmware[sys_gen]['unknown.1']['element_name'] = software_res[sw]['ElementName']
+               firmware[sys_gen]['unknown.1']['url'] = "Fill in this value by going to support.dell.com"
+               firmware[sys_gen]['unknown.1']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
+               firmware[sys_gen]['unknown.1']['indentity_info_value'] = software_res[sw]['IdentityInfoValue']
+            else:
+               # check to see if we already have this one
+               found = False
+               for fw in firmware[sys_gen]:
+                  if re.search('^unknown',fw):
+                     if firmware[sys_gen][fw]['indentity_info_value'] == software_res[sw]['IdentityInfoValue']:
+                        found = True
+                        break
+               if not found:
+                  unknown_cnt += 1
+                  unknown_key = "unknown."+str(unknown_cnt)
+                  firmware[sys_gen][unknown_key] = {}
+                  firmware[sys_gen][unknown_key]['element_name'] = software_res[sw]['ElementName']
+                  firmware[sys_gen][unknown_key]['url'] = "Fill in this value by going to support.dell.com"
+                  firmware[sys_gen][unknown_key]['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
+                  firmware[sys_gen][unknown_key]['indentity_info_value'] = software_res[sw]['IdentityInfoValue']
 
    if debug:
       tmp = json.dumps(firmware, indent=3, separators=(',', ': '))
       log.debug("hostname: %s, msg: %s",remote.ip,tmp)
 
-   if firmware_file != '':
-      fh = open(firmware_file, 'w')
-   else:
-      fh = open("firmware.yml", 'w')
+   #if firmware_file != '':
+   #   fh = open(firmware_file, 'w')
+   #else:
+   #   fh = open("firmware.yml", 'w')
+
+   fh = open("firmware.yml", 'w')
    
    fh.write("---\n")
    fh.write("# I recommend you copy this file to your group_vars/all folder\n")
@@ -1109,28 +1276,37 @@ def generateFirmwareVars(remote,firmware_file):
    fh.write("#     - Usually the URL to download from Dell. Can be used to download locally or if share_uri not specified will be passed to the iDRAC.\n")
    fh.write("#   share_uri:\n")
    fh.write("#     - optional\n")
-   fh.write("#     - if specified this will be passed to the iDRAC. Can be http, ftp, tftp, cifs, or nfs\n")
+   fh.write("#     - if specified this will be passed to the iDRAC. Can be http, ftp, tftp, cifs, or nfs. If not specified the url will be used.\n")
    fh.write("#   target_version:\n")
    fh.write("#     - required\n")
    fh.write("#     - The version of software to be installed. Used to check the installed version doesn't match the one to be installed before trying the install.\n")
-   fh.write("#   search:\n")
-   fh.write("#     - optional\n")
-   fh.write("#     - Uses a regular expression search of the 'ElementName' from EnumerateSoftwareIdentity to find a match\n")
    fh.write("#   minimum_version:\n")
    fh.write("#     - optional\n")
    fh.write("#     - If you run into a situation where an install won't complete you may need to install a firmware version between the one installed and the one you are trying to install.\n")
    fh.write("#   component_id:\n")
    fh.write("#     - optional\n")
-   fh.write("#     - If specified this will be used to match the component. This is checked last.\n")
+   fh.write("#     - If specified this will be used to match the 'ComponentID' from EnumerateSoftwareIdentity.\n")
+   fh.write("#   indentity_info_value:\n")
+   fh.write("#     - optional\n")
+   fh.write("#     - If specified this will be used to match the 'IdentityInfoValue' from EnumerateSoftwareIdentity.\n")
+   fh.write("#   search:\n")
+   fh.write("#     - optional\n")
+   fh.write("#     - Uses a regular expression search of the 'ElementName' from EnumerateSoftwareIdentity to find a match. This is a last resort and I recommend you use either the component_id or indentity_info_value.\n")
    fh.write("#\n")
    fh.write("#  Matching order:\n")
    fh.write("#    1. key. idrac, bios, diagnostics, os_collector, and driver_pack should only match one.\n")
    fh.write("#    2. component_id. if specified. Best used for disks, power supplies, RAID backplane, RAID enclosure\n")
-   fh.write("#    3. info_value. if specified. Best used for NICs, RAID controller\n")
+   fh.write("#    3. indentity_info_value. if specified. Best used for NICs, RAID controller\n")
    fh.write("#    4. search. if specified. Searches the 'ElementName' from EnumerateSoftwareIdentity. Last resort.\n")
    fh.write("#\n")
    fh.write("firmware:\n")
-   print >>fh, "  "+sys_view_res['SystemGeneration']+":\n"
+   for sys_gen in firmware:
+      print >>fh, "  "+sys_gen+":"
+      for fw in firmware[sys_gen]:
+         print >>fh, "    "+fw+":"
+         for values in firmware[sys_gen][fw]:
+            print >>fh, "      "+values+": \""+str(firmware[sys_gen][fw][values])+"\""
+
    fh.close()
 
    return msg
