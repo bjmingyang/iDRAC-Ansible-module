@@ -356,7 +356,7 @@ class switch(object):
       """Indicate whether or not to enter a case suite"""
       if self.fall or not args:
          return True
-      elif self.value in args: # changed for v1.5, see below
+      elif self.value in args:
          self.fall = True
          return True
       else:
@@ -438,7 +438,13 @@ def bootToNetworkISO(remote,share_info,iso_image):
 
    return msg
 
-# Checks the job Status of the given Job ID.
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
+# jobid:
+#    - The jobid to check
+#
+# Wrapper function for ___checkJobStatus() that puts the jobid back into the
+# result so that a loop task can be run.
 #
 # supports check_mode
 def checkJobStatus (remote,jobid):
@@ -462,6 +468,7 @@ def checkReadyState(remote):
 
    res = ___getRemoteServicesAPIStatus(remote)
    if res['failed']:
+      res['changed'] = False
       return res
    else:
       msg['LCStatusString'] = res['LCStatusString']
@@ -482,16 +489,6 @@ def checkReadyState(remote):
          else:
             msg['msg'] = "Lifecycle Controller is not ready"
             msg['failed'] = True
-
-
-      #if ((res['ServerStatus'] != '0') and (res['ServerStatus'] != '2')):
-      #   if msg['failed']:
-      #      msg['msg'] = msg['msg']+" and Server is not ready"
-      #      msg['ServerStatusString'] = res['ServerStatusString']
-      #   else:
-      #      msg['msg'] = "Server is not ready"
-      #      msg['failed'] = False
-      #      msg['ServerStatusString'] = res['ServerStatusString']
 
    if not msg['failed']:
       msg['msg'] = "iDRAC is ready. Who knows if the server is because we "
@@ -614,6 +611,9 @@ def deleteJobQueue(remote,jobid):
 
    return msg
 
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
+#
 # wsman invoke -a DetachISOImage \
 # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_OSDeploymentService?CreationClassName=DCIM_OSDeploymentService&Name=DCIM:OSDeploymentService&SystemCreationClassName=DCIM_ComputerSystem&SystemName=DCIM:ComputerSystem" \
 # -u <username> -p <password> -h <hostname> -V -v -c dummy.cert -P 443 \
@@ -653,6 +653,9 @@ def detachISOImage(remote):
 
    return msg
 
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
+#
 # TODO remove hostname
 # supports check_mode
 def detachSDCardPartitions(remote,hostname):
@@ -721,7 +724,7 @@ def detachSDCardPartitions(remote,hostname):
    msg['failed'] = False
    return msg
 
-#
+# supports check_mode
 def enumerateEventFilters(remote):
    msg = { 'msg': {} }
 
@@ -742,13 +745,20 @@ def enumerateEventFilters(remote):
 
 # remote:
 #    - ip, username, password passed to Remote() of WSMan
+# msg:
+#    - Optional
+#    - Dictionary for return values
 #
 # Wrapper function the puts the return values from
 # ___enumerateSoftwareIdentity() into ansible_facts
 #
 # supports check_mode 
-def enumerateSoftwareIdentity(remote):
-   msg = { 'ansible_facts': { 'software_identity': {} } }
+def enumerateSoftwareIdentity(remote,msg={}):
+
+   if 'ansible_facts' not in msg:
+      msg['ansible_facts'] = {}
+   if 'software_identity' not in msg['ansible_facts']:
+      msg['ansible_facts']['software_identity'] = {}
 
    res = ___enumerateSoftwareIdentity(remote)
    if res['failed']:
@@ -930,6 +940,200 @@ def exportSystemConfiguration(remote,share_info,hostname,local_path,
 
    ret['changed'] = False
    return ret
+
+def generateFirmwareVars(remote,firmware_file):
+   msg = {}
+
+   # First we need to know what generation of iDRAC
+   sys_view_res = ___systemView(remote)
+   if sys_view_res['failed']:
+      msg['failed'] = True
+      msg['changed'] = False
+      msg['msg'] = sys_view_res['msg']
+      return msg
+
+   # Next we need to get the firware information
+   software_res = ___enumerateSoftwareIdentity(remote)
+   if software_res['failed']:
+      msg['failed'] = True
+      msg['changed'] = False
+      msg['msg'] = software_res['msg']
+      return msg
+
+   sys_gen = sys_view_res['SystemGeneration']
+
+   # TODO read in firmware from current firmware file and set the various counts
+   if firmware_file == '':
+      psu_cnt = 0
+      raid_cnt = 0
+      disk_cnt = 0
+      enclosure_cnt = 0
+      firmware = {}
+      firmware[sys_gen] = {}
+
+   for sw in software_res:
+      if sw == 'failed':
+         continue
+      if software_res[sw]['Status'] == "Installed":
+         if debug:
+            log.debug("found installed software")
+         if re.search('^BIOS',software_res[sw]['FQDD']):
+            if 'bios' not in firmware[sys_gen]:
+               firmware[sys_gen]['bios'] = {}
+               firmware[sys_gen]['bios']['element_name'] = software_res[sw]['ElementName']
+               firmware[sys_gen]['bios']['url'] = "Fill in this value by going to support.dell.com"
+               firmware[sys_gen]['bios']['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
+         elif re.search('^PSU',software_res[sw]['FQDD']):
+            if psu_cnt == 0:
+               psu_cnt += 1
+               firmware[sys_gen]['psu.1'] = {}
+               firmware[sys_gen]['psu.1']['element_name'] = software_res[sw]['ElementName']
+               firmware[sys_gen]['psu.1']['url'] = "Fill in this value by going to support.dell.com"
+               firmware[sys_gen]['psu.1']['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
+               firmware[sys_gen]['psu.1']['component_id'] = software_res[sw]['ComponentID']
+            else:
+               # check to see if we already have this one
+               tmp_fw = firmware.copy()
+               for fw in tmp_fw[sys_gen]:
+                  if re.search('^psu',fw):
+                     if tmp_fw[sys_gen][fw]['component_id'] == software_res[sw]['ComponentID']:
+                        continue
+                     else:
+                        psu_cnt += 1
+                        psu_key = "psu."+str(psu_cnt)
+                        firmware[sys_gen][psu_key] = {}
+                        firmware[sys_gen][psu_key]['element_name'] = software_res[sw]['ElementName']
+                        firmware[sys_gen][psu_key]['url'] = "Fill in this value by going to support.dell.com"
+                        firmware[sys_gen][psu_key]['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
+                        firmware[sys_gen][psu_key]['component_id'] = software_res[sw]['ComponentID']
+         elif re.search('^RAID',software_res[sw]['FQDD']):
+            if raid_cnt == 0:
+               raid_cnt += 1
+               firmware[sys_gen]['raid.1'] = {}
+               firmware[sys_gen]['raid.1']['element_name'] = software_res[sw]['ElementName']
+               firmware[sys_gen]['raid.1']['url'] = "Fill in this value by going to support.dell.com"
+               firmware[sys_gen]['raid.1']['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
+               firmware[sys_gen]['raid.1']['indentity_info_value'] = software_res[sw]['IdentityInfoValue']
+            else:
+               # check to see if we already have this one
+               tmp_fw = firmware.copy()
+               for fw in tmp_fw[sys_gen]:
+                  if re.search('^raid',fw):
+                     if tmp_fw[sys_gen][fw]['indentity_info_value'] == software_res[sw]['IdentityInfoValue']:
+                        continue
+                     else:
+                        raid_cnt += 1
+                        raid_key = "raid."+str(raid_cnt)
+                        firmware[sys_gen][raid_key] = {}
+                        firmware[sys_gen][raid_key]['element_name'] = software_res[sw]['ElementName']
+                        firmware[sys_gen][raid_key]['url'] = "Fill in this value by going to support.dell.com"
+                        firmware[sys_gen][raid_key]['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
+                        firmware[sys_gen][raid_key]['indentity_info_value'] = software_res[sw]['IdentityInfoValue']
+         elif re.search('^Disk',software_res[sw]['FQDD']):
+            if disk_cnt == 0:
+               disk_cnt += 1
+               firmware[sys_gen]['disk.1'] = {}
+               firmware[sys_gen]['disk.1']['element_name'] = software_res[sw]['ElementName']
+               firmware[sys_gen]['disk.1']['url'] = "Fill in this value by going to support.dell.com"
+               firmware[sys_gen]['disk.1']['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
+               firmware[sys_gen]['disk.1']['component_id'] = software_res[sw]['ComponentID']
+            else:
+               # check to see if we already have this one
+               tmp_fw = firmware.copy()
+               for fw in tmp_fw[sys_gen]:
+                  if re.search('^disk',fw):
+                     if tmp_fw[sys_gen][fw]['component_id'] == software_res[sw]['ComponentID']:
+                        continue
+                     else:
+                        disk_cnt += 1
+                        disk_key = "disk."+str(disk_cnt)
+                        firmware[sys_gen][disk_key] = {}
+                        firmware[sys_gen][disk_key]['element_name'] = software_res[sw]['ElementName']
+                        firmware[sys_gen][disk_key]['url'] = "Fill in this value by going to support.dell.com"
+                        firmware[sys_gen][disk_key]['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
+                        firmware[sys_gen][disk_key]['component_id'] = software_res[sw]['ComponentID']
+         elif re.search('^Enclosure',software_res[sw]['FQDD']):
+            if enclosure_cnt == 0:
+               enclosure_cnt += 1
+               firmware[sys_gen]['enclosure.1'] = {}
+               firmware[sys_gen]['enclosure.1']['element_name'] = software_res[sw]['ElementName']
+               firmware[sys_gen]['enclosure.1']['url'] = "Fill in this value by going to support.dell.com"
+               firmware[sys_gen]['enclosure.1']['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
+               firmware[sys_gen]['enclosure.1']['component_id'] = software_res[sw]['ComponentID']
+            else:
+               # check to see if we already have this one
+               tmp_fw = firmware.copy()
+               for fw in tmp_fw[sys_gen]:
+                  if re.search('^enclosure',fw):
+                     if tmp_fw[sys_gen][fw]['component_id'] == software_res[sw]['ComponentID']:
+                        continue
+                     else:
+                        enclosure_cnt += 1
+                        enclosure_key = "enclosure."+str(enclosure_cnt)
+                        firmware[sys_gen][enclosure_key] = {}
+                        firmware[sys_gen][enclosure_key]['element_name'] = software_res[sw]['ElementName']
+                        firmware[sys_gen][enclosure_key]['url'] = "Fill in this value by going to support.dell.com"
+                        firmware[sys_gen][enclosure_key]['target_version'] = "Fill in this value from support.dell.com. Current version: "+software_res[sw]['VersionString']
+                        firmware[sys_gen][enclosure_key]['component_id'] = software_res[sw]['ComponentID']
+
+   if debug:
+      tmp = json.dumps(firmware, indent=3, separators=(',', ': '))
+      log.debug("hostname: %s, msg: %s",remote.ip,tmp)
+
+   if firmware_file != '':
+      fh = open(firmware_file, 'w')
+   else:
+      fh = open("firmware.yml", 'w')
+   
+   fh.write("---\n")
+   fh.write("# I recommend you copy this file to your group_vars/all folder\n")
+   fh.write("#\n")
+   fh.write("# GenerateFirmwareVars will create this file or (if specified) will take a current firmware.yml and merge into a new one.\n")
+   fh.write("#\n")
+   fh.write("# 13G_Monolithic:\n")
+   fh.write("#   iDRAC8:\n")
+   fh.write("#     - PowerEdge_R730xd\n")
+   fh.write("#     - PowerEdge_R630\n")
+   fh.write("#\n") 
+   fh.write("# 12G_Monolithic:\n")
+   fh.write("#   iDRAC7:\n")
+   fh.write("#     - PowerEdge_R720xd\n")
+   fh.write("#     - PowerEdge_R720\n")
+   fh.write("#\n")
+   fh.write("# options:\n")
+   fh.write("#   element_name:\n")
+   fh.write("#     - optional\n")
+   fh.write("#     - ElementName from EnumerateSoftwareIdentity. Created when this file is generated with GenerateFirmwareVars so that you'll have something to use when getting the url from Dell's website.\n")
+   fh.write("#   url:\n")
+   fh.write("#     - required\n")
+   fh.write("#     - Usually the URL to download from Dell. Can be used to download locally or if share_uri not specified will be passed to the iDRAC.\n")
+   fh.write("#   share_uri:\n")
+   fh.write("#     - optional\n")
+   fh.write("#     - if specified this will be passed to the iDRAC. Can be http, ftp, tftp, cifs, or nfs\n")
+   fh.write("#   target_version:\n")
+   fh.write("#     - required\n")
+   fh.write("#     - The version of software to be installed. Used to check the installed version doesn't match the one to be installed before trying the install.\n")
+   fh.write("#   search:\n")
+   fh.write("#     - optional\n")
+   fh.write("#     - Uses a regular expression search of the 'ElementName' from EnumerateSoftwareIdentity to find a match\n")
+   fh.write("#   minimum_version:\n")
+   fh.write("#     - optional\n")
+   fh.write("#     - If you run into a situation where an install won't complete you may need to install a firmware version between the one installed and the one you are trying to install.\n")
+   fh.write("#   component_id:\n")
+   fh.write("#     - optional\n")
+   fh.write("#     - If specified this will be used to match the component. This is checked last.\n")
+   fh.write("#\n")
+   fh.write("#  Matching order:\n")
+   fh.write("#    1. key. idrac, bios, diagnostics, os_collector, and driver_pack should only match one.\n")
+   fh.write("#    2. component_id. if specified. Best used for disks, power supplies, RAID backplane, RAID enclosure\n")
+   fh.write("#    3. info_value. if specified. Best used for NICs, RAID controller\n")
+   fh.write("#    4. search. if specified. Searches the 'ElementName' from EnumerateSoftwareIdentity. Last resort.\n")
+   fh.write("#\n")
+   fh.write("firmware:\n")
+   print >>fh, "  "+sys_view_res['SystemGeneration']+":\n"
+   fh.close()
+
+   return msg
 
 # This is just a wrapper function. Will be removed once no playbooks are calling
 # it directly.
@@ -1272,14 +1476,6 @@ def installFirmware(remote,firmware):
       for k in firmware:
          log.debug ("firmware key: %s value: %s",k,firmware[k])
 
-   #if 'share_uri' in firmware:
-   #   uri = firmware['share_uri']
-   #else:
-   #   uri = firmware['url']
-   #
-   #if debug:
-   #   log.debug("uri: %s",uri)
-
    # Check to make sure the iDRAC is ready to accept commands
    res = ___getRemoteServicesAPIStatus(remote)
    for k in res:
@@ -1291,6 +1487,8 @@ def installFirmware(remote,firmware):
          return msg
 
    # Check the Job Queue to make sure there are no pending jobs
+   if debug:
+      log.debug( "installFirmware() calling ___listJobs()")
    res = ___listJobs(remote,'',{})
    if res['failed']:
       msg['failed'] = True
@@ -1301,140 +1499,237 @@ def installFirmware(remote,firmware):
    for k in res:
       #print k+": "+str(res[k])
       if (k == 'JID_CLEARALL') and (res[k]['JobStatus'] == 'Pending'):
+         if debug:
+            log.debug("installFirmware() this server has a JID_CLEARALL pending")
          continue
       if (hasattr(res[k], 'JobStatus')) and (res[k]['JobStatus'] == 'Pending'):
+         if debug:
+            log.debug("installFirmware() this server has a job pending")
          msg['failed'] = True
          msg['changed'] = False
-         msg['msg'] = 'Could not complete because there are pending Jobs.'
-         msg['msg'] = msg['msg']+' Pending Job: '+k+'. Please clear the Job'
-         msg['msg'] = msg['msg']+' Queue and reset the iDRAC.'
+         msg['msg'] = "Could not complete because there are pending Jobs."
+         msg['msg'] = msg['msg']+" Pending Job: "+k+". Please clear the Job"
+         msg['msg'] = msg['msg']+" Queue and reset the iDRAC."
          return msg
+   #### End of Checking Job Queue
 
    if debug:
-      log.debug("Calling ___enumerateSoftwareIdentity() from installFirmware()")
-   res = ___enumerateSoftwareIdentity(remote)
-   if res['failed']:
+      log.debug("installFirmware() calling ___enumerateSoftwareIdentity()")
+   software_res = ___enumerateSoftwareIdentity(remote)
+   if software_res['failed']:
       msg['failed'] = True
       msg['changed'] = False
-      msg['msg'] = res['msg']
+      msg['msg'] = software_res['msg']
       return msg
 
-   # check to see if version trying to be installed is the same
-   for k in res:
-      #print k
-      if re.search('BIOS', k):
-         if res[k]['Status'] == 'Installed':
-            cur_version = res[k]['VersionString']
-            instanceID = k
-
-   new_version = firmware['target_version']
-
-   if LooseVersion(new_version) != LooseVersion(cur_version):
-      if check_mode:
-         msg['msg'] = "Would have attempted to install BIOS."
-         msg['changed'] = True
-         msg['failed'] = False
-      else:
-         installURI_res = ___installFromURI(remote,uri,instanceID)
-         if installURI_res['failed']:
-            msg['failed'] = True
-            msg['changed'] = False
-            msg['idrac_msg'] = installURI_res['Message']
-            msg['msg'] = "Download started but, not completed."
-            return msg
-
-         jobs.append(installURI_res['jobid'])
-
-         # Waits 5 minutes or until the download completes
-         wait_time = 60 * 5
-         end_time = time.clock() + wait_time
-         while time.clock() < end_time:
-            res = ___checkJobStatus(remote,msg['jobid'])
-            if res['JobStatus'] == 'Downloaded':
-               break
-            if res['JobStatus'] == 'Failed':
-               break
-
-            time.sleep(2)
-
-         if res['JobStatus'] != 'Downloaded':
-            msg['failed'] = True
-            msg['changed'] = True
-            msg['idrac_msg'] = res['Message']
-            msg['msg'] = 'Download started but, not completed.'
-            return msg
-
-         # Create a reboot job
-         rebootJob_res = ___createRebootJob(remote,hostname,1)
-         if rebootJob_res['failed']:
-            msg['failed'] = True
-            msg['changed'] = True
-            msg['msg'] = "Download completed but, could not create reboot job."
-            return msg
-
-         jobs.append(rebootJob_res['rebootid'])
-
-         jobQueue_res = ___setupJobQueue(remote,hostname,jobs)
-         if jobQueue_res['failed']:
-            msg['failed'] = True
-            msg['changed'] = True
-            msg['msg'] = "Download completed and reboot job created but, could"
-            msg['msg'] = msg['msg']+" not execute reboot."
-            return msg
-
-         # Waits 6 minutes or until the bios upgrade completes
-         wait_time = 60 * 6
-         end_time = time.clock() + wait_time
-         while time.clock() < end_time:
-            res = ___checkJobStatus(remote,installURI_res['jobid'])
-            if res['JobStatus'] == 'Completed':
-               break
-            if res['JobStatus'] == 'Failed':
-               break
-
-            time.sleep(2)
-
-         if res['JobStatus'] != 'Completed':
-            msg['failed'] = True
-            msg['changed'] = True
-            msg['msg'] = "BIOS upgrade failed."
-            return msg
-
-         # Waits 15 minutes or until the iDRAC is ready
-         wait_time = 60 * 15
-         end_time = time.clock() + wait_time
-         while time.clock() < end_time:
-            res = ___getRemoteServicesAPIStatus(remote)
-            # TODO What is the 'ServerStatus' when there is no OS installed?
-            if ((res['LCStatus'] == '0') and (res['Status'] == '0')
-                and (res['ServerStatus'] == '2')):
-               break
-
-            time.sleep(10)
-
-         if (res['LCStatus'] != '0') and (res['Status'] != '0'):
-            msg['failed'] = True
-            msg['changed'] = True
-            msg['msg'] = "iDRAC never came back after BIOS install."
-         else:
-            msg['failed'] = False
-            msg['changed'] = True
-            msg['msg'] = "BIOS upgrade successfully completed."
-
-   elif LooseVersion(new_version) == LooseVersion(cur_version):
-      msg['msg'] = "Installed version "+cur_version+" same as version to be"
-      msg['msg'] = msg['msg']+" installed."
-      msg['failed'] = False
-      msg['changed'] = False
-   else:
-      msg['msg'] = "Was unable to compare versions. Installed version: "
-      msg['msg'] = msg['msg']+cur_version+". New version: "+new_version
+   sys_view_res = ___systemView(remote)
+   if sys_view_res['failed']:
       msg['failed'] = True
       msg['changed'] = False
+      msg['msg'] = sys_view_res['msg']
+      return msg
 
-   if not msg['failed'] and msg['changed']:
-      msg['ansible_facts'] = {}
-      msg['ansible_facts']['BIOSVersionString'] = new_version
+   for fw in firmware:
+      if (re.search('bios', fw) or re.search('idrac', fw)):
+         continue
+
+      if debug:
+         log.debug ("looping firmware url: %s", firmware[fw]['url'])
+   
+      for k in software_res:
+         if debug:
+            log.debug("looping software")
+
+         if (re.search('BIOS', k)) or (re.search('iDRAC', k) or (k == 'failed')) or (software_res[k]['Status'] != 'Installed'):
+            if debug:
+               log.debug("skipping %s",k)
+            continue
+         elif (re.search('driver_pack', fw) and (re.search("OS Driver Pack", software_res[k]['ElementName']))):
+            if debug:
+               log.debug("found OS Driver Pack")
+            software_res[k]['matched'] = True
+            firmware[fw]['matched'] = True
+            cur_version = software_res[k]['VersionString']
+            instanceID = k
+            #if 'share_uri' in firmware:
+            #   uri = firmware['share_uri']
+            #else:
+            #   uri = firmware['url']
+            #
+            #if debug:
+            #   log.debug("uri: %s",uri)
+
+            # There should only be one of these so we can break the loop
+            break
+         elif (re.search('diagnostics', fw) and (re.search("Diagnostics", software_res[k]['ElementName']))):
+            if debug:
+               log.debug("found Diagnostics")
+            software_res[k]['matched'] = True
+            firmware[fw]['matched'] = True
+            cur_version = software_res[k]['VersionString']
+            instanceID = k
+            # There should only be one of these so we can break the loop
+            break
+         elif (re.search('os_collector', fw) and (re.search("OS COLLECTOR", software_res[k]['ElementName']))):
+            if debug:
+               log.debug("found OS Collector")
+            software_res[k]['matched'] = True
+            firmware[fw]['matched'] = True
+            cur_version = software_res[k]['VersionString']
+            instanceID = k
+            # There should only be one of these so we can break the loop
+            break
+         elif (re.search('nic', fw) and (re.search(firmware[fw]['search'], software_res[k]['ElementName']))):
+            if debug:
+               log.debug("found a NIC")
+            # We only need to update the first one
+            tmp = k.split(".")
+            tmp = tmp.split("-")
+            if tmp[1] == 1:
+               software_res[k]['matched'] = True
+               firmware[fw]['matched'] = True
+               cur_version = software_res[k]['VersionString']
+               instanceID = k
+            else:
+               software_res[k]['matched'] = True
+               continue
+         elif ('component_id' in firmware[fw]) and (firmware[fw]['component_id'] == software_res[k]['ComponentID']):
+            if debug:
+               log.debug("found with component_id")
+            software_res[k]['matched'] = True
+            firmware[fw]['matched'] = True
+            cur_version = software_res[k]['VersionString']
+            instanceID = k
+         elif ('search' in firmware[fw]) and (re.search(firmware[fw]['search'], software_res[k]['ElementName'])):
+            if debug:
+               log.debug("found with search")
+            software_res[k]['matched'] = True
+            firmware[fw]['matched'] = True
+            cur_version = software_res[k]['VersionString']
+            instanceID = k
+         else:
+            continue
+
+         new_version = firmware[fw]['target_version']
+
+         if (('minimum_version' in firmware[fw]) and (LooseVersion(cur_version) < LooseVersion(firmware[fw]['minimum_version']))):
+            if debug:
+               log.debug("minumum version not met")
+            software_res[k]['msg'] = "Minimum version not met"
+         elif LooseVersion(new_version) != LooseVersion(cur_version):
+            if check_mode:
+               software_res[k]['msg'] = "Would have attempted to install firmware."
+               msg['changed'] = True
+            else:
+               installURI_res = ___installFromURI(remote,uri,instanceID)
+               if installURI_res['failed']:
+                  msg['failed'] = True
+                  software_res[k]['changed'] = False
+                  software_res[k]['Message'] = installURI_res['Message']
+                  software_res[k]['msg'] = "Download started but, not completed."
+               else:
+         
+                  jobs.append(installURI_res['jobid'])
+                  
+                  # Waits 5 minutes or until the download completes
+                  wait_time = 60 * 5
+                  end_time = time.clock() + wait_time
+                  while time.clock() < end_time:
+                     res = ___checkJobStatus(remote,msg['jobid'])
+                     if res['JobStatus'] == 'Downloaded':
+                        break
+                     if res['JobStatus'] == 'Failed':
+                        break
+                  
+                     time.sleep(2)
+                  
+                  if res['JobStatus'] != 'Downloaded':
+                     software_res[k]['failed'] = True
+                     software_res[k]['changed'] = True
+                     software_res[k]['Message'] = res['Message']
+                     software_res[k]['msg'] = 'Download started but, not completed.'
+
+         elif LooseVersion(new_version) == LooseVersion(cur_version):
+            msg['msg'] = "Installed version "+cur_version+" same as version to be"
+            msg['msg'] = msg['msg']+" installed."
+            msg['failed'] = False
+            msg['changed'] = False
+         else:
+            msg['msg'] = "Was unable to compare versions. Installed version: "
+            msg['msg'] = msg['msg']+cur_version+". New version: "+new_version
+            msg['failed'] = True
+            msg['changed'] = False
+
+                  
+   # Create a reboot job
+   if check_mode:
+      if debug:
+         log.debug("Would have created reboot job")
+   else:
+      rebootJob_res = ___createRebootJob(remote,hostname,1)
+      if rebootJob_res['failed']:
+         msg['failed'] = True
+         msg['changed'] = True
+         msg['msg'] = "Download completed but, could not create reboot job."
+         return msg
+      
+      jobs.append(rebootJob_res['rebootid'])
+      
+      jobQueue_res = ___setupJobQueue(remote,hostname,jobs)
+      if jobQueue_res['failed']:
+         msg['failed'] = True
+         msg['changed'] = True
+         msg['msg'] = "Download completed and reboot job created but, could"
+         msg['msg'] = msg['msg']+" not execute reboot."
+         return msg
+      
+      # Waits 6 minutes or until the bios upgrade completes
+      wait_time = 60 * 6
+      end_time = time.clock() + wait_time
+      while time.clock() < end_time:
+         res = ___checkJobStatus(remote,installURI_res['jobid'])
+         if res['JobStatus'] == 'Completed':
+            break
+         if res['JobStatus'] == 'Failed':
+            break
+      
+         time.sleep(2)
+      
+      if res['JobStatus'] != 'Completed':
+         msg['failed'] = True
+         msg['changed'] = True
+         msg['msg'] = "BIOS upgrade failed."
+         return msg
+      
+      # Waits 15 minutes or until the iDRAC is ready
+      wait_time = 60 * 15
+      end_time = time.clock() + wait_time
+      while time.clock() < end_time:
+         res = ___getRemoteServicesAPIStatus(remote)
+         # TODO What is the 'ServerStatus' when there is no OS installed?
+         if ((res['LCStatus'] == '0') and (res['Status'] == '0')
+             and (res['ServerStatus'] == '2')):
+            break
+      
+         time.sleep(10)
+      
+      if (res['LCStatus'] != '0') and (res['Status'] != '0'):
+         msg['failed'] = True
+         msg['changed'] = True
+         msg['msg'] = "iDRAC never came back after firmware install."
+      else:
+         msg['failed'] = False
+         msg['changed'] = True
+         msg['msg'] = "firmware install completed."
+
+   if not check_mode:
+      # check to see how firmware install did
+      if debug:
+         log.debug("checking firmware install status")
+   
+   #if not msg['failed'] and msg['changed']:
+   #   msg['ansible_facts'] = {}
+   #   msg['ansible_facts']['BIOSVersionString'] = new_version
 
    return msg
 
@@ -1701,123 +1996,6 @@ def resetRAIDConfig(remote,hostname,remove_xml):
       msg['changed'] = True
 
    return msg
-
-# Schedule Firmware Install
-#
-# Will not install iDRAC firmware. If you want to up/downgrade the iDRAC use
-# installIdracFirmware()
-# 
-# Returns the jobid of ___installFromURI() which can then be passed to 
-# setupJobQueue() with the rebootid returned from ___createRebootJob()
-#
-def scheduleFirmwareInstall(remote,firmware):
-   msg = { 'ansible_facts': { } }
-   msg['failed'] = False
-
-   if debug:
-      #print "scheduleFirmwareUpdate() Calling ___checkShareInfo()"
-      log.debug("scheduleFirmwareUpdate() Calling ___checkShareInfo()")
-
-   if not firmware:
-      msg['changed'] = False
-      msg['failed'] = True
-      msg['msg'] = "firmware must be defined."
-      return msg
-
-   if instanceID == '':
-      msg['failed'] = True
-      msg['changed'] = False
-      msg['msg'] = "instanceID must be defined."
-      return msg
-   elif debug:
-      print "scheduleFirmwareUpdate() instanceID: "+instanceID
-
-   if check_mode:
-      # TODO maybe put in what type of firmware.
-      msg['msg'] = "Firmware update would have been attempted."
-      msg['changed'] = True
-      msg['failed'] = False
-      return msg
-
-   # Check the Job Queue to make sure there are no pending jobs
-   if debug:
-      log.debug( "scheduleFirmwareUpdate() calling ___listJobs()")
-   res = ___listJobs(remote,'',{})
-   if res['failed']:
-      msg['failed'] = True
-      msg['changed'] = False
-      msg['msg'] = 'iDRAC not accepting commands. wsman returned: '+res['msg']
-      return msg
-
-   for k in res:
-      #print k+": "+str(res[k])
-      if (k == 'JID_CLEARALL') and (res[k]['JobStatus'] == 'Pending'):
-         if debug:
-            log.debug("scheduleFirmwareUpdate() this server has a JID_CLEARALL pending")
-         continue
-      if (hasattr(res[k], 'JobStatus')) and (res[k]['JobStatus'] == 'Pending'):
-         if debug:
-            log.debug("scheduleFirmwareUpdate() this server has a job pending")
-         msg['failed'] = True
-         msg['changed'] = False
-         msg['msg'] = "Could not complete because there are pending Jobs."
-         msg['msg'] = msg['msg']+" Pending Job: "+k+". Please clear the Job"
-         msg['msg'] = msg['msg']+" Queue and reset the iDRAC."
-         return msg
-   #### End of Checking Job Queue
-
-   # Check to make sure the iDRAC is ready to accept commands
-   if debug:
-      log.debug("scheduleFirmwareUpdate() calling ___getRemoteServicesAPIStatus()")
-   res = ___getRemoteServicesAPIStatus(remote)
-   for k in res:
-      #print "key: "+k+" value: "+str(res[k])
-      if (res['LCStatus'] != '0') and (res['Status'] != '0'):
-         if debug:
-            log.debug("scheduleFirmwareUpdate() finished ___getRemoteServicesAPIStatus and iDRAC isn't ready")
-         msg['failed'] = True
-         msg['changed'] = True
-         msg['msg'] = "iDRAC is not ready. Please check the iDRAC. It may need to be reset."
-         return msg
-   #### End of checking for iDRAC is ready
-
-   if debug:
-      log.debug("scheduleFirmwareUpdate() calling ___installFromURI()")
-   installURI_res = ___installFromURI(remote,uri,firmware,instanceID)
-   if installURI_res['failed']:
-      msg['failed'] = True
-      msg['changed'] = True
-      msg['idrac_msg'] = installURI_res['Message']
-      msg['msg'] = "Download started but, not completed."
-
-   if not msg['failed']:
-      msg['ansible_facts']['jobid'] = installURI_res['jobid']
-
-      # Waits 3 minutes or until the download completes
-      if debug:
-         print "scheduleFirmwareUpdate() checking JobStatus"
-      for x in range(1, 90):
-         res = ___checkJobStatus(remote,installURI_res['jobid'])
-         if res['JobStatus'] == 'Downloaded':
-            break
-         if res['JobStatus'] == 'Failed':
-            break
-   
-         time.sleep(2)
-   
-      if res['JobStatus'] != 'Downloaded':
-         msg['failed'] = True
-         msg['changed'] = True
-         msg['idrac_msg'] = res['Message']
-         msg['msg'] = "Download started but, not completed."
-
-   if msg['failed']:
-      return msg
-   else:
-      msg['changed'] = True
-      msg['failed'] = False
-      msg['msg'] = "Succesfully scheduled firmware update."
-      return msg
 
 # remote:
 #    - ip, username, password passed to Remote() of WSMan
@@ -2148,26 +2326,22 @@ def ___checkReturnValues(res, msg = {}):
          found = 1
          tmp = res.get(p).__str__() # convert to a string
          tmp = tmp.split("'")
-         #print tmp[1]
          msg['JobStatus'] = str(tmp[1])
 
       if re.match('Name', p) != None:
          found = 1
          tmp = res.get(p).__str__() # convert to a string
          tmp = tmp.split("'")
-         #print tmp[1]
          msg['Name'] = tmp[1]
 
       if re.match('Message$', p):
          tmp = res.get(p).__str__()
          tmp = re.split("'", tmp)
-         #print tmp[1]
          msg['Message'] = tmp[1]
 
       if re.match('MessageID', p):
          tmp = res.get(p).__str__()
          tmp = re.split("'", tmp)
-         #print tmp[1]
          msg['MessageID'] = tmp[1]
 
       if re.match('Job', p) != None:
@@ -2176,8 +2350,6 @@ def ___checkReturnValues(res, msg = {}):
          for i in tmp:
             if re.match('JID', i):
                msg['jobid'] = i
-               #msg['ansible_facts']['jobid'] = i
-               #print "job id: "+jobid
             elif re.match('RID', i):
                msg['rebootid'] = i
             elif re.match('DCIM', i):
@@ -2839,7 +3011,6 @@ def ___getRemoteServicesAPIStatus (remote):
 
    res = wsman.invoke(r, 'GetRemoteServicesAPIStatus', '', remote)
    if type(res) is Fault:
-      #print 'There was an error!'
       msg['failed'] = True
       msg['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
       return msg
@@ -2877,53 +3048,13 @@ def ___info(object, spacing=10, collapse=1):
 # -h <hostname> -V -v -c dummy.cert -P 443 -u <username> -p <password>
 # -J InstallFromURI.xml -j utf-8 -y basic
 #
-def ___installFromURI(remote,hostname,share_info,firmware,instanceID):
+def ___installFromURI(remote,uri,instanceID):
 
-   msg = { 'ansible_facts': { } }
+   msg = { }
    msg['failed'] = False
    msg['jobid'] = ''
 
-   # TODO share_info should be checked in calling function
-
-   if share_info['ip'] == '':
-      msg['failed'] = True
-      msg['msg'] = "share_ip must be defined"
-   if share_info['type'] == '':
-      msg['failed'] = True
-      msg['msg'] = "share_type must be defined"
-
-   #cifs://WORKGROUP_NAME\[USERNAME]:[PASSWORD]@[URI-IP-ADDRESS]/[FILE.exe];mountpoint=[DIRECTORYNAME]
-   if (share_info['type'] == 'samba') or (share_info['type'] == 'cifs') or (share_info['type'] == 'smb'):
-      if share_info['user'] == '':
-         msg['failed'] = True
-         msg['msg'] = "share_user must be defined"
-      if share_info['pass'] == '':
-         msg['failed'] = True
-         msg['msg'] = "share_pass must be defined"
-      if share_info['name'] == '':
-         msg['failed'] = True
-         msg['msg'] = "share_name must be defined"
-
-      uri = "cifs://"
-      if share_info['workgroup'] != '':
-         uri = uri+share_info['workgoup']+'\\'
-      uri = uri+share_info['user']+":"+share_info['pass']+"@"+share_info['ip']
-      uri = uri+"/"+firmware+";mountpoint="+share_info['name']
-
-   elif share_info['type'] == 'http':
-      uri = 'http://'+share_info['ip']+'/'+firmware
-   elif share_info['type'] == 'ftp':
-      uri = 'ftp://'+share_info['ip']+'/'+firmware
-   elif share_info['type'] == 'tftp':
-      uri = 'tftp://'+share_info['ip']+'/'+firmware
-   else:
-      msg['failed'] = True
-      msg['msg'] = "share_type did not match one of the available options"
-
-   if msg['failed'] == True:
-      return msg
-
-   sffx = "_"+hostname+"_InstallFromURI.xml"
+   sffx = "_"+remote.ip+"_InstallFromURI.xml"
 
    fh = tempfile.NamedTemporaryFile(delete=False, mode='w', suffix=sffx)
 
@@ -2965,11 +3096,11 @@ def ___installFromURI(remote,hostname,share_info,firmware,instanceID):
 
    return msg
 
-"""Convert an internal dictionary (not JSON!) into an Element.
-Whatever Element implementation we could import will be
-used by default; if you want to use something else, pass the
-Element class as the factory parameter.
-"""
+# Convert an internal dictionary (not JSON!) into an Element.
+# Whatever Element implementation we could import will be
+# used by default; if you want to use something else, pass the
+# Element class as the factory parameter.
+#
 def ___internal_to_elem(pfsh, factory=ET.Element):
 
 
@@ -3013,6 +3144,9 @@ def ___json2elem(json_data, factory=ET.Element):
 
    return ___internal_to_elem(json.loads(json_data), factory)
 
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
+#
 # Covers these two commands:
 # wsman get http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_LifecycleJob?InstanceID=JobID -h <drac_hostname> -V -v -c dummy.cert -P 443 -u <drac_username> -p <drac_password> -j utf-8 -y basic
 # wsman enumerate http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_LifecycleJob -h <drac_hostname> -V -v -c dummy.cert -P 443 -u <drac_username> -p <drac_password> -j utf-8 -y basic
@@ -3049,6 +3183,12 @@ def ___listJobs(remote,jobid='',msg={}):
 
    return msg
 
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
+# msg:
+#    - optional
+#    - fills in the return value
+#
 def ___listSDCardPartitions(remote, msg={}):
    ref = Reference("DCIM_OpaqueManagementData")
    ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_OpaqueManagementData")
@@ -3075,6 +3215,63 @@ def ___listSDCardPartitions(remote, msg={}):
                msg[tmp][k] = value.__str__()
 
    return msg
+
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
+# firmware:
+#    - Dictionary of firmware to be installed
+#
+# Schedule Firmware Install
+#
+# Will not install iDRAC firmware or BIOS. If you want to up/downgrade the iDRAC
+# or the BIOS use installIdracFirmware() and installBIOS() respectively.
+# 
+# Returns the jobid of ___installFromURI() which can then be passed to 
+# ___setupJobQueue() with the rebootid returned from ___createRebootJob()
+#
+def ___scheduleFirmwareInstall(remote,firmware):
+   msg = { }
+   msg['failed'] = False
+
+   if debug:
+      log.debug("___scheduleFirmwareInstall() calling ___installFromURI()")
+   installURI_res = ___installFromURI(remote,firmware['uri'],firmware['instanceID'])
+   if installURI_res['failed']:
+      msg['failed'] = True
+      msg['changed'] = True
+      msg['idrac_msg'] = installURI_res['Message']
+      msg['msg'] = "Download started but, not completed."
+
+   if not msg['failed']:
+      msg['jobid'] = installURI_res['jobid']
+
+      # Waits 3 minutes or until the download completes
+      if debug:
+         print "___scheduleFirmwareInstall() checking JobStatus"
+      wait_time = 60 * 5
+      end_time = time.clock() + wait_time
+      while time.clock() < end_time:
+         res = ___checkJobStatus(remote,installURI_res['jobid'])
+         if res['JobStatus'] == 'Downloaded':
+            break
+         if res['JobStatus'] == 'Failed':
+            break
+
+         time.sleep(2)
+
+      if res['JobStatus'] != 'Downloaded':
+         msg['failed'] = True
+         msg['changed'] = True
+         msg['idrac_msg'] = res['Message']
+         msg['msg'] = "Download started but, not completed."
+
+   if msg['failed']:
+      return msg
+   else:
+      msg['changed'] = True
+      msg['failed'] = False
+      msg['msg'] = "Succesfully scheduled firmware update."
+      return msg
 
 # wsman invoke -a SetEventFilterByCategory \
 # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationServcie?SystemCreationClassName=DCIM_SPComputerSystem&CreationClassName=DCIM_EFConfigurationServcie&SystemName=systemmc&Name=DCIM:EFConfigurationService" \
@@ -3240,6 +3437,59 @@ def ___strip_tag(tag):
       strip_ns_tag = split_array[1]
       tag = strip_ns_tag
    return tag
+
+# remote:
+#    - ip, username, password passed to Remote() of WSMan
+# instance_id:
+#    - optional
+#    - instance_id to get information on
+#
+# According to Dell's documentation there is no differece between these. Put
+# in both in case of future expansion. For new do not specify instance_id.
+#     
+# wsman get \
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_SystemView?InstanceID=System.Embedded.1" \
+#  -h <hostname> -V -v -c dummy.cert -P 443 -u <user> -p <pass> -j utf-8 \
+#  -y basic
+#
+# wsman enumerate \
+# "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_SystemView" \
+#  -h <hostname> -V -v -c dummy.cert -P 443 -u <user> -p <pass> -j utf-8 \
+#  -y basic
+#
+def ___systemView(remote,instance_id=''):
+
+   msg = { }
+
+   ref = Reference("DCIM_SystemView")
+   ref.set_resource_uri("http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_SystemView")
+
+   if instance_id is not '':
+      ref.set("InstanceID",instance_id)
+      res = wsman.get(ref, 'root/dcim', remote)
+   else:
+      res = wsman.enumerate(ref, 'root/dcim', remote)
+
+   if type(res) is Fault:
+      msg['failed'] = True
+      msg['result'] = "system view failed"
+      msg['msg'] = "Code: "+res.code+", Reason: "+res.reason+", Detail: "+res.detail
+      return msg
+
+   for instance in res:
+      tmp = ''
+      for k,v in instance.items:
+         tmp = ("%s" % ("".join(map(lambda x: x if x else "" ,v)) ))
+         if re.match('Model', k) != None:
+            tmp = tmp.replace(" ", "_")
+         elif re.match('SystemGeneration', k) != None:
+            tmp = tmp.replace(" ", "_")
+         if debug:
+            log.debug("key: %s value: %s",k,tmp)
+         msg[k] = tmp
+
+   msg['failed'] = False
+   return msg
 
 # Upgrade firmware
 #
@@ -3422,17 +3672,18 @@ def main():
    module = AnsibleModule(
       argument_spec = dict(
          attributes        = dict(type='list'),
-         command           = dict(required=True),
          debug             = dict(default='False',type='bool'),
          disk_cache_policy = dict(default=''),
          enable            = dict(type='bool',default='True'),
          firmware          = dict(default=''),
+         firmware_file     = dict(default=''),
          hostname          = dict(required=True),
          import_file       = dict(default=''),
          instanceID        = dict(default=''),
          iso_image         = dict(),
          jobid             = dict(default=''),
          local_path        = dict(default='~'),
+         name              = dict(required=True, aliases=['command']),
          new_pass          = dict(),
          old_pass          = dict(),
          partition_ndx     = dict(),
@@ -3466,17 +3717,18 @@ def main():
    )
 
    attributes        = module.params['attributes']
-   command           = module.params['command']
    debug             = module.params['debug']
    disk_cache_policy = module.params['disk_cache_policy']
    enable            = module.params['enable']
    firmware          = module.params['firmware']
+   firmware_file     = module.params['firmware_file']
    hostname          = module.params['hostname']
    import_file       = module.params['import_file']
    instanceID        = module.params['instanceID']
    iso_image         = module.params['iso_image']
    jobid             = module.params['jobid']
    local_path        = module.params['local_path']
+   name              = module.params['name']
    new_pass          = module.params['new_pass']
    old_pass          = module.params['old_pass']
    partition_ndx     = module.params['partition_ndx']
@@ -3548,95 +3800,102 @@ def main():
       'workgroup': workgroup
    }
 
-   if command == "BootToNetworkISO":
+   if name == "BootToNetworkISO":
       res = bootToNetworkISO(remote,share_info,iso_image)
       module.exit_json(**res)
 
-   elif command == "CheckJobStatus":
+   elif name == "CheckJobStatus":
       res = checkJobStatus(remote,jobid)
       module.exit_json(**res)
 
-   elif command == "CheckReadyState":
+   elif name == "CheckReadyState":
       res = checkReadyState(remote)
       module.exit_json(**res)
 
-   elif command == "CreateRebootJob":
+   elif name == "CreateRebootJob":
       res = createRebootJob(remote,hostname,reboot_type)
       module.exit_json(**res)
 
-   elif command == "CreateTargetedConfigJobRAID":
+   elif name == "CreateTargetedConfigJobRAID":
       res = createTargetedConfigJobRAID(remote,hostname,remove_xml,reboot_type)
       module.exit_json(**res)
 
-   elif command == "DeleteJob":
+   elif name == "DeleteJob":
       res = deleteJobQueue(remote,jobid)
       module.exit_json(**res)
 
-   elif command == "DeleteJobQueue":
+   elif name == "DeleteJobQueue":
       jobid = 'JID_CLEARALL'
       res = deleteJobQueue(remote,jobid)
       module.exit_json(**res)
 
-   elif command == "DetachISOImage":
+   elif name == "DetachISOImage":
       res = detachISOImage(remote)
       module.exit_json(**res)
 
-   elif command == "DetachSDCardPartitions":
+   elif name == "DetachSDCardPartitions":
       res = detachSDCardPartitions(remote,hostname)
       module.exit_json(**res)
 
-   elif command == "EnumerateEventFilters":
+   elif name == "EnumerateEventFilters":
       res = enumerateEventFilters(remote)
       module.exit_json(**res)
 
    # The return value is in ansible_facts
-   elif command == "EnumerateSoftwareIdentity":
+   elif name == "EnumerateSoftwareIdentity":
       res = enumerateSoftwareIdentity(remote)
       module.exit_json(**res)
 
-   elif command == "ExportSystemConfiguration":
+   elif name == "ExportSystemConfiguration":
       res = exportSystemConfiguration(remote,share_info,hostname,local_path,
                                          remove_xml)
       module.exit_json(**res)
+   elif name == "GenerateFirmwareVars":
+      res = generateFirmwareVars(remote,firmware_file)
+      module.exit_json(**res)
 
-   elif command == "GetSystemInventory":
+   elif name == "GetSystemInventory":
       res = getSystemInventory(remote)
       module.exit_json(**res)
 
-   elif command == "GetRemoteServicesAPIStatus":
+   elif name == "GetRemoteServicesAPIStatus":
       res = getRemoteServicesAPIStatus(remote)
       module.exit_json(**res)
 
-   elif command == "ImportSystemConfiguration":
+   elif name == "ImportSystemConfiguration":
       res = importSystemConfiguration(remote,share_info,hostname,import_file,
                                       remove_xml)
       module.exit_json(**res)
 
-   elif command == "InstallIdracFirmware":
+   elif name == "InstallFirmware":
+      res = installFirmware(remote,firmware)
+      module.exit_json(**res)
+
+   elif name == "InstallIdracFirmware":
       res = installIdracFirmware(remote,firmware)
       module.exit_json(**res)
 
-   elif command == "ResetPassword":
+   elif name == "ResetPassword":
       res = resetPassword(remote,hostname,user_to_change,new_pass)
       module.exit_json(**res)
 
-   elif command == "ResetRAIDConfig":
+   elif name == "ResetRAIDConfig":
       res = resetRAIDConfig(remote,hostname,remove_xml)
       module.exit_json(**res)
 
-   elif command == "SetEventFiltersByInstanceIDs":
+   elif name == "SetEventFiltersByInstanceIDs":
       res = setEventFiltersByInstanceIDs(remote)
       module.exit_json(**res)
 
-   elif command == "SyslogSettings":
+   elif name == "SyslogSettings":
       res = syslogSettings(remote,servers,enable,port)
       module.exit_json(**res)
 
-   elif command == "SetupJobQueue":
+   elif name == "SetupJobQueue":
       res = setupJobQueue(remote,hostname,jobid,rebootid)
       module.exit_json(**res)
 
-   elif command == "CreateVirtualDisk":
+   elif name == "CreateVirtualDisk":
       res = ___createVirtualDisk(remote,target_controller,physical_disks,
                                  raid_level,span_length,virtual_disk_name,size,
                                  span_depth,stripe_size,read_policy,
@@ -3647,54 +3906,54 @@ def main():
    # have to call any of them directly. They are in this section for testing
    # purposes.
 
-   elif command == "___applyAttributes":
+   elif name == "___applyAttributes":
       res = ___applyAttributes(remote,target,attributes)
       module.exit_json(**res)
 
-   elif command == "___checkJobStatus":
+   elif name == "___checkJobStatus":
       res = ___checkJobStatus(remote,jobid)
       module.exit_json(**res)
 
-   elif command == "___detachSDCardPartition":
+   elif name == "___detachSDCardPartition":
       res = ___detachSDCardPartition(remote,hostname,partition_ndx)
       module.exit_json(**res)
 
-   elif command == "___enumerateEventFilters":
+   elif name == "___enumerateEventFilters":
       res = ___enumerateEventFilters(remote)
       module.exit_json(**res)
 
-   elif command == "___enumerateIdracCard":
+   elif name == "___enumerateIdracCard":
       res = ___enumerateIdracCard(remote)
       module.exit_json(**res)
 
-   elif command == "___enumerateIdracCardInteger(remote)":
+   elif name == "___enumerateIdracCardInteger(remote)":
       res = ___enumerateIdracCardInteger(remote)
       module.exit_json(**res)
 
-   elif command == "___enumerateIdracCardString":
+   elif name == "___enumerateIdracCardString":
       res = ___enumerateIdracCardString(remote)
       module.exit_json(**res)
 
    # The return value isn't in ansible_facts
-   elif command == "___enumerateSoftwareIdentity":
+   elif name == "___enumerateSoftwareIdentity":
       res = ___enumerateSoftwareIdentity(remote)
       module.exit_json(**res)
 
-   elif command == "___installFromURI":
+   elif name == "___installFromURI":
       res = ___installFromURI(remote,hostname,share_info,firmware)
       module.exit_json(**res)
 
-   elif command == "___listJobs":
-      res = ___listJobs(remote,jobid,{})
+   elif name == "___listJobs":
+      res = ___listJobs(remote,jobid)
       module.exit_json(**res)
 
-   elif command == "___listSDCardPartitions":
+   elif name == "___listSDCardPartitions":
       res = ___listSDCardPartitions(remote)
       module.exit_json(**res)
 
    else:
       # Catch no matching command
-      module.fail_json(changed=False, msg="command did not match")
+      module.fail_json(changed=False, msg="name did not match")
 
 from ansible.module_utils.basic import *
 from ansible.module_utils.facts import *
