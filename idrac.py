@@ -1126,13 +1126,13 @@ def generateFirmwareVars(remote,firmware_file):
                firmware[sys_gen]['raid.1']['element_name'] = software_res[sw]['ElementName']
                firmware[sys_gen]['raid.1']['url'] = "Fill in this value by going to support.dell.com"
                firmware[sys_gen]['raid.1']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
-               firmware[sys_gen]['raid.1']['indentity_info_value'] = software_res[sw]['IdentityInfoValue']
+               firmware[sys_gen]['raid.1']['identity_info_value'] = software_res[sw]['IdentityInfoValue']
             else:
                # check to see if we already have this one
                found = False
                for fw in firmware[sys_gen]:
                   if re.search('^raid\.',fw):
-                     if firmware[sys_gen][fw]['indentity_info_value'] == software_res[sw]['IdentityInfoValue']:
+                     if firmware[sys_gen][fw]['identity_info_value'] == software_res[sw]['IdentityInfoValue']:
                         found = True
                         break
                if not found:
@@ -1142,7 +1142,7 @@ def generateFirmwareVars(remote,firmware_file):
                   firmware[sys_gen][raid_key]['element_name'] = software_res[sw]['ElementName']
                   firmware[sys_gen][raid_key]['url'] = "Fill in this value by going to support.dell.com"
                   firmware[sys_gen][raid_key]['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
-                  firmware[sys_gen][raid_key]['indentity_info_value'] = software_res[sw]['IdentityInfoValue']
+                  firmware[sys_gen][raid_key]['identity_info_value'] = software_res[sw]['IdentityInfoValue']
          elif re.search('^NIC',software_res[sw]['FQDD']):
             if nic_cnt == 0:
                nic_cnt += 1
@@ -1150,13 +1150,13 @@ def generateFirmwareVars(remote,firmware_file):
                firmware[sys_gen]['nic.1']['element_name'] = software_res[sw]['ElementName']
                firmware[sys_gen]['nic.1']['url'] = "Fill in this value by going to support.dell.com"
                firmware[sys_gen]['nic.1']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
-               firmware[sys_gen]['nic.1']['indentity_info_value'] = software_res[sw]['IdentityInfoValue']
+               firmware[sys_gen]['nic.1']['identity_info_value'] = software_res[sw]['IdentityInfoValue']
             else:
                # check to see if we already have this one
                found = False
                for fw in firmware[sys_gen]:
                   if re.search('^nic',fw):
-                     if firmware[sys_gen][fw]['indentity_info_value'] == software_res[sw]['IdentityInfoValue']:
+                     if firmware[sys_gen][fw]['identity_info_value'] == software_res[sw]['IdentityInfoValue']:
                         found = True
                         break
                if not found:
@@ -1166,7 +1166,7 @@ def generateFirmwareVars(remote,firmware_file):
                   firmware[sys_gen][nic_key]['element_name'] = software_res[sw]['ElementName']
                   firmware[sys_gen][nic_key]['url'] = "Fill in this value by going to support.dell.com"
                   firmware[sys_gen][nic_key]['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
-                  firmware[sys_gen][nic_key]['indentity_info_value'] = software_res[sw]['IdentityInfoValue']
+                  firmware[sys_gen][nic_key]['identity_info_value'] = software_res[sw]['IdentityInfoValue']
          elif re.search('^Disk',software_res[sw]['FQDD']):
             if disk_cnt == 0:
                disk_cnt += 1
@@ -1223,13 +1223,13 @@ def generateFirmwareVars(remote,firmware_file):
                firmware[sys_gen]['unknown.1']['element_name'] = software_res[sw]['ElementName']
                firmware[sys_gen]['unknown.1']['url'] = "Fill in this value by going to support.dell.com"
                firmware[sys_gen]['unknown.1']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
-               firmware[sys_gen]['unknown.1']['indentity_info_value'] = software_res[sw]['IdentityInfoValue']
+               firmware[sys_gen]['unknown.1']['identity_info_value'] = software_res[sw]['IdentityInfoValue']
             else:
                # check to see if we already have this one
                found = False
                for fw in firmware[sys_gen]:
                   if re.search('^unknown',fw):
-                     if firmware[sys_gen][fw]['indentity_info_value'] == software_res[sw]['IdentityInfoValue']:
+                     if firmware[sys_gen][fw]['identity_info_value'] == software_res[sw]['IdentityInfoValue']:
                         found = True
                         break
                if not found:
@@ -1239,7 +1239,7 @@ def generateFirmwareVars(remote,firmware_file):
                   firmware[sys_gen][unknown_key]['element_name'] = software_res[sw]['ElementName']
                   firmware[sys_gen][unknown_key]['url'] = "Fill in this value by going to support.dell.com"
                   firmware[sys_gen][unknown_key]['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
-                  firmware[sys_gen][unknown_key]['indentity_info_value'] = software_res[sw]['IdentityInfoValue']
+                  firmware[sys_gen][unknown_key]['identity_info_value'] = software_res[sw]['IdentityInfoValue']
 
    if debug:
       tmp = json.dumps(firmware, indent=3, separators=(',', ': '))
@@ -1286,17 +1286,17 @@ def generateFirmwareVars(remote,firmware_file):
    fh.write("#   component_id:\n")
    fh.write("#     - optional\n")
    fh.write("#     - If specified this will be used to match the 'ComponentID' from EnumerateSoftwareIdentity.\n")
-   fh.write("#   indentity_info_value:\n")
+   fh.write("#   identity_info_value:\n")
    fh.write("#     - optional\n")
    fh.write("#     - If specified this will be used to match the 'IdentityInfoValue' from EnumerateSoftwareIdentity.\n")
    fh.write("#   search:\n")
    fh.write("#     - optional\n")
-   fh.write("#     - Uses a regular expression search of the 'ElementName' from EnumerateSoftwareIdentity to find a match. This is a last resort and I recommend you use either the component_id or indentity_info_value.\n")
+   fh.write("#     - Uses a regular expression search of the 'ElementName' from EnumerateSoftwareIdentity to find a match. This is a last resort and I recommend you use either the component_id or identity_info_value.\n")
    fh.write("#\n")
    fh.write("#  Matching order:\n")
    fh.write("#    1. key. idrac, bios, diagnostics, os_collector, and driver_pack should only match one.\n")
    fh.write("#    2. component_id. if specified. Best used for disks, power supplies, RAID backplane, RAID enclosure\n")
-   fh.write("#    3. indentity_info_value. if specified. Best used for NICs, RAID controller\n")
+   fh.write("#    3. identity_info_value. if specified. Best used for NICs, RAID controller\n")
    fh.write("#    4. search. if specified. Searches the 'ElementName' from EnumerateSoftwareIdentity. Last resort.\n")
    fh.write("#\n")
    fh.write("firmware:\n")
@@ -1705,96 +1705,170 @@ def installFirmware(remote,firmware):
       msg['msg'] = sys_view_res['msg']
       return msg
 
-   for fw in firmware:
-      if (re.search('bios', fw) or re.search('idrac', fw)):
-         continue
-
+   for k in software_res:
       if debug:
-         log.debug ("looping firmware url: %s", firmware[fw]['url'])
-   
-      for k in software_res:
+         log.debug("looping software %s",k)
+
+      if (re.search('BIOS', k)) or (re.search('iDRAC', k) or (k == 'failed')) or (software_res[k]['Status'] != 'Installed') or re.search("^USC\.", software_res[k]['FQDD']):
+         # USC is the Lifecycle Controller
          if debug:
-            log.debug("looping software")
-
-         if (re.search('BIOS', k)) or (re.search('iDRAC', k) or (k == 'failed')) or (software_res[k]['Status'] != 'Installed'):
-            if debug:
-               log.debug("skipping %s",k)
-            continue
-         elif (re.search('driver_pack', fw) and (re.search("OS Driver Pack", software_res[k]['ElementName']))):
-            if debug:
-               log.debug("found OS Driver Pack")
-            software_res[k]['matched'] = True
-            firmware[fw]['matched'] = True
-            cur_version = software_res[k]['VersionString']
-            instanceID = k
-            #if 'share_uri' in firmware:
-            #   uri = firmware['share_uri']
-            #else:
-            #   uri = firmware['url']
-            #
-            #if debug:
-            #   log.debug("uri: %s",uri)
-
-            # There should only be one of these so we can break the loop
-            break
-         elif (re.search('diagnostics', fw) and (re.search("Diagnostics", software_res[k]['ElementName']))):
-            if debug:
-               log.debug("found Diagnostics")
-            software_res[k]['matched'] = True
-            firmware[fw]['matched'] = True
-            cur_version = software_res[k]['VersionString']
-            instanceID = k
-            # There should only be one of these so we can break the loop
-            break
-         elif (re.search('os_collector', fw) and (re.search("OS COLLECTOR", software_res[k]['ElementName']))):
-            if debug:
-               log.debug("found OS Collector")
-            software_res[k]['matched'] = True
-            firmware[fw]['matched'] = True
-            cur_version = software_res[k]['VersionString']
-            instanceID = k
-            # There should only be one of these so we can break the loop
-            break
-         elif (re.search('nic', fw) and (re.search(firmware[fw]['search'], software_res[k]['ElementName']))):
-            if debug:
-               log.debug("found a NIC")
-            # We only need to update the first one
-            tmp = k.split(".")
-            tmp = tmp.split("-")
-            if tmp[1] == 1:
+            log.debug("skipping %s",k)
+         continue
+      elif re.search("^DriverPack\.", software_res[k]['FQDD']):
+         for fw in firmware:
+            if re.search('driver_pack', fw):
+               if debug:
+                  log.debug("found OS Driver Pack")
                software_res[k]['matched'] = True
                firmware[fw]['matched'] = True
                cur_version = software_res[k]['VersionString']
+               new_version = firmware[fw]['target_version']
+               if 'minimum_version' in firmware[fw]:
+                  minimum_version = firmware[fw]['minimum_version']
+               else:
+                  minimum_version = ''
                instanceID = k
-            else:
+               if 'share_uri' in firmware[fw]:
+                  uri = firmware[fw]['share_uri']
+               else:
+                  uri = firmware[fw]['url']
+               break
+      elif re.search("^Diagnostics\.", software_res[k]['FQDD']):
+         for fw in firmware:
+            if re.search('diagnostics', fw):
+               if debug:
+                  log.debug("found Diagnostics")
                software_res[k]['matched'] = True
-               continue
-         elif ('component_id' in firmware[fw]) and (firmware[fw]['component_id'] == software_res[k]['ComponentID']):
-            if debug:
-               log.debug("found with component_id")
-            software_res[k]['matched'] = True
-            firmware[fw]['matched'] = True
-            cur_version = software_res[k]['VersionString']
-            instanceID = k
-         elif ('search' in firmware[fw]) and (re.search(firmware[fw]['search'], software_res[k]['ElementName'])):
-            if debug:
-               log.debug("found with search")
-            software_res[k]['matched'] = True
-            firmware[fw]['matched'] = True
-            cur_version = software_res[k]['VersionString']
-            instanceID = k
+               firmware[fw]['matched'] = True
+               cur_version = software_res[k]['VersionString']
+               new_version = firmware[fw]['target_version']
+               if 'minimum_version' in firmware[fw]:
+                  minimum_version = firmware[fw]['minimum_version']
+               else:
+                  minimum_version = ''
+               instanceID = k
+               if 'share_uri' in firmware[fw]:
+                  uri = firmware[fw]['share_uri']
+               else:
+                  uri = firmware[fw]['url']
+               break
+         
+      elif re.search("^OSCollector\.", software_res[k]['FQDD']):
+         for fw in firmware:
+            if re.search('os_collector', fw):
+               if debug:
+                  log.debug("found OS Collector")
+               software_res[k]['matched'] = True
+               firmware[fw]['matched'] = True
+               cur_version = software_res[k]['VersionString']
+               new_version = firmware[fw]['target_version']
+               if 'minimum_version' in firmware[fw]:
+                  minimum_version = firmware[fw]['minimum_version']
+               else:
+                  minimum_version = ''
+               instanceID = k
+               if 'share_uri' in firmware[fw]:
+                  uri = firmware[fw]['share_uri']
+               else:
+                  uri = firmware[fw]['url']
+               break
+         
+      elif re.search('^NIC\.', software_res[k]['FQDD']):
+         # We only need to update the first one
+         tmp = k.split(".")
+         if debug:
+            log.debug("last from splitting NIC is: %s",tmp[-1])
+         tmp = tmp[-1].split("-")
+         if debug:
+            log.debug("after second split: %s",tmp[1])
+         if int(tmp[1]) == 1:
+            for fw in firmware:
+               if re.search('nic', fw) and (firmware[fw]['identity_info_value'] == software_res[k]['IdentityInfoValue']):
+                  software_res[k]['matched'] = True
+                  cur_version = software_res[k]['VersionString']
+                  new_version = firmware[fw]['target_version']
+                  if 'minimum_version' in firmware[fw]:
+                     minimum_version = firmware[fw]['minimum_version']
+                  else:
+                     minimum_version = ''
+                  instanceID = k
+                  if debug:
+                     log.debug("found a NIC")
+
+                  if 'share_uri' in firmware[fw]:
+                     uri = firmware[fw]['share_uri']
+                  else:
+                     uri = firmware[fw]['url']
          else:
+            if debug:
+               log.debug("found a NIC but skipping because it is not the first")
+            software_res[k]['matched'] = True
             continue
 
-         new_version = firmware[fw]['target_version']
+      else:
+         for fw in firmware:
+            if ('component_id' in firmware[fw]) and (software_res[k]['ComponentID'] != "") and (firmware[fw]['component_id'] == software_res[k]['ComponentID']):
+               if debug:
+                  log.debug("found with component_id")
+               software_res[k]['matched'] = True
+               cur_version = software_res[k]['VersionString']
+               new_version = firmware[fw]['target_version']
+               if 'minimum_version' in firmware[fw]:
+                  minimum_version = firmware[fw]['minimum_version']
+               else:
+                  minimum_version = ''
+               instanceID = k
+               if 'share_uri' in firmware[fw]:
+                  uri = firmware[fw]['share_uri']
+               else:
+                  uri = firmware[fw]['url']
+            elif ('identity_info_value' in firmware[fw]) and (firmware[fw]['identity_info_value'] == software_res[k]['IdentityInfoValue']):
+               if debug:
+                  log.debug("found with identity_info_value")
+               software_res[k]['matched'] = True
+               cur_version = software_res[k]['VersionString']
+               new_version = firmware[fw]['target_version']
+               if 'minimum_version' in firmware[fw]:
+                  minimum_version = firmware[fw]['minimum_version']
+               else:
+                  minimum_version = ''
+               instanceID = k
+               if 'share_uri' in firmware[fw]:
+                  uri = firmware[fw]['share_uri']
+               else:
+                  uri = firmware[fw]['url']
+               break
+            elif ('search' in firmware[fw]) and re.search(firmware[fw]['search'], software_res[k]['ElementName']):
+               if debug:
+                  log.debug("found with search")
+               software_res[k]['matched'] = True
+               cur_version = software_res[k]['VersionString']
+               new_version = firmware[fw]['target_version']
+               if 'minimum_version' in firmware[fw]:
+                  minimum_version = firmware[fw]['minimum_version']
+               else:
+                  minimum_version = ''
+               instanceID = k
+               if 'share_uri' in firmware[fw]:
+                  uri = firmware[fw]['share_uri']
+               else:
+                  uri = firmware[fw]['url']
+               break
+         if 'matched' not in software_res[k]:
+            if debug:
+               log.debug("Setting matched to false")
+            software_res[k]['matched'] = False
 
-         if (('minimum_version' in firmware[fw]) and (LooseVersion(cur_version) < LooseVersion(firmware[fw]['minimum_version']))):
+      if software_res[k]['matched']:
+         if ((minimum_version != '') and (LooseVersion(cur_version) < LooseVersion(minimum_version))):
             if debug:
                log.debug("minumum version not met")
             software_res[k]['msg'] = "Minimum version not met"
+            software_res[k]['changed'] = False
          elif LooseVersion(new_version) != LooseVersion(cur_version):
             if check_mode:
-               software_res[k]['msg'] = "Would have attempted to install firmware."
+               software_res[k]['msg'] = "Would have attempted to install firmware because new_version: "+new_version+" does not equal cur_version: "+cur_version
+               software_res[k]['changed'] = True
                msg['changed'] = True
             else:
                installURI_res = ___installFromURI(remote,uri,instanceID)
@@ -1824,19 +1898,25 @@ def installFirmware(remote,firmware):
                      software_res[k]['changed'] = True
                      software_res[k]['Message'] = res['Message']
                      software_res[k]['msg'] = 'Download started but, not completed.'
+                     msg['failed'] = True
 
          elif LooseVersion(new_version) == LooseVersion(cur_version):
-            msg['msg'] = "Installed version "+cur_version+" same as version to be"
-            msg['msg'] = msg['msg']+" installed."
-            msg['failed'] = False
-            msg['changed'] = False
-         else:
-            msg['msg'] = "Was unable to compare versions. Installed version: "
-            msg['msg'] = msg['msg']+cur_version+". New version: "+new_version
-            msg['failed'] = True
-            msg['changed'] = False
+            software_res[k]['failed'] = False
+            software_res[k]['changed'] = False
+            software_res[k]['msg'] = "Installed version "+cur_version+" same as version to be installed."
 
-                  
+            #msg['msg'] = "Installed version "+cur_version+" same as version to be installed."
+            #msg['failed'] = False
+            #msg['changed'] = False
+         else:
+            software_res[k]['failed'] = True
+            software_res[k]['changed'] = False
+            software_res[k]['msg'] = "Was unable to compare versions. Installed version: "+cur_version+". New version: "+new_version
+
+            #msg['failed'] = True
+            #msg['changed'] = False
+
+               
    # Create a reboot job
    if check_mode:
       if debug:
@@ -1846,7 +1926,7 @@ def installFirmware(remote,firmware):
       if rebootJob_res['failed']:
          msg['failed'] = True
          msg['changed'] = True
-         msg['msg'] = "Download completed but, could not create reboot job."
+         msg['msg'] = "Downloads completed but, could not create reboot job. Jobs still exist in the queue."
          return msg
       
       jobs.append(rebootJob_res['rebootid'])
@@ -1902,6 +1982,19 @@ def installFirmware(remote,firmware):
       # check to see how firmware install did
       if debug:
          log.debug("checking firmware install status")
+
+   # Compile Status of firmware installs
+   installs = {}
+   installs['failed'] = {}
+   for i_res in software_res:
+      if i_res == 'failed':
+         continue
+      if software_res[i_res]['Status'] == 'Installed':
+         if debug:
+            log.debug("Compiling status of installs")
+
+
+   msg['result'] = software_res
    
    #if not msg['failed'] and msg['changed']:
    #   msg['ansible_facts'] = {}
@@ -4043,6 +4136,10 @@ def main():
                                       remove_xml)
       module.exit_json(**res)
 
+   elif name == "InstallBIOS":
+      res = installBIOS(remote,firmware)
+      module.exit_json(**res)
+
    elif name == "InstallFirmware":
       res = installFirmware(remote,firmware)
       module.exit_json(**res)
@@ -4129,7 +4226,7 @@ def main():
 
    else:
       # Catch no matching command
-      module.fail_json(changed=False, msg="name did not match")
+      module.fail_json(msg="Could not find a match for the 'name' you specified in your task.")
 
 from ansible.module_utils.basic import *
 from ansible.module_utils.facts import *
