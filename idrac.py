@@ -1939,8 +1939,8 @@ def installFirmware(remote,firmware):
          msg['msg'] = msg['msg']+" not execute reboot."
          return msg
       
-      # Waits 6 minutes or until the bios upgrade completes
-      wait_time = 60 * 6
+      # Waits 30 minutes or until things are done
+      wait_time = 60 * 30
       end_time = time.clock() + wait_time
       while time.clock() < end_time:
          res = ___checkJobStatus(remote,installURI_res['jobid'])
@@ -1994,7 +1994,8 @@ def installFirmware(remote,firmware):
             log.debug("Compiling status of installs")
 
 
-   msg['result'] = software_res
+
+   msg['install_res'] = software_res
    
    #if not msg['failed'] and msg['changed']:
    #   msg['ansible_facts'] = {}
