@@ -1704,7 +1704,7 @@ def installBIOS (remote,firmware):
 #    - dictionary of all firmware to be installed
 #
 # supports check_mode
-def installFirmware(remote,firmware):
+def upgradeFirmware(remote,firmware):
    msg = { }
    jobs = []
    disks = []
@@ -1782,84 +1782,92 @@ def installFirmware(remote,firmware):
             log.debug("skipping %s",k)
          continue
       elif re.search("^DriverPack\.", software_res[k]['FQDD']):
-         # Doesn't require reboot. Possibly don't include in jobs for reboot.
-         for fw in firmware:
-            if re.search('driver_pack', fw):
-               if debug:
-                  log.debug("found OS Driver Pack")
-               software_res[k]['matched'] = True
-               firmware[fw]['matched'] = True
-               software_res[k]['target_version'] = firmware[fw]['target_version']
-               if 'minimum_version' in firmware[fw]:
-                  software_res[k]['minimum_version'] = firmware[fw]['minimum_version']
-               else:
-                  software_res[k]['minimum_version'] = ''
-               if 'share_uri' in firmware[fw]:
-                  software_res[k]['uri'] = firmware[fw]['share_uri']
-               else:
-                  software_res[k]['uri'] = firmware[fw]['url']
-               break
+         # Doesn't require reboot.
+         if 'drver_pack' in firmware:
+            if debug:
+               log.debug("found OS Driver Pack")
+            software_res[k]['matched'] = True
+            software_res[k]['target_version'] = firmware['drver_pack']['target_version']
+            if 'minimum_version' in firmware['drver_pack']:
+               software_res[k]['minimum_version'] = firmware['drver_pack']['minimum_version']
+            else:
+               software_res[k]['minimum_version'] = ''
+            if 'share_uri' in firmware['drver_pack']:
+               software_res[k]['uri'] = firmware['drver_pack']['share_uri']
+            else:
+               software_res[k]['uri'] = firmware['drver_pack']['url']
+            continue # software loop
+         else:
+            software_res[k]['failed'] = False
+            software_res[k]['matched'] = False
+            software_res[k]['changed'] = False
+            software_res[k]['msg'] = "Did not find a match for this component."
+            continue # software loop
       elif re.search("^Diagnostics\.", software_res[k]['FQDD']):
-         for fw in firmware:
-            if re.search('diagnostics', fw):
-               if debug:
-                  log.debug("found Diagnostics")
-               software_res[k]['matched'] = True
-               firmware[fw]['matched'] = True
-               software_res[k]['target_version'] = firmware[fw]['target_version']
-               if 'minimum_version' in firmware[fw]:
-                  software_res[k]['minimum_version'] = firmware[fw]['minimum_version']
-               else:
-                  software_res[k]['minimum_version'] = ''
-               if 'share_uri' in firmware[fw]:
-                  software_res[k]['uri'] = firmware[fw]['share_uri']
-               else:
-                  software_res[k]['uri'] = firmware[fw]['url']
-               break
-         
+         # Doesn't require reboot.
+         if 'diagnostics' in firmware:
+            if debug:
+               log.debug("found Diagnostics")
+            software_res[k]['matched'] = True
+            software_res[k]['target_version'] = firmware['diagnostics']['target_version']
+            if 'minimum_version' in firmware['diagnostics']:
+               software_res[k]['minimum_version'] = firmware['diagnostics']['minimum_version']
+            else:
+               software_res[k]['minimum_version'] = ''
+            if 'share_uri' in firmware['diagnostics']:
+               software_res[k]['uri'] = firmware['diagnostics']['share_uri']
+            else:
+               software_res[k]['uri'] = firmware['diagnostics']['url']
+            continue # software loop
+         else:
+            software_res[k]['failed'] = False
+            software_res[k]['matched'] = False
+            software_res[k]['changed'] = False
+            software_res[k]['msg'] = "Did not find a match for this component."
+            continue # software loop
       elif re.search("^OSCollector\.", software_res[k]['FQDD']):
-         # Doesn't require reboot. Possibly don't include in jobs for reboot.
-         for fw in firmware:
-            if re.search('os_collector', fw):
-               if debug:
-                  log.debug("found OS Collector")
-               software_res[k]['matched'] = True
-               firmware[fw]['matched'] = True
-               software_res[k]['target_version'] = firmware[fw]['target_version']
-               if 'minimum_version' in firmware[fw]:
-                  software_res[k]['minimum_version'] = firmware[fw]['minimum_version']
-               else:
-                  software_res[k]['minimum_version'] = ''
-               if 'share_uri' in firmware[fw]:
-                  software_res[k]['uri'] = firmware[fw]['share_uri']
-               else:
-                  software_res[k]['uri'] = firmware[fw]['url']
-               break
-         
+         # Doesn't require reboot.
+         if 'os_collector' in firmware:
+            if debug:
+               log.debug("found OS Collector")
+            software_res[k]['matched'] = True
+            software_res[k]['target_version'] = firmware['os_collector']['target_version']
+            if 'minimum_version' in firmware['os_collector']:
+               software_res[k]['minimum_version'] = firmware['os_collector']['minimum_version']
+            else:
+               software_res[k]['minimum_version'] = ''
+            if 'share_uri' in firmware['os_collector']:
+               software_res[k]['uri'] = firmware['os_collector']['share_uri']
+            else:
+               software_res[k]['uri'] = firmware['os_collector']['url']
+            continue
+         else:
+            software_res[k]['failed'] = False
+            software_res[k]['matched'] = False
+            software_res[k]['changed'] = False
+            software_res[k]['msg'] = "Did not find a match for this component."
+            continue
       elif re.search('^NIC\.', software_res[k]['FQDD']):
          # We only need to update the first one
          tmp = k.split(".")
-         if debug:
-            log.debug("last from splitting NIC is: %s",tmp[-1])
          tmp = tmp[-1].split("-")
-         if debug:
-            log.debug("after second split: %s",tmp[1])
          if int(tmp[1]) == 1:
             for fw in firmware:
-               if re.search('nic', fw) and (firmware[fw]['identity_info_value'] == software_res[k]['IdentityInfoValue']):
+               if (firmware[fw]['identity_info_value'] == software_res[k]['IdentityInfoValue']):
+                  if debug:
+                     log.debug("found a NIC")
                   software_res[k]['matched'] = True
                   software_res[k]['target_version'] = firmware[fw]['target_version']
                   if 'minimum_version' in firmware[fw]:
                      software_res[k]['minimum_version'] = firmware[fw]['minimum_version']
                   else:
                      software_res[k]['minimum_version'] = ''
-                  if debug:
-                     log.debug("found a NIC")
-
                   if 'share_uri' in firmware[fw]:
                      software_res[k]['uri'] = firmware[fw]['share_uri']
                   else:
                      software_res[k]['uri'] = firmware[fw]['url']
+                  break # firmware loop
+         continue # software loop
       elif re.search('^Disk\.', software_res[k]['FQDD']):
          # We only need to update unique
          if software_res[k]['ComponentID'] in disks:
@@ -1874,7 +1882,7 @@ def installFirmware(remote,firmware):
             # TODO this could be better. If we ever want to report on ones not matched in firmware.yml this will need to be modified
             # because 'ComponentID' gets added to disks whether or not it is found in firmware.yml.
             for fw in firmware:
-               if re.search('disk', fw) and (firmware[fw]['component_id'] == software_res[k]['ComponentID']):
+               if ('component_id' in firmware[fw]) and (firmware[fw]['component_id'] == software_res[k]['ComponentID']):
                   if debug:
                      log.debug("found a disk")
 
@@ -1889,7 +1897,9 @@ def installFirmware(remote,firmware):
                      software_res[k]['uri'] = firmware[fw]['share_uri']
                   else:
                      software_res[k]['uri'] = firmware[fw]['url']
+                  break # firmware loop
             disks.append(software_res[k]['ComponentID'])
+         continue # software loop
       else:
          for fw in firmware:
             if ('component_id' in firmware[fw]) and (software_res[k]['ComponentID'] != "") and (firmware[fw]['component_id'] == software_res[k]['ComponentID']):
@@ -1918,7 +1928,7 @@ def installFirmware(remote,firmware):
                   software_res[k]['uri'] = firmware[fw]['share_uri']
                else:
                   software_res[k]['uri'] = firmware[fw]['url']
-               break
+               break # firmware loop
             elif ('search' in firmware[fw]) and re.search(firmware[fw]['search'], software_res[k]['ElementName']):
                if debug:
                   log.debug("found with search")
@@ -1932,7 +1942,7 @@ def installFirmware(remote,firmware):
                   software_res[k]['uri'] = firmware[fw]['share_uri']
                else:
                   software_res[k]['uri'] = firmware[fw]['url']
-               break
+               break # firmware loop
          if 'matched' not in software_res[k]:
             if debug:
                log.debug("Setting matched to false")
@@ -1963,7 +1973,7 @@ def installFirmware(remote,firmware):
             software_res[k]['changed'] = False
             software_res[k]['failed'] = True
             msg['failed'] = True
-         elif LooseVersion(new_version) != LooseVersion(cur_version):
+         elif LooseVersion(new_version) > LooseVersion(cur_version):
             if check_mode:
                if debug:
                   log.debug("check_mode for %s",k)
@@ -1980,6 +1990,7 @@ def installFirmware(remote,firmware):
                   software_res[k]['changed'] = False
                   software_res[k]['Message'] = installURI_res['Message']
                   software_res[k]['msg'] = "Download started but, not completed."
+                  software_res[k]['failed'] = True
                else:
                   # Waits 5 minutes or until the download completes
                   wait_time = 60 * 5
@@ -1995,96 +2006,151 @@ def installFirmware(remote,firmware):
                   
                      time.sleep(10)
                   
-                  if res['JobStatus'] != 'Downloaded':
+                  if res['JobStatus'] == 'Failed':
                      software_res[k]['failed'] = True
                      software_res[k]['changed'] = True
                      software_res[k]['Message'] = res['Message']
                      software_res[k]['msg'] = 'Download started but, not completed.'
                      msg['failed'] = True
-                  else:
+                  elif res['JobStatus'] == 'Downloaded':
                      jobs.append(installURI_res['jobid'])
+                     software_res[k]['changed'] = True
+                     software_res[k]['msg'] = res['Message']
+                  else:
+                     if debug:
+                        log.debug("in installFirmware() there is a JobStatus type that is not being handled.")
 
          elif LooseVersion(new_version) == LooseVersion(cur_version):
             software_res[k]['failed'] = False
             software_res[k]['changed'] = False
             software_res[k]['msg'] = "Firmware is current"
+         elif LooseVersion(new_version) < LooseVersion(cur_version):
+            software_res[k]['failed'] = False
+            software_res[k]['changed'] = False
+            software_res[k]['msg'] = "Version trying to be installed is less than current version"
          else:
             software_res[k]['failed'] = True
             software_res[k]['changed'] = False
             software_res[k]['msg'] = "Was unable to compare versions"
 
             msg['failed'] = True
-            #msg['changed'] = False
-
+      else:
+         if debug:
+            log.debug("skipping %s because not matched",k)
                
    # Create a reboot job
-   if check_mode:
-      if debug:
-         log.debug("Would have created reboot job")
-   else:
-      rebootJob_res = ___createRebootJob(remote,1)
-      if rebootJob_res['failed']:
-         msg['failed'] = True
-         msg['changed'] = True
-         msg['msg'] = "Downloads completed but, could not create reboot job. Jobs still exist in the queue."
-         return msg
-      
-      if debug:
-         log.debug("created reboot job: ",rebootJob_res['rebootid'])
-
-      jobs.append(rebootJob_res['rebootid'])
-      
-      jobQueue_res = ___setupJobQueue(remote,jobs)
-      if jobQueue_res['failed']:
-         msg['failed'] = True
-         msg['changed'] = True
-         msg['msg'] = "Download completed and reboot job created but, could"
-         msg['msg'] = msg['msg']+" not execute reboot."
-         return msg
-      
-      # Waits 30 minutes or until things are done
-      wait_time = 60 * 30
-      end_time = time.clock() + wait_time
-      while time.clock() < end_time:
-         res = ___checkJobStatus(remote,rebootJob_res['rebootid'])
-         if res['JobStatus'] == 'Reboot Completed':
-            break
-         if res['JobStatus'] == 'Failed':
-            break
-      
-         time.sleep(2)
-      
-      if res['JobStatus'] != 'Reboot Completed':
-         msg['failed'] = True
-         msg['changed'] = True
-         msg['msg'] = "Install Firmware reboot did not complete. Jobs still in queue."
-         return msg
-      
-      # Waits 15 minutes or until the iDRAC is ready
-      wait_time = 60 * 15
-      end_time = time.clock() + wait_time
-      while time.clock() < end_time:
-         res = ___getRemoteServicesAPIStatus(remote)
-         # TODO What is the 'ServerStatus' when there is no OS installed?
-         if ((res['LCStatus'] == '0') and (res['Status'] == '0')
-             and (res['ServerStatus'] == '2')):
-            break
-      
-         time.sleep(10)
-      
-      if (res['LCStatus'] != '0') and (res['Status'] != '0'):
-         msg['failed'] = True
-         msg['changed'] = True
-         msg['msg'] = "iDRAC never came back after firmware install."
+   if jobs:
+      if check_mode:
+         if debug:
+            log.debug("Would have created reboot job")
       else:
-         msg['failed'] = False
-         msg['changed'] = True
-         msg['msg'] = "firmware install completed."
+         rebootJob_res = ___createRebootJob(remote,1)
+         if rebootJob_res['failed']:
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['msg'] = "Downloads completed but, could not create reboot job. Jobs still exist in the queue."
+            return msg
+         
+         if debug:
+            log.debug("created reboot job: ",rebootJob_res['rebootid'])
 
-   if not check_mode:
-      # check to see how firmware install did
-      if debug:
-         log.debug("checking firmware install status")
+         jobs.append(rebootJob_res['rebootid'])
+         
+         jobQueue_res = ___setupJobQueue(remote,jobs)
+         if jobQueue_res['failed']:
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['msg'] = "Download completed and reboot job created but, could"
+            msg['msg'] = msg['msg']+" not execute reboot."
+            return msg
+         
+         # Waits 30 minutes or until things are done
+         wait_time = 60 * 30
+         end_time = time.clock() + wait_time
+         while time.clock() < end_time:
+            res = ___checkJobStatus(remote,rebootJob_res['rebootid'])
+            if res['JobStatus'] == 'Reboot Completed':
+               break
+            if res['JobStatus'] == 'Failed':
+               break
+         
+            time.sleep(2)
+         
+         if res['JobStatus'] != 'Reboot Completed':
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['msg'] = "Install Firmware reboot did not complete. Jobs still in queue."
+            return msg
+
+         if debug:
+            log.debug("Reboot Completed. Starting to check jobs")
+         # Check the results of the jobs
+         # Waits 30 minutes or until all jobs complete
+         wait_time = 60 * 30
+         end_time = time.clock() + wait_time
+         done = False
+         while (time.clock() < end_time):
+            if not done:
+               if debug:
+                  log.debug("wating to finish")
+               for sw in software_res:
+                  if sw == 'failed':
+                     if debug:
+                        log.debug("sw == failed")
+                     continue
+                  # at this point there should only be a jobid if it was scheduled
+                  if 'jobid' in software_res[sw]:
+                     res = ___checkJobStatus(remote,software_res[sw]['jobid'])
+                     software_res[sw]['job_status'] = res['JobStatus']
+                     if res['JobStatus'] == 'Failed':
+                        software_res[sw]['failed'] = True
+                        software_res[sw]['done'] = True
+                     elif res['JobStatus'] == 'Completed':
+                        software_res[sw]['VersionString'] = software_res[sw]['target_version']
+                        software_res[sw]['done'] = True
+                     else:
+                        software_res[sw]['done'] = False
+
+                     if debug:
+                        log.debug("Job Status: %s",res['JobStatus'])
+                  else:
+                     if debug:
+                        log.debug("jobid not in software_res")
+
+                  time.sleep(2)
+
+               for sw in software_res:
+                  if sw == 'failed':
+                     continue
+                  done = True
+                  if 'jobid' in software_res[sw]:
+                     if not software_res[sw]['done']:
+                        if debug:
+                           log.debug("Setting done to false")
+                        done = False
+                        break
+            else:
+               if debug:
+                  log.debug("Finally done")
+               break # out if timed loop
+
+         # Waits 15 minutes or until the iDRAC is ready
+         wait_time = 60 * 15
+         end_time = time.clock() + wait_time
+         while time.clock() < end_time:
+            res = ___getRemoteServicesAPIStatus(remote)
+            if ((res['LCStatus'] == '0') and (res['Status'] == '0')):
+               break
+         
+            time.sleep(10)
+         
+         if (res['LCStatus'] != '0') and (res['Status'] != '0'):
+            msg['failed'] = True
+            msg['changed'] = True
+            msg['msg'] = "iDRAC never came back after firmware install."
+         else:
+            msg['changed'] = True
+            msg['msg'] = "firmware install completed."
 
    if debug:
       msg['software_res'] = software_res
@@ -2095,13 +2161,15 @@ def installFirmware(remote,firmware):
       if sw == 'failed':
          continue
       if (re.search('BIOS', k)) or (re.search('iDRAC', k) or (k == 'failed')) or (software_res[k]['Status'] != 'Installed') or re.search("^USC\.", software_res[k]['FQDD']):
-         if 'matched' in software_res[sw]:
+         if ('matched' in software_res[sw]) and (software_res[sw]['matched']):
             if debug:
                log.debug("Compiling status of installs: %s",sw)
             msg['result'][software_res[sw]['FQDD']] = {}
             msg['result'][software_res[sw]['FQDD']]['msg'] = software_res[sw]['msg']
-            msg['result'][software_res[sw]['FQDD']]['failed'] = software_res[sw]['failed']
-            msg['result'][software_res[sw]['FQDD']]['changed'] = software_res[sw]['changed']
+            if 'failed' in software_res[sw]:
+               msg['result'][software_res[sw]['FQDD']]['failed'] = software_res[sw]['failed']
+            if 'changed' in software_res[sw]:
+               msg['result'][software_res[sw]['FQDD']]['changed'] = software_res[sw]['changed']
             msg['result'][software_res[sw]['FQDD']]['current_version'] = software_res[sw]['VersionString']
             if software_res[sw]['ComponentID'] != '':
                msg['result'][software_res[sw]['FQDD']]['component_id'] = software_res[sw]['ComponentID']
@@ -2113,11 +2181,10 @@ def installFirmware(remote,firmware):
                msg['result'][software_res[sw]['FQDD']]['minimum_version'] = software_res[sw]['minimum_version']
             if 'target_version' in software_res[sw]:
                msg['result'][software_res[sw]['FQDD']]['target_version'] = software_res[sw]['target_version']
-
-
-   #if not msg['failed'] and msg['changed']:
-   #   msg['ansible_facts'] = {}
-   #   msg['ansible_facts']['BIOSVersionString'] = new_version
+            if 'job_status' in software_res[sw]:
+               msg['result'][software_res[sw]['FQDD']]['job_status'] = software_res[sw]['job_status']
+            if 'Message' in software_res[sw]:
+               msg['result'][software_res[sw]['FQDD']]['message'] = software_res[sw]['Message']
 
    return msg
 
@@ -2653,6 +2720,9 @@ def ___applyAttributes(remote,target,attributes):
 #
 def ___checkJobStatus (remote,jobid):
    msg = {}
+
+   if debug:
+      log.debug("Checking job status.")
 
    # wsman get http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_LifecycleJob?InstanceID=<job id> -h <ip or hostname> -V -v -c dummy.cert -P 443 -u <user> -p <pass> -j utf-8 -y basic
 
@@ -4259,8 +4329,8 @@ def main():
       res = installBIOS(remote,firmware)
       module.exit_json(**res)
 
-   elif name == "InstallFirmware":
-      res = installFirmware(remote,firmware)
+   elif name == "UpgradeFirmware":
+      res = upgradeFirmware(remote,firmware)
       module.exit_json(**res)
 
    elif name == "InstallIdracFirmware":
