@@ -20,16 +20,15 @@ Resets the password of a user. I usually use this to change the default root pas
 | username       | yes      |         |           | A user that has admin access to the iDRAC |
 | password       | yes      |         |           | Password of the above user                |
 | hostname       | yes      |         |           | Hostname or IP of the iDRAC               |
-| command        | yes      |         |           | This command is 'ResetPassword'           |
+| name           | yes      |         |           | The name is 'ResetPassword'               |
 | user_to_change | yes      |         |           | The user to change.                       |                                          
 | new_pass       | yes      |         |           | The new password of the 'user_to_change'  |
-| debug          | no       |         |           | Turn on debug logging. This will also leave any xml files that might be generated. |
 
 ## Examples
 
 ```
 - name: Reset Default Password
-  local_action: idrac username={{ lom_user }} password={{ drac_default_pass }}
-                hostname={{ lom_hostname }} command=ResetPassword
-                user_to_change={{ lom_user }} new_pass={{ lom_pass }} 
+  local_action: idrac username=some_user password=some_pass
+                hostname=idrac01.example.com name=ResetPassword
+                user_to_change=user_to_change new_pass=new_pass_of_user_to_change 
 ```

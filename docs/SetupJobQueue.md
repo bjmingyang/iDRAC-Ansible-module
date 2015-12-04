@@ -23,7 +23,6 @@ I need to look at this funtion. I'm not sure it is useful anymore.
 | command    | yes      |         |         | This command is 'SetupJobQueue'                  |
 | jobid      | yes      |         |         | The jobid to execute.                            |
 | rebootid   | yes      |         |         | The rebootid to execute.                         |
-| debug      | no       |         |         | Turn on debug logging. This will also leave any xml files that might be generated. |
 
 ## Examples
 

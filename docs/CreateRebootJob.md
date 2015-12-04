@@ -22,7 +22,6 @@ Creates a reboot job.
 | hostname    | yes      |         |           | Hostname or IP of the iDRAC               |
 | command     | yes      |         |           | This command is 'CreateRebootJob'         |
 | reboot_type | yes      | 2       | 1, 2, 3   | 1 = PowerCycle, 2 = Graceful Reboot without forced shutdown, 3 = Graceful reboot with forced shutdown |
-| debug       | no       |         |           | Turn on debug logging. This will also leave any xml files that might be generated. |
 
 ## Examples
 

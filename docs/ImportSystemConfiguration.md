@@ -27,7 +27,6 @@ Imports System Configuration. I usually use this to import the RAID configuratio
 | share_ip    | yes      |         |           | IP or hostname of the share server           |
 | share_name  | no       |         |           | Name of the share. Used for cifs share type. |
 | import_file | yes      |         |           | File to import. If you want/need to include a path the path will be relative to the root of the share. |
-| debug       | no       |         |           | Turn on debug logging. This will also leave any xml files that might be generated. |
 
 ## Examples
 

@@ -21,7 +21,6 @@ This is used to detach the ISO image after a call of [BootToNetworkISO](BootToNe
 | password    | yes      |         |           | Password of the above user                    |
 | hostname    | yes      |         |           | Hostname or IP of the iDRAC                   |
 | command     | yes      |         |           | This command is 'DetachISOImage'              |
-| debug       | no       |         |           | Turn on debug logging. This will also leave any xml files that might be generated. |
 
 ## Examples
 

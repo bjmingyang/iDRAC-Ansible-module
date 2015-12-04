@@ -27,7 +27,6 @@ Exports the system configuration to a remote share.
 | share_name | yes      |         |           | Name of the share                           |
 | share_type | yes      |         | cifs, nfs | Share type                                  |
 | workgroup  | no       |         |           | The workgroup for the share                 |
-| debug      | no       |         |           | Turn on debug logging. This will also leave any xml files that might be generated. |
 
 ## Examples
 

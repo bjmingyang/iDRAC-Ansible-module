@@ -21,7 +21,6 @@ Used to get a lising of all the Event Filters
 | password    | yes      |         |           | Password of the above user                    |
 | hostname    | yes      |         |           | Hostname or IP of the iDRAC                   |
 | command     | yes      |         |           | This command is 'EnumerateEventFilters'       |
-| debug       | no       |         |           | Turn on debug logging. This will also leave any xml files that might be generated. |
 
 ## Examples
 

@@ -27,7 +27,6 @@ Used to boot to a Network ISO image.
 | share_name | yes      |         |           | Name of the share                         |
 | share_type | yes      |         | cifs, nfs | Share type                                |
 | iso_image  | yes      |         |           | The ISO image file                        |
-| debug      | no       |         |           | Turn on debug logging. This will also leave any xml files that might be generated. |
 
 ## Examples
 

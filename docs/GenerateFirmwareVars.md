@@ -22,7 +22,6 @@ Used to generate the firmware.yml file.
 | hostname      | yes      | none    |           | Hostname or IP of the iDRAC               |
 | name          | yes      | none    |           | This command is 'GenerateFirmwareVars'    |
 | firmware_file | no       | none    |           | Current firmware.yml file to merge        |
-| debug         | no       | none    |           | Turn on debug logging. This will also leave any xml files that might be generated. |
 
 ## Examples
 

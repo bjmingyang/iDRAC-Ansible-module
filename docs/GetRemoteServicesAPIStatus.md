@@ -21,7 +21,6 @@ Gets the status of the iDRAC, LC, and Server.
 | password   | yes      |         |           | Password of the above user                    |
 | hostname   | yes      |         |           | Hostname or IP of the iDRAC                   |
 | command    | yes      |         |           | This command is 'GetRemoteServicesAPIStatus'  |
-| debug      | no       |         |           | Turn on debug logging. This will also leave any xml files that might be generated. |
 
 ## Examples
 

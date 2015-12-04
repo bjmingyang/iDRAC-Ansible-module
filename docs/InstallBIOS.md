@@ -22,7 +22,6 @@ Used to install the BIOS. Needs to be run seperately from other firmware install
 | hostname   | yes      |         |           | Hostname or IP of the iDRAC                                     |
 | command    | yes      |         |           | This command is 'InstallBIOS'                                   |
 | firmware   | yes      |         |           | Dictionary of BIOS firmware. See [firmware.yml](https://github.com/hbeatty/idrac-roles/tree/master/firmware.yml) for details. 'share_uri' is optional. If 'share_uri' is not specified the 'url' value will be used to try to install the firmware. |
-| debug      | no       |         |           | Turn on debug logging. This will also leave any xml files that might be generated. |
 
 ## Examples
 

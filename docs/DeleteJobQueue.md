@@ -21,7 +21,6 @@ Deletes the entire job queue.
 | password    | yes      |         |           | Password of the above user                    |
 | hostname    | yes      |         |           | Hostname or IP of the iDRAC                   |
 | command     | yes      |         |           | This command is 'DeleteJobQueue'              |
-| debug       | no       |         |           | Turn on debug logging. This will also leave any xml files that might be generated. |
 
 ## Examples
 

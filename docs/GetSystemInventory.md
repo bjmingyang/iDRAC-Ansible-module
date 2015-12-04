@@ -21,7 +21,6 @@ Gets the system inventory and stores in ansible_facts.
 | password   | yes      |         |           | Password of the above user                |
 | hostname   | yes      |         |           | Hostname or IP of the iDRAC               |
 | command    | yes      |         |           | This command is 'GetSystemInventory'      |
-| debug      | no       |         |           | Turn on debug logging. This will also leave any xml files that might be generated. |
 
 ## Examples
 

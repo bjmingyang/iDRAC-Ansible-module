@@ -22,7 +22,6 @@ This causes an automatic reboot of the iDRAC because of the iDRAC not because of
 | hostname   | yes      |         |           | Hostname or IP of the iDRAC               |
 | command    | yes      |         |           | This command is 'InstallIdracFirmware'    |
 | firmware   | yes      |         |           | Dictionary of iDRAC firmware. See firmware.yml for details. 'share_uri' is optional. If 'share_uri' is not specified the 'url' value will be used to try to install the firmware. |
-| debug      | no       |         |           | Turn on debug logging. This will also leave any xml files that might be generated. |
 
 ## Examples
 

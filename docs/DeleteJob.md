@@ -22,7 +22,6 @@ Deletes a singe job from the queue.
 | hostname    | yes      |         |           | Hostname or IP of the iDRAC                   |
 | command     | yes      |         |           | This command is 'DeleteJob'                   |
 | jobid       | yes      |         |           | The ID of the job to delete                   |
-| debug       | no       |         |           | Turn on debug logging. This will also leave any xml files that might be generated. |
 
 ## Examples
 

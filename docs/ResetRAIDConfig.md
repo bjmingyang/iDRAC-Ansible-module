@@ -20,13 +20,13 @@ Clears the configuration from the RAID controller. Has not been tested in a serv
 | username   | yes      |         |           | A user that has admin access to the iDRAC |
 | password   | yes      |         |           | Password of the above user                |
 | hostname   | yes      |         |           | Hostname or IP of the iDRAC               |
-| command    | yes      |         |           | This command is 'ResetRAIDConfig'         |
+| name       | yes      |         |           | The name is 'ResetRAIDConfig'             |
 | debug      | no       |         |           | Turn on debug logging. This will also leave any xml files that might be generated. |
 
 ## Examples
 
 ```
 - name: Reset RAID Config
-  local_action: idrac username={{lom_user}} password={{lom_pass}}
-    hostname={{lom_hostname}} command="ResetRAIDConfig"
+  local_action: idrac username=some_user password=some_pass
+    hostname=idrac01.example.com name="ResetRAIDConfig"
 ```  

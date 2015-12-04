@@ -24,7 +24,6 @@ Used to set the 'Remote System Log' servers.
 | servers    | yes      |         | Server1, Server2, Server3 | Dictionary of syslog servers. iDRAC limits to 3.                                   |
 | enable     | no       | true    | true, false               | If you are calling this command I assume you want to turn on syslog.               |
 | port       | no       |         |                           | If you don't specify a port this won't change what is set on the iDRAC.            |
-| debug      | no       |         |                           | Turn on debug logging. This will also leave any xml files that might be generated. |
 
 ## Examples
 

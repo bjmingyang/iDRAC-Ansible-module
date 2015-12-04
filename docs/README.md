@@ -20,10 +20,10 @@
   * [ExportSystemConfiguration](ExportSystemConfiguration.md)  
   * [GetRemoteServicesAPIStatus](GetRemoteServicesAPIStatus.md)  
   * [ImportSystemConfiguration](ImportSystemConfiguration.md)  
+  * [InstallIdracFirmware](installIdracFirmware.md)  
   * [ResetPassword](ResetPassword.md)  
   * [SyslogSettings](SyslogSettings.md)  
-  * [InstallFirmware](installFirmware.md)
-  * [InstallIdracFirmware](installIdracFirmware.md)  
+  * [UpgrradFirmware](UpgradeFirmware.md)
 * Job Methods  
   * [CheckJobStatus](CheckJobStatus.md)  
   * [CreateRebootJob](CreateRebootJob.md)  
@@ -43,3 +43,5 @@
   * [GetSystemInventory](GetSystemInventory.md)  
 * VFlash Management Methods  
   * [DetachSDCardPartitions](DetachSDCardPartitions.md)  
+* Utility Methods
+  * [GenerateFirmwareVars](GenerateFirmwareVars.md)
