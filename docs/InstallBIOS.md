@@ -32,7 +32,7 @@ Used to install the BIOS. Needs to be run seperately from other firmware install
     username: "{{lom_user}}"
     password: "{{lom_pass}}"
     hostname: "{{lom_hostname}}"
-    command: "InstallBIOS"
+    name: "InstallBIOS"
     firmware:
       "{{firmware[SystemGeneration].bios}}"
 ```

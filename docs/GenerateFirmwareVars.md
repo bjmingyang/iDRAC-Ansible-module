@@ -20,8 +20,7 @@ Used to generate the firmware.yml file.
 | username      | yes      | none    |           | A user that has admin access to the iDRAC |
 | password      | yes      | none    |           | Password of the above user                |
 | hostname      | yes      | none    |           | Hostname or IP of the iDRAC               |
-| name          | yes      | none    |           | This command is 'GenerateFirmwareVars'    |
-| firmware_file | no       | none    |           | Current firmware.yml file to merge        |
+| name          | yes      | none    |           | The name is 'GenerateFirmwareVars'        |
 
 ## Examples
 
@@ -29,22 +28,21 @@ Used to generate the firmware.yml file.
 - name: Generate Firmware Vars
   local_action: idrac username={{lom_user}} password={{lom_pass}}
     hostname={{lom_hostname}} name="GenerateFirmwareVars"
-    firmware_file="group_vars/all/firmware.yml"
 ```
 
 ## Return Values
 
-  * changed:
-    * Desciption: Whether or not changes were made.
-    * Type: bool
-    * Values: true/false
-  * failed:
-    * Description: Whether or not the job creation was successful
-    * Type: bool
-    * Values: true/false
-  * msg:
-    * Description: A hopefully helpful message
-    * Type: string
+* changed:
+  * Desciption: Whether or not changes were made.
+  * Type: bool
+  * Values: true/false
+* failed:
+  * Description: Whether or not the firmware.yml was created.
+  * Type: bool
+  * Values: true/false
+* msg:
+  * Description: A hopefully helpful message
+  * Type: string
 
 ## Notes
 
