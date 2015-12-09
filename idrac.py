@@ -543,7 +543,7 @@ def createTargetedConfigJobRAID(remote,reboot_type):
 
    fh.write('<p:CreateTargetedConfigJob_INPUT xmlns:p="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_RAIDService">\n')
    fh.write('<p:Target>RAID.Integrated.1-1</p:Target>\n') # TODO should be var
-   fh.write('<p:RebootJobType>'+reboot_type+'</p:RebootJobType>\n')
+   fh.write('<p:RebootJobType>'+str(reboot_type)+'</p:RebootJobType>\n')
    # TODO schedule
    fh.write('<p:ScheduledStartTime>TIME_NOW</p:ScheduledStartTime>\n')
    # TODO fixme: try until this time
@@ -1489,6 +1489,7 @@ def importSystemConfiguration(remote,share_info,hostname,import_file,
 # supports check_mode
 def installBIOS (remote,firmware):
    msg = { }
+   msg['msg'] = ''
    jobs = []
 
    if not firmware:
@@ -1566,10 +1567,8 @@ def installBIOS (remote,firmware):
       else:
          installURI_res = ___installFromURI(remote,uri,instanceID)
          if installURI_res['failed']:
-            msg['failed'] = True
+            msg = installURI_res
             msg['changed'] = False
-            msg['idrac_msg'] = installURI_res['msg']
-            msg['msg'] = "Download started but, not completed."
             return msg
 
          jobs.append(installURI_res['jobid'])
@@ -1587,24 +1586,23 @@ def installBIOS (remote,firmware):
             time.sleep(2)
 
          if res['JobStatus'] != 'Downloaded':
+            msg = res
             msg['failed'] = True
             msg['changed'] = True
-            msg['idrac_msg'] = res['msg']
-            msg['msg'] = 'Download started but, not completed.'
             return msg
 
          # Create a reboot job
          rebootJob_res = ___createRebootJob(remote,1)
          if rebootJob_res['failed']:
-            msg['failed'] = True
+            msg = rebootJob_res
             msg['changed'] = True
-            msg['msg'] = "Download completed but, could not create reboot job."
             return msg
 
          jobs.append(rebootJob_res['rebootid'])
 
          jobQueue_res = ___setupJobQueue(remote,jobs)
          if jobQueue_res['failed']:
+            msg = jobQueue_res
             msg['failed'] = True
             msg['changed'] = True
             msg['msg'] = "Download completed and reboot job created but, could"
@@ -1612,7 +1610,7 @@ def installBIOS (remote,firmware):
             return msg
 
          # Waits 6 minutes or until the bios upgrade completes
-         wait_time = 60 * 6
+         wait_time = 60 * 10
          end_time = time.time() + wait_time
          while time.time() < end_time:
             res = ___checkJobStatus(remote,installURI_res['jobid'])
@@ -1621,12 +1619,13 @@ def installBIOS (remote,firmware):
             if res['JobStatus'] == 'Failed':
                break
 
-            time.sleep(2)
+            time.sleep(15)
 
          if res['JobStatus'] != 'Completed':
+            msg = res
             msg['failed'] = True
             msg['changed'] = True
-            msg['msg'] = "BIOS upgrade failed."
+            msg['msg'] = "BIOS upgrade failed. "+msg['msg']
             return msg
 
          # Waits 15 minutes or until the iDRAC is ready
@@ -2622,24 +2621,28 @@ def syslogSettings(remote,servers,enable,port):
       return msg
 
    if enable and (res['iDRAC.Embedded.1#SysLog.1#SysLogEnable']['CurrentValue'] != 'Enabled'):
-      log.debug ("hostname: %s, syslog not enabled. Enabling.", remote.ip)
+      if debug:
+         log.debug ("hostname: %s, syslog not enabled. Enabling.", remote.ip)
       msg['changed'] = True
       attributes['SysLog.1#SysLogEnable'] = "Enabled"
       msg['ansible_facts']['SysLog.1#SysLogEnable'] = "Enabled"
    elif (not enable) and (res['iDRAC.Embedded.1#SysLog.1#SysLogEnable']['CurrentValue'] == 'Enabled'):
-      log.debug ("hostname: %s, syslog enabled. Disabling.", remote.ip)
+      if debug:
+         log.debug ("hostname: %s, syslog enabled. Disabling.", remote.ip)
       msg['changed'] = True
       attributes['SysLog.1#SysLogEnable'] = "Disabled"
       msg['ansible_facts']['SysLog.1#SysLogEnable'] = "Disabled"
 
    # For syslog to work both syslog and ipmi have to be enabled
    if enable and (res['iDRAC.Embedded.1#IPMILan.1#AlertEnable']['CurrentValue'] != 'Enabled'):
-      log.debug ("hostname: %s, IPMI alerting over lan not enabled. Enabling.", remote.ip)
+      if debug:
+         log.debug ("hostname: %s, IPMI alerting over lan not enabled. Enabling.", remote.ip)
       msg['changed'] = True
       attributes['IPMILan.1#AlertEnable'] = "Enabled"
       msg['ansible_facts']['IPMILan.1#AlertEnable'] = "Enabled"
    elif (not enable) and (res['iDRAC.Embedded.1#IPMILan.1#AlertEnable']['CurrentValue'] == 'Enabled'):
-      log.debug ("hostname: %s, IPMI alerting over lan enabled. Disabling.", remote.ip)
+      if debug:
+         log.debug ("hostname: %s, IPMI alerting over lan enabled. Disabling.", remote.ip)
       msg['changed'] = True
       attributes['IPMILan.1#AlertEnable'] = "Disabled"
       msg['ansible_facts']['IPMILan.1#AlertEnable'] = "Disabled"
@@ -2655,8 +2658,9 @@ def syslogSettings(remote,servers,enable,port):
 
    if port != 0:
       if port != int(res['iDRAC.Embedded.1#SysLog.1#Port']['CurrentValue']):
-         log.debug ("hostname: %s, syslog port doesn't match setting to %s. Enabling.",
-                    remote.ip, port)
+         if debug:
+            log.debug ("hostname: %s, syslog port doesn't match setting to %s. Enabling.",
+                       remote.ip, port)
          msg['changed'] = True
          attributes['SysLog.1#Port'] = port
          msg['ansible_facts']['SysLog.1#Port'] = port
@@ -3936,7 +3940,7 @@ def main():
          raid_level        = dict(default=''),
          read_policy       = dict(default=''),
          rebootid          = dict(),
-         reboot_type       = dict(default='2'),
+         reboot_type       = dict(type='int',default='2'),
          remove_xml        = dict(default=True),
          servers           = dict(type='dict'),
          share_ip          = dict(default=''),
