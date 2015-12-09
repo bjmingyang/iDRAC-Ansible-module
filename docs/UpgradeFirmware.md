@@ -33,8 +33,7 @@ firmware options:
 | parameter           | required | default | choices        | comments |
 | ---------           | -------- | ------- | -------        | -------- |
 | element_name        | no       | none    |                | ElementName from EnumerateSoftwareIdentity. Created when firmware.yml is generated with GenerateFirmwareVars so that you'll have something to use when getting the url from Dell's website. |
-| url                 | yes      | none    |                | Usually the URL to download from Dell. Can be used to download locally or if share_uri not specified will be passed to the iDRAC. |
-| share_uri           | no       | none    |                | If specified this will be passed to the iDRAC. Can be http, ftp, tftp, cifs, or nfs. If not specified the url will be used. |
+| url                 | yes      | none    |                | The URL to download the firmware. Can be http, ftp, tftp, cifs, or nfs. If not specified the url will be used. |
 | target_version      | yes      | none    |                | The version of software once upgraded. Used to check the installed version doesn't match the one to be installed before trying the install. |
 | minimum_version     | no       | none    |                | If you run into a situation where an upgrade won't complete you may need to upgrade to a firmware version between the one installed and the one you are trying to upgrade to. |
 | reboot              | no       | "False" | "True"/"False" | This is a string not a bool. Do not try to use yes/no/1/0/true/false. |

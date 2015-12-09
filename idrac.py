@@ -1759,7 +1759,7 @@ def upgradeFirmware(remote,firmware,reboot_type):
          #   log.debug("upgradeFirmware: skipping %s",k)
          continue
       elif (software_res[k]['Status'] == 'Installed'):
-         elif re.search("^DriverPack\.", software_res[k]['FQDD']):
+         if re.search("^DriverPack\.", software_res[k]['FQDD']):
             # Doesn't require reboot.
             if 'drver_pack' in firmware:
                if debug:
