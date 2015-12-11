@@ -1574,7 +1574,7 @@ def installBIOS (remote,firmware):
          jobs.append(installURI_res['jobid'])
 
          # Waits 5 minutes or until the download completes
-         wait_time = 60 * 5
+         wait_time = 60 * 10
          end_time = time.time() + wait_time
          while time.time() < end_time:
             res = ___checkJobStatus(remote,installURI_res['jobid'])
