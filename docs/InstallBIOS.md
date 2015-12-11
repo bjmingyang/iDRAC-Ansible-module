@@ -20,12 +20,23 @@ Used to install the BIOS. Needs to be run seperately from other firmware install
 | username   | yes      |         |           | A user that has admin access to the iDRAC                       |
 | password   | yes      |         |           | Password of the above user                                      |
 | hostname   | yes      |         |           | Hostname or IP of the iDRAC                                     |
-| command    | yes      |         |           | This command is 'InstallBIOS'                                   |
-| firmware   | yes      |         |           | Dictionary of BIOS firmware. See [firmware.yml](https://github.com/hbeatty/idrac-roles/tree/master/firmware.yml) for details. 'share_uri' is optional. If 'share_uri' is not specified the 'url' value will be used to try to install the firmware. |
+| name       | yes      |         |           | The name is 'InstallBIOS'                                       |
+| firmware   | yes      |         |           | Dictionary of BIOS firmware.                                    |
+
+firmware options:  
+
+| parameter           | required | default | choices        | comments |
+| ---------           | -------- | ------- | -------        | -------- |
+| element_name        | no       | none    |                | ElementName from EnumerateSoftwareIdentity. |
+| url                 | yes      | none    |                | The URL to download the firmware. Can be http, ftp, tftp, cifs, or nfs. If not specified the url will be used. |
+| target_version      | yes      | none    |                | The version of software once upgraded. Used to check the installed version doesn't match the one to be installed before trying the install. |
+| minimum_version     | no       | none    |                | If you run into a situation where an upgrade won't complete you may need to upgrade to a firmware version between the one installed and the one you are trying to upgrade to. |
 
 ## Examples
 
 ```
+# The firmware var usually comes from the firmware.yml file which can be
+# generated using GenerateFirmwareVars
 - name: Install BIOS
   local_action:
     module: idrac
@@ -36,8 +47,6 @@ Used to install the BIOS. Needs to be run seperately from other firmware install
     firmware:
       "{{firmware[SystemGeneration].bios}}"
 ```
-
-The firmware variable above comes from the [firmware.yml](https://github.com/hbeatty/idrac-roles/tree/master/firmware.yml) file and the 'SystemGeneration' index comes from the idrac-roles/facts.
 
 ## Return Values
 
