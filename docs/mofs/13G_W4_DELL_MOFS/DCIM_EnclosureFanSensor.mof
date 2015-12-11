@@ -1,0 +1,36 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_EnclosureFanSensor
+// ==================================================================
+
+      [Description(
+           "DCIM_EnclosureFanSensor is a derivation of CIM_NumericSensor "
+           "with enclosure fan sensor specific data.") ]
+class DCIM_EnclosureFanSensor : CIM_NumericSensor {
+     
+  [Description (
+          "A string containing the Fully Qualified Device Description "
+          "A user-friendly name for the object. This property allows each "
+          " instance to define a user-friendly name in addition to its key "
+          " properties, identity data, and description information. "
+          )]
+  string FQDD;
+
+      [Description (
+          "A string containing the friendly Fully Qualified Device Description "
+          "A property that describes the device and its location"
+          )]
+  string DeviceDescription; 
+	  
+	  [Description (
+		  "State provides a status value of Enclosure Fan Sensor"
+		  "State consists of one of the following values: \"Unknown\" "
+		  "\"Ready\" \"Online\" \"Foreign\" \"Offline\" \"Blocked\" "
+		  "\"Failed\" \"Degraded\" \"Non-Raid\" \"Removed\" \"Charging\" \"Learning\" "
+		  "\"Low Power\" \"Over Temp\" \"Under Temp\" \"Not Applicable\" "),
+	   ValueMap { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"},
+	   Values { "Unknown", "Ready", "Online", "Foreign", "Offline",
+				"Blocked", "Failed", "Degraded","Non-Raid", "Removed", "Charging", "Learning",
+				"Low Power", "Over Temp", "Under Temp", "Not Applicable"}]
+  uint32 State; 
+};

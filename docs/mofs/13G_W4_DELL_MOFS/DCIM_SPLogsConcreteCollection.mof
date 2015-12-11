@@ -1,0 +1,11 @@
+// ==================================================================
+// DCIM_SPLogsConcreteCollection
+// ==================================================================
+
+    [Description(
+        "DCIM_SPLogsConcreteCollection is a"
+        "trivial derivation of CIM_ConcreteCollection") ]
+class DCIM_SPLogsConcreteCollection : CIM_ConcreteCollection 
+{
+
+};

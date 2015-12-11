@@ -1,0 +1,8 @@
+[ Association, Description ("DCIM_SPHostedPowerManagementService service represents "
+   "the assocation between a service processor and "
+   "DCIM_CSPowerManagementService." )
+]
+class DCIM_SPHostedPowerManagementService : CIM_HostedService
+{
+};
+

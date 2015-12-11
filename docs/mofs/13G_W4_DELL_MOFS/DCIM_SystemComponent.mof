@@ -1,0 +1,8 @@
+[ Association,
+    Description ("SystemComponent can be associated by a ComputerSystem."
+    "This relationship is made explicit by the SystemComponent association." )
+]
+class DCIM_SystemComponent : CIM_SystemComponent {
+
+};
+

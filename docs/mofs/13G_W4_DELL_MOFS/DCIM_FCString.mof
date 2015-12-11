@@ -1,0 +1,31 @@
+// Copyright (c) 2012 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_FCString
+// ==================================================================
+  [Description(
+       "The DCIM_FCString object may be used to instantiate "
+       "string-based Fiber Channel Host Bus Adapter attributes.")]
+class DCIM_FCString : DCIM_FCAttribute {
+      [Description ( 
+          "This property specifies the minimum string length "
+          "allowed when modifying this BIOS attribute. A value of "
+          "NULL SHALL be defined as zero." ), 
+       ModelCorrespondence { "DCIM_FCString.MinLength" }]
+   uint64 MinLength;
+
+      [Description ( 
+          "This property specifies the maximum string length "
+          "allowed when modifying this BIOS attribute. A value of "
+          "NULL defines the maximum length is unknown. A value of 0 "
+          "defines the maximum length as 18446744073709551615, the "
+          "limitation of the property definition as uint64." ), 
+       ModelCorrespondence { "DCIM_FCString.MaxLength" }]
+   uint64 MaxLength;
+   
+      [Description ( 
+          "The property denotes a Perl-compatible regular "
+          "expression (PCRE) syntax to use in validating Attribute "
+          "values." )]
+   string ValueExpression;
+};
+

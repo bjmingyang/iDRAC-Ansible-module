@@ -1,0 +1,121 @@
+
+   [Description(
+      "")]
+class DCIM_EFConfigurationService : CIM_Service {
+      [Description (
+          "" ),
+       ValueMap { "0", "1", "2", "4096" },
+       Values { "Completed with No Error", "Not Supported", "Error",
+          "Job Created" }]
+   uint32 SetEventFilterByCategory (
+         
+        [IN, Description (
+             "This property identifies the category" )]
+      string Category,
+      
+        [IN, Description (
+             "This property identifies the sub-category" )]
+      string SubCategory,
+      
+        [IN, Description (
+             "This category identifies the severity" )]
+      string Severity,
+   
+        [IN, Description (
+            " " ),
+          ValueMap { "0","1", "2", "3" },
+          Values { "None", "Reboot", "Power Off", "Power Cycle" }]
+      uint16 RequestedAction,
+      
+        [IN, Description (
+            " " ),
+          ValueMap { "0", "1", "2", "3", "4", "5"},
+          Values { "None", "IPMI Alert", "SNMP Trap", "Email Alert", "LCD", "OS Log" }]
+      uint16 RequestedNotification[],
+      
+        [OUT, Description (
+             "A reference to the ConcreteJob is returned" )]
+      CIM_ConcreteJob REF Job,
+      
+         [OUT, Description (
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+             
+      string MessageID,
+      
+         [OUT, Description (
+             "Error Message in english corresponding to the "
+             "MessageID" )]
+      string Message,
+      
+         [OUT, Description (
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+
+
+      [Description (
+          "" ),
+       ValueMap { "0", "1", "2", "4096" },
+       Values { "Completed with No Error", "Not Supported", "Error",
+          "Job Created" }]
+   uint32 SetEventFilterByInstanceIDs (
+         
+        [IN, Description (
+             "Is a unique string identifying platform event filter. ")]
+      string InstanceID[],
+   
+        [IN, Description (
+            " " ),
+          ValueMap { "0", "1", "2", "3" },
+          Values { "None", "Reboot", "Power Off", "Power Cycle" }]
+      uint16 RequestedAction,
+      
+        [IN, Description (
+            " " ),
+          ValueMap { "0", "1", "2", "3", "4", "5", "6"},
+          Values { "None", "IPMI Alert", "SNMP Trap", "Email Alert", "LCD",  "OS Log", "WS-Events" }]
+      uint16 RequestedNotification[],
+      
+        [OUT, Description (
+             "A reference to the ConcreteJob is returned" )]
+      CIM_ConcreteJob REF Job,
+      
+         [OUT, Description (
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+             
+      string MessageID[],
+      
+         [OUT, Description (
+             "Error Message in english corresponding to the "
+             "MessageID" )]
+      string Message[],
+      
+         [OUT, Description (
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+
+      [Description (
+          "" ),
+       ValueMap { "0", "2" },
+       Values { "Request was successfully executed", "Error occurred" }]
+   uint16 SimulateTestEvent (
+        [Required, IN, Description ( 
+             "This property identifies the event filter's messageIDs." )]
+      string EFMessageIDs[],
+      
+         [OUT, Description (
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+      
+         [OUT, Description (
+             "Error Message in english corresponding to the "
+             "MessageID" )]
+      string Message,
+
+         [OUT, Description (
+             "Substitution variables for dynamic error messages.")]
+      string MessageArguments[]);
+
+};

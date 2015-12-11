@@ -1,0 +1,17 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_IPMICLPAccountManagementCapabilities
+// ==================================================================  
+  [ 
+      Description (
+      "DCIM_IPMICLPAccountManagementCapabilities is a derivation of  "
+      "DCIM_AccountManagementCapabilities."
+      "DCIM_AccountManagementCapabilities is a derivation of  "
+      "CIM_AccountManagementCapabilities."
+      "AccountManagementCapabilities describes the capabilities "
+      "supported for managing Accounts associated with an instance of "
+      "AccountManagementService.")
+  ]
+class DCIM_IPMICLPAccountManagementCapabilities : DCIM_AccountManagementCapabilities
+{                                      
+};

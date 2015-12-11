@@ -1,0 +1,88 @@
+// Copyright (c) 2011 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_FCCapabilities
+// ==================================================================
+
+   [Description(
+       "DCIM_FCCapabilities describes the capabilities of Fiber Channel HBA "
+       "its port." )]
+class DCIM_FCCapabilities : CIM_Capabilities {
+      [Key, Description (
+          "Is a unique string containing the Fully Qualified Device "
+          "Description and view name. ")]
+   string InstanceID;
+
+      [Description (
+          "A string containing the Fully Qualified Device Description"
+          "A user-friendly name for the object. This property allows each "
+          "instance to define a user-friendly name in addition to its key "
+          "properties, identity data, and description information. "
+          "The FQDD represents the FC's port's or partition's FQDD "
+          "for which this capabilities apply. ")]
+   string  FQDD;
+
+      [Description ( 
+          "The property details FC's maximum number of IOs per "
+          "connection supported.")]
+   uint16 FCMaxIOsPerSession;
+
+      [Description ( 
+          "The property details FC's maximum logins per port.")]
+   uint16 FCMaxNumberLogins;
+
+      [Description ( 
+          "The property details FC's maximum number of exchanges.")]
+   uint16 FCMaxNumberExchanges;
+
+      [Description ( 
+          "The property details FC's maximum number of NPIV targets "
+          "supported.")]
+   uint16 FCMaxNPIVPerPort;
+
+      [Description ( 
+          "The property details FC's maximum number of FC targets "
+          "supported.")]
+   uint16 FCMaxNumberOfFCTargets;
+
+      [Description ( 
+          "The property details FC's maximum number of outstanding "
+          "commands supported across all connections.")]
+   uint16 FCMaxNumberOutStandingCommands;
+
+      [Description ( 
+          "The property details FC's port's flex adddressing support. "), 
+       ValueMap { "0", "2", "3" }, 
+       Values { "Unknown", "Supported", "Not Supported" }]
+   uint8 FlexAddressingSupport;
+
+      [Description ( 
+          "The property details FC's port's uEFI support. "), 
+       ValueMap { "0", "2", "3" }, 
+       Values { "Unknown", "Supported", "Not Supported" }]
+   uint8 uEFISupport;
+
+      [Description ( 
+          "The property details FC's boot support. "), 
+       ValueMap { "0", "2", "3" }, 
+       Values { "Unknown", "Supported", "Not Supported" }]
+   uint8 FCBootSupport;
+
+      [Description ( 
+          "The property details FC's on chip thermal sensor support. "), 
+       ValueMap { "0", "2", "3" }, 
+       Values { "Unknown", "Supported", "Not Supported" }]
+   uint8 OnChipThermalSensor;
+
+      [Description ( 
+          "The property details FC's feature licensing support. "), 
+       ValueMap { "0", "2", "3" }, 
+       Values { "Unknown", "Supported", "Not Supported" }]
+   uint8 FeatureLicensingSupport;
+
+  [Description (
+          "This property specifies if the card supports persistence policy"),
+      ValueMap { "0", "2", "3" },
+      Values { "Unknown", "Supported", "Not Supported" } ]
+   uint8 PersistencePolicySupport;
+
+};

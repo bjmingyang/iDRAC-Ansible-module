@@ -1,0 +1,12 @@
+// ==================================================================
+//  DCIM_SELUseOfLog
+// ==================================================================
+[Association, Description (
+       "An association class derived from UseOfLog "        
+       "that represents the system elements that are dependednt "
+       "on the System Event Log." ) ]
+class DCIM_SELUseOfLog : CIM_UseOfLog
+{
+	
+};
+

@@ -1,0 +1,11 @@
+// ==================================================================
+// DCIM_SPCapacitiesConcreteCollection
+// ==================================================================
+
+    [Description(
+        "DCIM_SPCapacitiesConcreteCollection is a"
+        "trivial derivation of CIM_ConcreteCollection") ]
+class DCIM_SPCapacitiesConcreteCollection : CIM_ConcreteCollection 
+{
+
+};

@@ -1,0 +1,83 @@
+// Copyright (c) 2011 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_FCStatistics
+// ==================================================================
+  [Description(
+       "The DCIM_FCStatistics represents the statistics of the Fiber Channel "
+       "HBA port.")]
+class DCIM_FCStatistics : CIM_StatisticalData {      
+      
+      [Key, Override ( "InstanceID" )]
+string	InstanceID;
+      
+      [Description (
+          "A string containing the Fully Qualified Device Description"
+          "A user-friendly name for the object. This property allows each "
+          "instance to define a user-friendly name in addition to its key "
+          "properties, identity data, and description information.")]
+string FQDD;
+
+      [Description (
+          "Total FC Frames Received"),
+          PUnit ( "count" )]
+uint32 FCRxTotalFrames;
+
+      [Description (
+          "Total FC Frames Transmitted"),
+          PUnit ( "count" )]
+uint32 FCTxTotalFrames;
+
+      [Description (
+          "Receive KB Count"),
+          PUnit ( "count" )]
+uint32 FCRxKBCount;
+
+      [Description (
+          "Transmit KB Count"),
+          PUnit ( "count" )]
+uint32 FCTxKBCount;
+
+      [Description (
+          "FC Sequences Received"),
+          PUnit ( "count" )]
+uint32 FCRxSequences;
+
+      [Description (
+          "FC Sequences Transmitted"),
+          PUnit ( "count" )]
+uint32 FCTxSequences;
+
+      [Description (
+          "Counts the number of Link failures."), 
+          PUnit ( "count" )]
+uint32 FCLinkFailures;
+
+      [Description (
+          "Loss of Signals."), 
+          PUnit ( "count" )]
+uint32 FCLossOfSignals;
+
+      [Description (
+          "Invalid CRCs."), 
+          PUnit ( "count" )]
+uint32 FCInvalidCRCs;
+
+      [Description (
+          "Port Speed"), 
+       ValueMap { "0", "1", "2", "3", "4", "5", "6", "7"}, 
+       Values { "Unknown", "Other", "No Link", "2 Gbps", "4 Gbps", "8 Gbps", "16 Gbps", "32 Gbps"}]
+uint16 PortSpeed;
+
+      [Description (
+          "Indicates Port Status"), 
+       ValueMap { "0", "1", "2" }, 
+       Values { "Down", "Up", "Unknown" }]
+uint8 PortStatus;
+
+      [Description (
+          "Indicates OS driver states."), 
+       ValueMap { "0", "1", "2", "3", "4" }, 
+       Values { "Unknown", "Other", "Not Applicable", "Operational", "Non-operational"}]
+uint8 OSDriverState;
+
+};

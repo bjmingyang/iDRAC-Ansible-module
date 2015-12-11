@@ -1,0 +1,3 @@
+class DCIM_CLPPrivilege : CIM_Privilege
+{
+};

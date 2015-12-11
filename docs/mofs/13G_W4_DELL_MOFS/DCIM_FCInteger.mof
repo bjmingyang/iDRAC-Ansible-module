@@ -1,0 +1,22 @@
+// Copyright (c) 2012 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_FCInteger
+// ==================================================================
+  [Description(
+       "The DCIM_FCInteger object may be used to instantiate "
+       "integer-based Fiber Channel Host Bus Adapter attributes.")]
+class DCIM_FCInteger : DCIM_FCAttribute {
+
+      [Description (
+          "The property defines a lower bound or limit when "
+          "modifying this attribute." ),
+       ModelCorrespondence { "CIM_BIOSInteger.UpperBound" }]
+   sint64 LowerBound;
+
+      [Description (
+          "The property defines an upper bound or limit when "
+          "modifying this attribute." ),
+       ModelCorrespondence { "CIM_BIOSInteger.LowerBound" }]
+   uint64 UpperBound;
+};
+

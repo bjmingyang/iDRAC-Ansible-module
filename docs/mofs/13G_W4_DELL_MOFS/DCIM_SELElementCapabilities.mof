@@ -1,0 +1,12 @@
+// ==================================================================
+//  DCIM_SELElementCapabilities
+// ==================================================================
+[Association, Description (
+       "An association class derived from ElementCapabilities "        
+       "that represents the association between the System Event Log "
+       "Capabilities and the System Event Log." ) ]
+class DCIM_SELElementCapabilities : CIM_ElementCapabilities
+{
+	
+};
+

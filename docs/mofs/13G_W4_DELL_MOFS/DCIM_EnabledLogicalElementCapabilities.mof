@@ -1,0 +1,14 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_EnabledLogicalElementCapabilities
+// ==================================================================  
+  [ 
+      Description (
+      "DCIM_EnabledLogicalElementCapabilities is a derivation of  "
+      "CIM_EnabledLogicalElementCapabilities."
+      "EnabledLogicalElementCapabilities describes the capabilities"
+      " supported for changing the state of the assciated EnabledLogicalElement.")
+  ]
+class DCIM_EnabledLogicalElementCapabilities : CIM_EnabledLogicalElementCapabilities
+{                                      
+};

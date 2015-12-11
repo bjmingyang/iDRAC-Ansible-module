@@ -1,0 +1,4 @@
+[Association]
+class DCIM_CLPPrivilegeMemberOfCollection : CIM_MemberOfCollection
+{
+};

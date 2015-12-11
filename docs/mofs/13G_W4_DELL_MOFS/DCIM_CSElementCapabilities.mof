@@ -1,0 +1,12 @@
+// ==================================================================
+//  DCIM_CSElementCapabilities
+// ==================================================================
+
+[ Association,
+  Description ("LogicalDevices can be aggregated by a System. "
+  "This relationship is made explicit by the SystemDevice association." )
+]
+class DCIM_CSElementCapabilities : CIM_ElementCapabilities {
+
+};
+

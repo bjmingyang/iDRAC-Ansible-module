@@ -1,0 +1,6 @@
+[Description(
+       "DCIM_LifecycleJobDeleteAlertIndication is a derivation of "
+       "DCIM_LifecycleJobAlertIndication.")]
+class DCIM_LifecycleJobDeleteAlertIndication : DCIM_LifecycleJobAlertIndication
+{
+};

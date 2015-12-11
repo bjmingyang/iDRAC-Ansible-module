@@ -1,0 +1,6 @@
+[Description(
+       "DCIM_DNSSettingData is a derivation of "
+       "CIM_DNSSettingData.")]
+class DCIM_DNSSettingData : CIM_DNSSettingData
+{
+};

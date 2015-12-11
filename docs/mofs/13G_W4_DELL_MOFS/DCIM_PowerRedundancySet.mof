@@ -1,0 +1,18 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_PowerRedundancySet 
+// ==================================================================  
+[
+       Description ("DCIM_PowerRedundancySet is a derivation of  "
+       "CIM_RedundancySet. " ) ]
+class DCIM_PowerRedundancySet : CIM_RedundancySet 
+{   
+      [Override ( "TypeOfSet" ),
+       Description ( 
+          "TypeOfSet provides information on the type of "
+          "redundancy." ), 
+       ValueMap { "2", "4", "32768" }, 
+       Values { "N+1", "Sparing", "Input Power Redundancy" } ]
+   uint16 TypeOfSet[];
+
+};

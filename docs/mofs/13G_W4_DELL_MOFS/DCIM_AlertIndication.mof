@@ -1,0 +1,64 @@
+[Description(
+       "DCIM_AlertIndication is a derivation of "
+       "CIM_ProcessIndication.")]
+class DCIM_AlertIndication : CIM_AlertIndication
+{
+	[Key, Description ("The time at which indication is generated")]
+        datetime    IndicationTime;
+
+	[Description ("Description of the Lifecycle job")]
+        string  Description;
+
+	[Description ("The type of the alert")]
+        uint16  AlertType;
+
+	[Description ("A string describing the Alert type - used when the AlertType "
+                    "property is set to 1, \"Other State Change\"." )]
+        string  OtherAlertType;
+
+	[Description ("The severity of the indication ")]
+        uint16  PerceivedSeverity;
+
+	[Description ("Category of event ")]
+        string  Category;
+	
+	[Description ("Category of event ")]
+        string  SubCategory;
+
+	[Description ("The severity of the indication ")]
+        uint16  Severity;
+
+	[Description ("The system service tag ")]
+	string SystemServicetag;
+
+	[Description ("The system FQDN ")]
+        string SystemFQDN;
+
+	[Description ("The Fully qualified domain name ")]
+        string FQDD;
+
+	[Description ("The Event ID")]
+	uint32 EventID;	
+
+	[Description ("The alert message string")]
+        string Message;
+
+	[Description ("The alert message ID string")]
+        string MessageID;	
+
+	[Description ("The message arguments of the event")]
+	string  MessageArguments[];
+
+	uint16 AlertingElementFormat;
+
+	string OtherAlertingElementFormat;
+
+	string AlertingManagedElement;
+
+	string OwningEntity;
+
+	uint16 ProbableCause;
+
+	string SystemName;			
+	
+};

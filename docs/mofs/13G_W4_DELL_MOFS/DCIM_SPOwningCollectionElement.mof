@@ -1,0 +1,11 @@
+// ==================================================================
+// DCIM_SPOwningCollectionElement
+// ==================================================================
+
+    [Association, Description(
+        "DCIM_SPOwningCollectionElement is a"
+        "trivial derivation of CIM_OwningCollectionElement") ]
+class DCIM_SPOwningCollectionElement : CIM_OwningCollectionElement 
+{
+
+};

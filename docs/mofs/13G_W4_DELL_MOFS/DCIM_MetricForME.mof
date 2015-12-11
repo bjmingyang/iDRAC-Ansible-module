@@ -1,0 +1,7 @@
+[Association, Description (
+       "DCIM_MetricForME is a derivation of CIM_MetricForME "
+       "and represents an association that links a ManagedElement "
+       "to the metric values being maintained for it." ) ]
+class DCIM_MetricForME : CIM_MetricForME
+{
+};

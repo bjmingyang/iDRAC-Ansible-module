@@ -1,0 +1,11 @@
+// ==================================================================
+// DCIM_SPSettingsMemberOfCollection
+// ==================================================================
+
+    [Association, Description(
+        "DCIM_SPSettingsMemberOfCollection is a"
+        "trivial derivation of CIM_MemberOfCollection") ]
+class DCIM_SPSettingsMemberOfCollection : CIM_MemberOfCollection 
+{
+
+};

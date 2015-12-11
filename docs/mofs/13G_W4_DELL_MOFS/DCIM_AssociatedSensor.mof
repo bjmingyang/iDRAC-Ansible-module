@@ -1,0 +1,9 @@
+[Association, Description(
+      "DCIM_AssociatedSensor is a derivation of "
+      "CIM_AssociatedSensor, and represents an association"
+      "between a sensor and a managed element the sensor is"
+      "monitoring")]
+class DCIM_AssociatedSensor : CIM_AssociatedSensor
+{
+};
+

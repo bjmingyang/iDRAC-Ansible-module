@@ -1,0 +1,167 @@
+// Copyright (c) 2012 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_FCService
+// ==================================================================
+  [Description(
+       "DCIM_FCService is a derivation of CIM_BIOSService "
+       "with extrinsic method extensions to support "
+       "Fiber Channel Host Bus Adapter functionality")]
+class DCIM_FCService : CIM_BIOSService {
+      [Description (
+          "This method is called to modify instance of "
+          "FCAttribute." ),
+       ValueMap { "0", "2" },
+       Values { "Completed with No Error", "Error" }]
+   uint32 SetAttribute(
+         [Required, IN, Description (
+             "This parameter is the FQDD of the FCAttribute instances." )]
+      string Target,
+         [Required, IN, Description (
+             "A reference to a FCAttribute specified by "
+             "AttributeName of the FCAttribute to be modified." )]
+      string AttributeName,
+         [Required, IN, Description (
+             "A new value to assign to the specified "
+             "FCAttribute. If this value is valid, it will be "
+             "applied to the PendingValue property or the Currentvalue "
+             "property of the specified FCAttribute." )]
+      string AttributeValue[],
+         [OUT, Description (
+             "Invoking the SetAttribute may result in a set "
+             "to CurrentValue property or the PendingValue "
+             "property. SetResult returns \"Set CurrentValue property\" if "
+             "CurrentValue is set or \"Set PendingValue property\" if "
+             "PendingValue is set." )]
+      string SetResult,
+         [OUT, Description (
+             "Invoking the SetAttribute may require "
+             "a reboot for the set to be effective. "
+             "Value \"Yes\" means a reboot is required. "
+             "Value \"No\" means a reboot is not required")]
+      string RebootRequired,
+         [OUT, Description (
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+         [OUT, Description (
+             "Error Message in english corresponding to the "
+             "MessageID" )]
+      string Message,
+         [OUT, Description (
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+
+      [Description (
+          "This method is called to modify instances of "
+          "FCAttribute." ),
+       ValueMap { "0", "2" },
+       Values { "Completed with No Error", "Error" }]
+   uint32 SetAttributes(
+        [Required, IN, Description (
+             "This parameter is the FQDD of the FCAttribute instances." )]
+      string Target,
+         [Required, IN, Description (
+             "A reference to a FCAttribute specified by "
+             "AttributeName of the FCAttribute to be modified." )]
+      string AttributeName[],
+         [Required, IN, Description (
+             "A new value to assign to the specified "
+             "FCAttribute. If this value is valid, it will be "
+             "applied to the PendingValue property or the Currentvalue "
+             "property of the specified FCAttribute." )]
+      string AttributeValue[],
+         [OUT, Description (
+             "Invoking the SetAttribute may result in a set "
+             "to CurrentValue property or the PendingValue "
+             "property. SetResult returns \"Set CurrentValue property\" if "
+             "CurrentValue is set or \"Set PendingValue property\" if "
+             "PendingValue is set." )]
+      string SetResult[],
+         [OUT, Description (
+             "Invoking the SetAttribute may require "
+             "a reboot for the set to be effective. "
+             "Value \"Yes\" means a reboot is required. "
+             "Value \"No\" means a reboot is not required")]
+      string RebootRequired[],
+         [OUT, Description (
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID[],
+         [OUT, Description (
+             "Error Message in english corresponding to the "
+             "MessageID" )]
+      string Message[],
+         [OUT, Description (
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+
+      [Description (
+          "This method is called to apply the pending values created "
+          "by the SetAttribute and SetAttributes methods" ),
+       ValueMap { "2", "4096"},
+       Values   { "Failed", "Job Created"}]
+   uint32 CreateTargetedConfigJob(
+        [Required,IN, Description(
+           "This Parameter is the FQDD of the FCAttribute instances.")]
+      string Target,
+
+        [IN, Description(
+           "Input Parameter represents the type of Reboot "
+           "1 - PowerCycle "
+           "2 - Graceful Reboot without forced shutdown "
+           "3 - Graceful Reboot with forced shutdown. ")]
+      uint16 RebootJobType,
+
+       [IN, Description(
+           "Start Time of job in datetime format:yyyymmddhhmmss. "
+           "The string \"TIME_NOW\" means immediate.")]
+      string ScheduledStartTime,
+
+        [IN, Description(
+           "Scheduled end time for job execution in datetime "
+           "format:yyyymmddhhmmss. If StartTimeInterval is specified, "
+           "UntilTime has to be specified and vice versa. ")]
+      string UntilTime,
+
+        [OUT, Description (
+             "A reference to the ConcreteJob is returned" )]
+      CIM_ConcreteJob REF Job,
+
+        [OUT, Description (
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+
+        [OUT, Description (
+             "Error Message in english corresponding to the "
+             "MessageID" )]
+      string Message,
+
+        [OUT, Description (
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+
+      [Description (
+          "This method is called to cancel the pending values created "
+          "by the SetAttribute and SetAttributes methods." ),
+       ValueMap { "0", "2" },
+       Values   { "Success", "Failed" }]
+  uint32 DeletePendingConfiguration (
+        [Required,IN, Description(
+           "This Parameter is the FQDD of the FCAttribute instances.")]
+      string Target,
+
+        [OUT, Description (
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+
+        [OUT, Description (
+             "Error Message in english corresponding to the "
+             "MessageID" )]
+      string Message,
+
+        [OUT, Description (
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+};

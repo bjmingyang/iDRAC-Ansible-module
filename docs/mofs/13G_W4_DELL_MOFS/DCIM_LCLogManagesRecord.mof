@@ -1,0 +1,11 @@
+// ==================================================================
+//  DCIM_LCLogManagesRecord
+// ==================================================================
+[Association, Description (
+       "A class derived from LogManagesRecord "        
+       "that associates the LifeCycle Record Log "
+       "to the LifeCycle Log Entry." ) ]
+class DCIM_LCLogManagesRecord : CIM_LogManagesRecord
+{
+    
+};

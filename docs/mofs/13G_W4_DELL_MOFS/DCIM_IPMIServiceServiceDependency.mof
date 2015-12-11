@@ -1,0 +1,4 @@
+[Association]
+class DCIM_IPMIServiceServiceDependency : DCIM_RBAServiceServiceDependency
+{
+};

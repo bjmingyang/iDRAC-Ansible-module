@@ -1,0 +1,30 @@
+class DCIM_TimeService : CIM_TimeService
+{
+    [Override ( "ManageTime" )]
+  uint32 ManageTime 
+  (
+        [IN, Description ( 
+        "Indicates whether the request is to get (TRUE)"
+        " or set (FALSE) the time for the specified element." 
+        )]
+   boolean GetRequest,
+        [IN, OUT, Description ( 
+       "The current date and time. On input, this value is the"
+       " time that is set on the specified element, if the"
+       " GetRequest input parameter is TRUE. Otherwise,"
+       " the input time is ignored. On output, this value is"
+       " the time as it is known by the element."
+        )]
+   datetime TimeData, 
+        [IN, Description ( 
+       "ManagedElement indicates the element whose state is set."
+        )]
+   CIM_ManagedElement REF ManagedElement,
+        [OUT, Description ( "Message ID" )]
+   string MessageID,
+        [OUT, Description ( "Message" )]
+   string Message,
+        [OUT, Description ( "Message Args" )]
+   string MessageArguments[]
+  ); 
+};

@@ -1,0 +1,7 @@
+[Association, Description(
+      "DCIM_SystemDSensorevice is a derivation of "
+      "CIM_SystemDevice, and represents a System Device.")]
+class DCIM_SystemSensorDevice : CIM_SystemDevice
+{
+};
+

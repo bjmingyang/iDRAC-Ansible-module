@@ -1,0 +1,16 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_IPMIAccountManagementService
+// ==================================================================  
+  [ 
+      Description (
+      "DCIM_IPMIAccountManagementService is a derivation of  "
+      "DCIM_AccountManagementService."
+      "DCIM_AccountManagementService is a derivation of  "
+      "CIM_AccountManagementService."
+      "CIM_AccountManagementService creates, manages, and if "
+      "necessary destroys Accounts on behalf of other SecuritySerices..")
+  ]
+class DCIM_IPMIAccountManagementService : DCIM_AccountManagementService
+{                                      
+};

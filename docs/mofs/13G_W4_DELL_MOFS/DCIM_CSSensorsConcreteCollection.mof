@@ -1,0 +1,11 @@
+// ==================================================================
+// DCIM_CSSensorsConcreteCollection
+// ==================================================================
+
+    [Description(
+        "DCIM_CSSensorsConcreteCollection is a"
+        "trivial derivation of CIM_ConcreteCollection") ]
+class DCIM_CSSensorsConcreteCollection : CIM_ConcreteCollection 
+{
+
+};

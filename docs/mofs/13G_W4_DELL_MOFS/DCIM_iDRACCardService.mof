@@ -1,0 +1,396 @@
+[Description(
+       "DCIM_iDRACCardService is a derivation of CIM_BIOSService "
+       "with extrinsic method extensions to support "
+       "NIC functionality")]
+class DCIM_iDRACCardService : CIM_BIOSService {
+      [Description (
+          "This method is called to modify instance of "
+          "DRACAttribute." ),
+       ValueMap { "0", "1", "2", "3..32767", "32768..65535" },
+       Values { "Completed with No Error", "Not Supported", "Error",
+          "DMTF Reserved", "Vendor Specified" }]
+   uint32 SetAttribute(
+        [Required, IN, Description (
+             "This parameter is the FQDD of the NICAttribute instances." )]
+      string Target,
+         [Required, IN, Description (
+             "A reference to a DRACAttribute specified by "
+             "AttributeName of the BIOSAttribute to be modified." )]
+      string AttributeName,
+         [Required, IN, Description (
+             "A new value to assign to the specified "
+             "DRACNWAttribute. If this value is valid, it will be "
+             "applied to the PendingValue property or the Currentvalue "
+             "property of the specified DRACNWAttribute." )]
+      string AttributeValue[],
+         [OUT, Description (
+             "Invoking the SetAttribute may result in a set "
+             "to CurrentValue property or the PendingValue "
+             "property. SetResult returns \"Set CurrentValue property\" if "
+             "CurrentValue is set or \"Set PendingValue property\" if "
+             "PendingValue is set." )]
+      string SetResult,
+         [OUT, Description (
+             "Invoking the SetAttribute may require "
+             "a reboot for the set to be effective. "
+             "Value \"Yes\" means a reboot is required. "
+             "Value \"No\" means a reboot is not required")]
+      string RebootRequired,
+         [OUT, Description (
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+
+         [OUT, Description (
+             "Error Message in english corresponding to the "
+             "MessageID" )]
+      string Message,
+         [OUT, Description (
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+
+      [Description (
+          "This method is called to modify instances of "
+          "iDRACCardAttribute." ),
+       ValueMap { "0", "1", "2", "3..32767", "32768..65535" },
+       Values { "Completed with No Error", "Not Supported", "Error",
+          "DMTF Reserved", "Vendor Specified" }]
+   uint32 SetAttributes(
+        [Required, IN, Description (
+             "This parameter is the FQDD of the NICAttribute instances." )]
+      string Target,
+         [Required, IN, Description (
+             "A reference to a DRACNWAttribute specified by "
+             "AttributeName of the DRACNWAttribute to be modified." )]
+      string AttributeName[],
+         [Required, IN, Description (
+             "A new value to assign to the specified "
+             "DRACNWAttribute. If this value is valid, it will be "
+             "applied to the PendingValue property or the Currentvalue "
+             "property of the specified NICAttribute." )]
+      string AttributeValue[],
+         [OUT, Description (
+             "Invoking the SetAttribute may result in a set "
+             "to CurrentValue property or the PendingValue "
+             "property. SetResult returns \"Set CurrentValue property\" if "
+             "CurrentValue is set or \"Set PendingValue property\" if "
+             "PendingValue is set." )]
+      string SetResult[],
+         [OUT, Description (
+             "Invoking the SetAttribute may require "
+             "a reboot for the set to be effective. "
+             "Value \"Yes\" means a reboot is required. "
+             "Value \"No\" means a reboot is not required")]
+      string RebootRequired[],
+         [OUT, Description (
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID[],
+         [OUT, Description (
+             "Error Message in english corresponding to the "
+             "MessageID" )]
+      string Message[],
+         [OUT, Description (
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+
+      [Description (
+          "This method is called to apply the pending values created "
+          "by the SetAttribute and SetAttributes methods" ),
+       ValueMap { "0", "1", "2", "4096"},
+       Values   { "Success", "Not Supported", "Failed", "Job Created"}]
+   uint32 CreateTargetedConfigJob(
+        [Required,IN, Description(
+           "This Parameter is the FQDD of the NICAttribute instances.")]
+      string Target,
+
+        [IN, Description(
+           "Input Parameter represents the type of Reboot "
+           "1 - PowerCycle "
+           "2 - Graceful Reboot without forced shutdown "
+           "3 - Graceful Reboot with forced shutdown. ")]
+      uint16 RebootJobType,
+
+       [IN, Description(
+           "Start Time of job in datetime format:yyyymmddhhmmss. "
+           "The string \"TIME_NOW\" means immediate.")]
+      string ScheduledStartTime,
+
+        [IN, Description(
+           "Scheduled end time for job execution in datetime "
+           "format:yyyymmddhhmmss. If StartTimeInterval is specified, "
+           "UntilTime has to be specified and vice versa. ")]
+      string UntilTime,
+
+        [OUT, Description (
+             "A reference to the ConcreteJob is returned" )]
+      CIM_ConcreteJob REF Job,
+
+        [OUT, Description (
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+
+        [OUT, Description (
+             "Error Message in english corresponding to the "
+             "MessageID" )]
+      string Message,
+
+        [OUT, Description (
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+
+      [Description (
+          "This method is called to cancel the pending values created "
+          "by the SetAttribute and SetAttributes methods." ),
+       ValueMap { "0", "1", "2", "4096"},
+       Values   { "Success", "Not Supported", "Failed", "Job Created"}]
+  uint32 DeletePendingConfiguration (
+        [Required,IN, Description(
+           "This Parameter is the FQDD of the NICAttribute instances.")]
+      string Target,
+
+        [OUT, Description (
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+
+        [OUT, Description (
+             "Error Message in english corresponding to the "
+             "MessageID" )]
+      string Message,
+
+        [OUT, Description (
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+         [Description (
+          "This method is called to modify instances of "
+          "NICAttribute." ),
+       ValueMap { "0", "1", "2", "4096"},
+       Values { "Completed with No Error", "Not Supported", "Error", "Job created"}]
+   uint32 ApplyAttributes(
+        [Required, IN, Description (
+             "This parameter is the FQDD of the NICAttribute instances." )]
+      string Target,
+         [Required, IN, Description (
+             "A reference to a iDRACCardAttribute specified by "
+             "AttributeName of the iDRACCardAttribute to be modified." )]
+      string AttributeName[],
+         [Required, IN, Description (
+             "A new value to assign to the specified "
+             "DRACNWAttribute. If this value is valid, it will be "
+             "applied to the PendingValue property or the Currentvalue "
+             "property of the specified NICAttribute." )]
+      string AttributeValue[],
+        [OUT, Description (
+             "A reference to the ConcreteJob is returned" )]
+      CIM_ConcreteJob REF Job,
+
+      string MessageID[],
+         [OUT, Description (
+             "Error Message in english corresponding to the "
+             "MessageID" )]
+      string Message[],
+         [OUT, Description (
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);  
+      
+      [Description (
+          "This method is called to send a test snmp alert" ),
+       ValueMap { "0", "1", "2", "3..32767", "32768..65535" },
+       Values { "Completed with No Error", "Not Supported", "Error",
+          "DMTF Reserved", "Vendor Specified" }]
+   uint32 SendTestSNMPTrap(
+        [Required, IN, Description (
+             "This parameter is the FQDD of the attribute instances." )]
+      string InstanceID,
+         [OUT, Description (
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+         [OUT, Description (
+             "Error Message in english corresponding to the "
+             "MessageID" )]
+      string Message,
+         [OUT, Description (
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]);
+      
+      [Description (
+          "This method is called to send a test snmp alert" ),
+       ValueMap { "0", "1", "2", "3..32767", "32768..65535" },
+       Values { "Completed with No Error", "Not Supported", "Error",
+          "DMTF Reserved", "Vendor Specified" }]
+   uint32 SendTestEmailAlert(
+        [Required, IN, Description (
+             "This parameter is the FQDD of the attribute instances." )]
+      string InstanceID,
+         [OUT, Description (
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+         [OUT, Description (
+             "Error Message in english corresponding to the "
+             "MessageID" )]
+      string Message,
+         [OUT, Description (
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[]); 
+     [Description (
+             "This method is called to generate sslcsr certificate "
+             "and saves into the /tmp folder."),
+       ValueMap { "0", "1", "2", "3..32767", "32768..65535" },
+       Values { "Completed with No Error", "Not Supported", "Error",
+          "DMTF Reserved", "Vendor Specified" }]
+   uint32 GenerateSSLCSR(
+         [OUT, Description (
+             "Error MessageID is returned if the method fails "
+             "to execute." )]
+      string MessageID,
+         [OUT, Description (
+             "Error Message in english corresponding to the "
+             "MessageID" )]
+      string Message,
+         [OUT, Description (
+             "Any dynamic string substitutions for the Message" )]
+      string MessageArguments[],
+      [OUT, Description (
+            "Generate SSLCSR file encoded in base64."
+            )]
+      string SSLCSRFile);
+      [Description (
+          "This method is used to import the certificate to the idrac "
+          "based on input parameter Type." ),
+       ValueMap { "0", "1", "2", "3..32767", "32768..65535"},
+       Values { "Completed with No Error", "Not Supported", "Error", 
+	  "DMTF Reserved", "Vendor Specified"}]
+   uint32 ImportSSLCertificate(
+        [Required, IN, Description (
+            "A base64 encoded certificate file.")]
+      string SSLCertificateFile,
+        [Required, IN, Description (
+          "Type of the certificate to be imported." ),
+       ValueMap { "1", "2", "3"},
+       Values { "Server", "CA", "CSC"}]
+      uint16 CertificateType,
+        [IN, Description (
+            "A passphrase for certificate file.")]
+      string Passphrase,
+        [OUT, Description (
+            "Error Message ID returned if method fails to execute.")]
+      string MessageID[],
+        [OUT, Description (
+            "Error message in English corresponding to MessageID is"
+            "returned if the method fails to execute.")]
+      string Message[],
+        [OUT, Description (
+            "Substitution variables for dynamic error messages.")]
+      string MessageArgs[]);
+      [Description (
+          "This method is used to export the certificate from the idrac "
+          "based on input parameter Type." ),
+       ValueMap { "0", "1", "2", "3..32767", "32768..65535"},
+       Values { "Completed with No Error", "Not Supported", "Error",
+          "DMTF Reserved", "Vendor Specified"}]
+   uint32 ExportSSLCertificate(
+        [Required, IN, Description (
+          "Type of the certificate to be imported." ),
+       ValueMap { "1", "2", "3"},
+       Values { "Server", "CA", "CSC"}]
+      uint16 SSLCertType,
+        [OUT, Description (
+            "Error Message ID returned if method fails to execute.")]
+      string MessageID[],
+        [OUT, Description (
+            "Error message in English corresponding to MessageID is"
+            "returned if the method fails to execute.")]
+      string Message[],
+        [OUT, Description (
+            "Substitution variables for dynamic error messages.")]
+      string MessageArgs[],
+        [OUT, Description (
+            "Exported certificate file encoded in base64."
+            )]
+      string CertificateFile);
+    [Description (
+          "This method is used to delete ssl certificate from the idrac "
+          "based on input parameter Type." ),
+       ValueMap { "0", "1", "2", "3..32767", "32768..65535"},
+       Values { "Completed with No Error", "Not Supported", "Error",
+          "DMTF Reserved", "Vendor Specified"}]
+   uint32 DeleteSSLCertificate(
+        [Required, IN, Description (
+          "Type of the certificate to be imported." ),
+       ValueMap { "1", "2", "3"},
+       Values { "Reserved", "Reserved", "CSC"}]
+      uint16 CertificateType,
+        [OUT, Description (
+            "Error Message ID returned if method fails to execute.")]
+      string MessageID[],
+        [OUT, Description (
+            "Error message in English corresponding to MessageID is"
+            "returned if the method fails to execute.")]
+      string Message[],
+        [OUT, Description (
+            "Substitution variables for dynamic error messages.")]
+      string MessageArgs[]);
+     [Description (
+          "This method is used to reset the idrac "),
+       ValueMap { "0", "1", "2", "3..32767", "32768..65535"},
+       Values { "Completed with No Error", "Not Supported", "Error",
+          "DMTF Reserved", "Vendor Specified"}]
+   uint32 iDRACReset(
+        [IN, Description (
+          "This option is used to reset the iDRAC by force or gracefully" ),
+       ValueMap { "0", "1"},
+       Values { "Graceful", "Force"}]
+      uint16 Force,
+        [OUT, Description (
+            "Error Message ID returned if method fails to execute.")]
+      string MessageID[],
+        [OUT, Description (
+            "Error message in English corresponding to MessageID is"
+            "returned if the method fails to execute.")]
+      string Message[],
+        [OUT, Description (
+            "Substitution variables for dynamic error messages.")]
+      string MessageArgs[]);
+      [Description (
+          "This method is used to reset the idrac to the factory default configurations "),
+       ValueMap { "0", "1", "2", "3..32767", "32768..65535"},
+       Values { "Completed with No Error", "Not Supported", "Error",
+          "DMTF Reserved", "Vendor Specified"}]
+   uint32 iDRACResetCfg(
+        [IN, Description (
+          "This option is used to reset the iDRAC to factory defaults by force or gracefully" ),
+       ValueMap { "0", "1"},
+       Values { "Graceful", "Force"}]
+      uint16 Force,
+        [OUT, Description (
+            "Error Message ID returned if method fails to execute.")]
+      string MessageID[],
+        [OUT, Description (
+            "Error message in English corresponding to MessageID is"
+            "returned if the method fails to execute.")]
+      string Message[],
+        [OUT, Description (
+            "Substitution variables for dynamic error messages.")]
+      string MessageArgs[]);
+        [Description (
+          "This method is used to restores the web-server certificate to factory defaults."),
+       ValueMap { "0", "1", "2", "3..32767", "32768..65535"},
+       Values { "Completed with No Error", "Not Supported", "Error",
+          "DMTF Reserved", "Vendor Specified"}]
+   uint32 SSLResetCfg(
+        [OUT, Description (
+            "Error Message ID returned if method fails to execute.")]
+      string MessageID[],
+        [OUT, Description (
+            "Error message in English corresponding to MessageID is"
+            "returned if the method fails to execute.")]
+      string Message[],
+        [OUT, Description (
+            "Substitution variables for dynamic error messages.")]
+      string MessageArgs[]);
+};
+

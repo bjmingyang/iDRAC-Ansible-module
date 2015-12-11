@@ -1,0 +1,10 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_PSOwningCollectionElement 
+// ==================================================================  
+[
+       Association, Description ("DCIM_PSOwningCollectionElement is a derivation of  "
+       "CIM_OwningCollectionElement. " ) ]
+class DCIM_PSOwningCollectionElement : CIM_OwningCollectionElement 
+{   
+};

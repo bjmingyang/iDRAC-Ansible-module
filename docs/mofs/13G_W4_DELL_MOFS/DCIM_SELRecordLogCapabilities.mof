@@ -1,0 +1,11 @@
+// ==================================================================
+//  DCIM_SELRecordLogCapabilities
+// ==================================================================
+[Description (
+       "A class derived from RecordLogCapabilities "        
+       "to represent the System Event Log Capabilities." ) ]
+class DCIM_SELRecordLogCapabilities : CIM_RecordLogCapabilities
+{
+	
+};
+

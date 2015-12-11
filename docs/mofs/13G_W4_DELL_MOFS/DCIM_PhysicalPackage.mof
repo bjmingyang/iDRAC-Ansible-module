@@ -1,0 +1,17 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_PhysicalPackage
+// ==================================================================
+  [Version ( "1.0.0" ), Description(
+       "DCIM_PhysicalPackage is a derivation of CIM_PhysicalPackage "
+       "with Physical Package specific data" )]
+class DCIM_PhysicalPackage : CIM_PhysicalPackage {
+      [Description (
+          "A string containing the Fully Qualified Device Description"
+          "A user-friendly name for the device. This property allows each"
+          " instance to define a user-friendly name in addition to its key"
+          " properties, identity data, and description information."
+          )]
+   string DeviceFQDD;
+};
+

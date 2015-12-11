@@ -1,0 +1,27 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_Account 
+// ==================================================================  
+[
+       Description ("DCIM_Account is a derivation of  "
+       "CIM_Account to represent accounts. " ) ]
+class DCIM_Account : CIM_Account 
+{     
+    [Override ( "RequestStateChange" ),
+       Description ( "" ),
+       ValueMap { "0", "1", "2" }, 
+       Values { "Success", "Not Supported", "Failed" }]
+   uint32 RequestStateChange(
+         [IN, Description ( ""),
+          ValueMap { "2", "3" }, 
+          Values { "Enabled", "Disabled" } ]
+      uint16 RequestedState, 
+
+        [OUT, Description ( "Message ID" )]
+      string MessageID,
+        [OUT, Description ( "Message" )]
+      string Message,
+        [OUT, Description ( "Message Args" )]
+      string MessageArguments[]);
+};
+

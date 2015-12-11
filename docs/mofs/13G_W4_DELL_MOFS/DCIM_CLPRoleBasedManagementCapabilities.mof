@@ -1,0 +1,3 @@
+class DCIM_CLPRoleBasedManagementCapabilities : CIM_RoleBasedManagementCapabilities
+{
+};

@@ -1,0 +1,4 @@
+[Association]
+class DCIM_IPMIRBAIdentityMemberOfCollection : CIM_MemberOfCollection
+{
+};

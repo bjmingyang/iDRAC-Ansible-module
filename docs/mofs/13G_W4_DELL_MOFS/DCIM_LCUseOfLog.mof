@@ -1,0 +1,12 @@
+// ==================================================================
+//  DCIM_LCUseOfLog
+// ==================================================================
+[Association, Description (
+       "An association class derived from UseOfLog "        
+       "that represents the system elements that are dependednt "
+       "on the LifeCycle Log." ) ]
+class DCIM_LCUseOfLog : CIM_UseOfLog
+{
+
+};
+

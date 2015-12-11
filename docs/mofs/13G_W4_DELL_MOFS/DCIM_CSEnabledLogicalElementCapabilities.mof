@@ -1,0 +1,11 @@
+// ==================================================================
+//  DCIM_CSEnabledLogicalElementCapabilities
+// ==================================================================
+
+   [ Description ("A class derived from ComputerSystem"
+       " to represent an DCIM's Server." )
+   ]
+class DCIM_CSEnabledLogicalElementCapabilities : CIM_EnabledLogicalElementCapabilities {
+
+};
+

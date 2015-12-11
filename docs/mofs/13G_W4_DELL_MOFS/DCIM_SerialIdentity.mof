@@ -1,0 +1,14 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_SerialIdentity
+// ==================================================================  
+  [ 
+      Description (
+      "DCIM_SerialIdentity is a derivation of DCIM_IPMIIdentity."
+      "An instance of an Identity represents a ManagedElement that "
+      "acts as a security principal within the scope in which it is defined and " 
+      "authenticated.")
+]
+class DCIM_SerialIdentity : DCIM_IPMIIdentity
+{ 
+};

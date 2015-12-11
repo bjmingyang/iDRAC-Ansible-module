@@ -1,0 +1,11 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_SPHostedSIMPService
+// ==================================================================  
+  [ 
+      Association, Description (
+      "DCIM_SPHostedSIMPService is a derivation of CIM_HostedService." )
+  ]
+class DCIM_SPHostedSIMPService : CIM_HostedService
+{ 
+};

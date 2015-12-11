@@ -1,0 +1,14 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+//  DCIM_LocalUserElementCapabilities
+// ==================================================================  
+  [ 
+      Association, Description (
+      " DCIM_LocalUserElementCapabilities is a derivation of  "
+      "CIM_ElementCapabilities."
+      "ElementCapabilities represents the association between "
+      "ManagedElements and their Capabilities.")
+  ]
+class  DCIM_LocalUserElementCapabilities : CIM_ElementCapabilities
+{                                      
+};

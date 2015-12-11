@@ -1,0 +1,3 @@
+class DCIM_IPMISOLRole : CIM_Role
+{
+};

@@ -1,0 +1,7 @@
+[Description(
+      "DCIM_NumericSensor is a derivation of "
+      "CIM_NumericSensor, and represents a Numericsensor.")]
+class DCIM_NumericSensor: CIM_NumericSensor
+{
+};
+

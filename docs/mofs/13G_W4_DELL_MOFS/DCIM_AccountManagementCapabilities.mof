@@ -1,0 +1,12 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_AccountManagementCapabilities
+// ==================================================================  
+  [ 
+      Description (
+      "DCIM_AccountManagementCapabilities is a derivation of  "
+      "CIM_AccountManagementCapabilities.")
+  ]
+class DCIM_AccountManagementCapabilities : CIM_AccountManagementCapabilities 
+{
+};

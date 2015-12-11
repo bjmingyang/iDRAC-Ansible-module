@@ -1,0 +1,51 @@
+// Copyright (c) 2010 Dell Inc.  All rights reserved.
+// ==================================================================
+// DCIM_PCIeSSDView
+// ==================================================================
+  [Version ( "1.0.0" ), Description(
+       "DCIM_PCIeSSDView is a derivation of DCIM_PhysicalDiskView") ]
+class DCIM_PCIeSSDView : DCIM_PhysicalDiskView {
+  
+      [Description (
+          "This field indicates the current state of the subsystem. "
+         ),
+        ValueMap { "0", "1","2","3"},
+        Values { "Unknown", "Ready","Degraded","Failed" }]
+  uint32 State;
+
+
+        [Description (
+          "The property indicates the device protocol ")]
+  string DeviceProtocol;
+
+        [Description (
+          "The property indicates the DeviceID of the PCIeSSD ")]
+  string ProductID;
+
+        [Description (
+          "The property indicates the Negotiated Link width of the PCIeSSD ")]
+  string PCIeNegotiatedLinkWidth;
+
+        [Description (
+          "The property indicates the Capable Link Width of the PCIeSSD ")]
+  string PCIeCapableLinkWidth;
+        
+	[Description (
+          "The property indicates the Negotiated speed of the PCIeSSD ")]
+  string MaxCapableSpeed;
+
+        [Description (
+          "The property indicates the Negotiated speed of the PCIeSSD ")]
+  string NegotiatedSpeed;
+
+        [Description (
+          "The property indicates the Health of the PCIeSSD ")]
+  string DeviceLifeStatus;
+
+        [Description (
+          "The property indicates the Failure Prediction"
+          "Possible values would be Yes or No ")]
+  string FailurePredicted;
+
+};
+

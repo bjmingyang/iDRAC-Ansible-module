@@ -1,0 +1,12 @@
+// Copyright (c) 2012 DMTF.  All rights reserved.
+   [Association, Version ( "2.34.0" ), 
+    UMLPackagePath ( "CIM::Core::CoreElements" ), 
+    Description ( 
+       "CIM_ElementView is used to associate an instance of CIM_View "
+       "with an instance representing one or more instances of managed "
+       "resources that contribute to the view." )]
+class DCIM_ElementView : CIM_ElementView {
+
+
+
+};

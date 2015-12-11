@@ -1,0 +1,10 @@
+[Association, 
+  Aggregation,
+  Provider("cmpi:serviceprocessor"),
+  Description ("LogicalDevices can be aggregated by a System. "
+  "This relationship is made explicit by the SPSystemDevice association." )
+]
+class DCIM_SPSystemDevice : CIM_SystemDevice
+{
+};
+

@@ -1,0 +1,82 @@
+[Description(
+       "DCIM_LifecycleJobAlertIndication is a derivation of "
+       "CIM_ProcessIndication.")]
+class DCIM_LifecycleJobAlertIndication : CIM_AlertIndication
+{
+      [Key, Description ("The time at which indication is generated")]
+        datetime    IndicationTime;
+
+      [Description ("Description of the Lifecycle job")]
+        string  Description;
+
+      [Description ("The type of the alert")]
+        uint16  AlertType;
+
+      [Description ("A string describing the Alert type - used when the AlertType "
+                    "property is set to 1, \"Other State Change\"." )]
+        string  OtherAlertType;
+
+      [Description ("The severity of the indication ")]
+        uint16  PerceivedSeverity;
+
+      [Description ("The ID of the job ")]
+        string  JobID;
+
+      [Description ("The name of the job ")]
+        string  JobName;
+
+      [Description ("The type of the job "),
+          ValueMap { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", 
+                     "11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
+                     "21", "22", "23", "24", "25", "26", "27", "28", "29", "30",
+                     "31", "32", "33"
+                   },
+          Values { "Unknown", // 0
+                   "Software Update", 
+                   "Software Rollback", 
+                   "Power Cycle System Reboot", 
+                   "Graceful System Reboot w/o Forced Shutdown", 
+                   "Graceful System Reboot w/ Forced Shutdown", // 5
+                   "System Shutdown", 
+                   "Apply Pending RAID Configuration", 
+                   "Apply Pending BIOS Configuration",
+                   "Apply Pending NIC Configuration", 
+                   "Apply Pending FC Configuration", // 10
+                   "Apply Pending iDRAC Configuration", 
+                   "Apply Pending System Configuration",
+                   "Export Current Configuration Data", 
+                   "Apply Pending Configuration Data Provided by User", 
+                   "Initialize vFlash", // 15
+                   "Create vFlash Partition", 
+                   "Create vFlash Partition from Image", 
+                   "Format vFlash Partition", 
+                   "Attach vFlash Partition", 
+                   "Detach vFlash Partition",  // 20
+                   "Export Data from vFlash Partition",
+                   "Import License", 
+                   "Export License", 
+                   "Export Temperature Data",
+                   "Apply Pending LC Configuration", // 25
+                   "Export LC Log", 
+                   "Export Hardware Inventory", 
+                   "Export Factory Configuration", 
+                   "Backup Image", 
+                   "Restore Image", // 30
+                   "Upload Server Public Key to iDRAC", 
+                   "Upload Client Certificates to iDRAC", 
+                   "Export Certificate" // 33
+                 } ]
+        uint16  JobType;
+
+      [Description ("The job status")]
+        string  JobStatus;
+
+      [Description ("The message of the job")]
+        string  Message;
+
+      [Description ("The message id of the job")]
+        string  MessageID;
+
+      [Description ("The message arguments of the job")]
+        string  MessageArguments[];
+};

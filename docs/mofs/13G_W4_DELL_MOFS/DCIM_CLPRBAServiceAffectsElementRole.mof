@@ -1,0 +1,4 @@
+[Association]
+class DCIM_CLPRBAServiceAffectsElementRole : CIM_ServiceAffectsElement
+{
+};

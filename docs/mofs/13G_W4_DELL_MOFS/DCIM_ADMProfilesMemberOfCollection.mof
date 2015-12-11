@@ -1,0 +1,11 @@
+// ==================================================================
+// DCIM_ADMProfilesMemberOfCollection
+// ==================================================================
+
+    [Association, Description(
+        "DCIM_ADMProfilesMemberOfCollection is a"
+        "trivial derivation of CIM_MemberOfCollection") ]
+class DCIM_ADMProfilesMemberOfCollection : CIM_MemberOfCollection 
+{
+
+};

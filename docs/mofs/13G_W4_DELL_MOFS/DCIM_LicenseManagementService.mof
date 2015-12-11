@@ -1,0 +1,437 @@
+// ==================================================================
+// DCIM_LicenseManagementService 
+// ==================================================================  
+[Description (
+        "DCIM_LicenseManagementService is a derivation of"
+        "CIM_Service, and provides methods to service"
+        "the License Manager")]
+class DCIM_LicenseManagementService : CIM_Service
+{    
+  [Description ( "ImportLicense. " ),
+      ValueMap { "0",       "1",             "2"},
+      Values   { "Success", "Not Supported", "Failed"}]
+  uint32 ImportLicense 
+  (
+        [Required, IN, Description ( 
+            "A base64 encoded XML License file." 
+            )]
+    string LicenseFile,
+    
+        [Required, IN, Description ( 
+            "FQDD of the device to apply the License to."
+            )]
+    string FQDD,
+    
+        [Required, IN, Description ( 
+            "Flag to force or install for all like devices."
+            "No options=0, force=1 and all=2."
+            )]
+    uint16 ImportOptions,
+    
+        [OUT, Description ( 
+            "Error Message ID returned if method fails to execute."
+            )]
+    string MessageID[],
+    
+        [OUT, Description ( 
+            "Error message in English corresponding to MessageID is"
+            "returned if the method fails to execute."
+            )]
+    string Message[],
+    
+        [OUT, Description ( 
+            "Substitution variables for dynamic error messages."
+            )]
+    string MessageArgs[]
+
+  ); 
+  
+  [Description ( "ImportLicenseFromNetworkShare. " ),
+      ValueMap { "0",       "1",             "2"},
+      Values   { "Success", "Not Supported", "Failed"}]
+    uint32 ImportLicenseFromNetworkShare 
+  (    
+        [IN, Description ( 
+            "Username for CIFS share authentication"
+            )]
+    string UserName,
+    
+        [IN, Description ( 
+            "Password for CIFS share authentication"
+            )]
+    string Password,
+    
+        [IN, Description ( 
+            "Name of the workgroup for CIFS share authentication."
+            )]
+    string Workgroup,
+    
+        [Required, IN, Description ( 
+            "Type of network share."),
+         ValueMap { "0", "2"},
+         Values { "NFS", "CIFS"}]
+    uint16 ShareType,
+    
+        [Required, IN, Description ( 
+            "Name of the CIFS share or full path to the NFS share"
+            )]
+    string ShareName,
+    
+        [Required, IN, Description ( 
+            "IP address of the machine hosting the NFS/CIFS share."
+            )]
+    string IPAddress,
+    
+        [IN, Description ( 
+        "If included, the exported license is renamed to <FileName>"
+        )]
+    string LicenseName,
+    
+        [Required, IN, Description ( 
+        "Fully qualified device descriptor"
+        )]
+    string FQDD,
+    
+        [Required, IN, Description ( 
+        "Flag to force or install for all like devices."
+        "No options=0, force=1 and all=2."
+        )]
+    uint16 ImportOptions,
+    
+        [OUT, Description ( 
+            "Error Message ID returned if method fails to execute."
+            )]
+    string MessageID[],
+    
+        [OUT, Description ( 
+            "Error message in English corresponding to MessageID "
+            "returned if the method fails to execute."
+            )]
+    string Message[],
+    
+        [OUT, Description ( 
+            "Substitution variables for dynamic error messages."
+            )]
+    string MessageArgs[],
+    
+        [IN(false), OUT, Description(
+            "Reference to instance CIM_ConcreteJob."
+            "CIM_ConcreteJob instance returns a Job ID to" 
+            "track the status of the import operation")]
+    CIM_ConcreteJob REF Job
+
+  ); 
+  
+  [Description ( "ExportLicenseToNetworkShare. "),
+      ValueMap { "0",       "1",             "2"},
+      Values   { "Success", "Not Supported", "Failed"}]
+  uint32 ExportLicenseToNetworkShare 
+  (
+        [Required, IN, Description ( 
+            "Entitlement ID of the license being exported" 
+            )]
+    string EntitlementID,
+    
+        [IN, Description ( 
+            "Username for CIFS share authentication"
+            )]
+    string UserName,
+    
+        [IN, Description ( 
+            "Password for CIFS share authentication"
+            )]
+    string Password,
+    
+        [IN, Description ( 
+            "Name of the workgroup for CIFS share authentication."
+            )]
+    string Workgroup,
+    
+        [Required, IN, Description ( 
+            "Type of network share."),
+         ValueMap { "0", "2"},
+         Values { "NFS", "CIFS"}]
+    uint16 ShareType,
+    
+        [Required, IN, Description ( 
+            "Name of the CIFS share or full path to the NFS share"
+            )]
+    string ShareName,
+    
+        [Required, IN, Description ( 
+            "IP address of the machine hosting the NFS/CIFS share."
+            )]
+    string IPAddress,
+    
+        [IN, Description ( 
+        "If included, the exported license is renamed to <FileName>"
+        )]
+    string FileName,
+    
+        [OUT, Description ( 
+            "Error Message ID returned if method fails to execute."
+            )]
+    string MessageID[],
+    
+        [OUT, Description ( 
+            "Error message in English corresponding to MessageID "
+            "returned if the method fails to execute."
+            )]
+    string Message[],
+    
+        [OUT, Description ( 
+            "Substitution variables for dynamic error messages."
+            )]
+    string MessageArgs[],
+    
+        [IN(false), OUT, Description(
+            "Reference to instance CIM_ConcreteJob."
+            "CIM_ConcreteJob instance returns a Job ID to" 
+            "track the status of the export operation")]
+    CIM_ConcreteJob REF Job
+
+  ); 
+  
+  [Description ( "ExportLicense. "),
+      ValueMap { "0",       "1",             "2"},
+      Values   { "Success", "Not Supported", "Failed"}]
+  uint32 ExportLicense
+  (
+        [Required, IN, Description ( 
+            "Entitlement ID of the license being exported" 
+            )]
+    string EntitlementID,
+    
+        [OUT, Description ( 
+            "Error Message ID returned if method fails to execute."
+            )]
+    string MessageID[],
+    
+        [OUT, Description ( 
+            "Error message in English corresponding to MessageID "
+            "returned if the method fails to execute."
+            )]
+    string Message[],
+    
+        [OUT, Description ( 
+            "Substitution variables for dynamic error messages."
+            )]
+    string MessageArgs[],
+    
+        [OUT, Description ( 
+            "Exported license file encoded in base64."
+            )]
+    string LicenseFile
+  );
+  
+  [Description ( "ExportLicenseByDeviceToNetworkShare. "),
+      ValueMap { "0",       "1",             "2"},
+      Values   { "Success", "Not Supported", "Failed"}]
+  uint32 ExportLicenseByDeviceToNetworkShare 
+  (
+        [Required, IN, Description ( 
+            "FQDD of the device to export licenses from" 
+            )]
+    string FQDD,
+    
+        [IN, Description ( 
+            "Username for CIFS share authentication"
+            )]
+    string UserName,
+    
+        [IN, Description ( 
+            "Password for CIFS share authentication"
+            )]
+    string Password,
+    
+        [IN, Description ( 
+            "Name of the workgroup for CIFS share authentication."
+            )]
+    string Workgroup,
+    
+        [Required, IN, Description ( 
+            "Type of network share."),
+         ValueMap { "0", "2"},
+         Values { "NFS", "CIFS"}]
+    uint16 ShareType,
+    
+        [Required, IN, Description ( 
+            "Name of the CIFS share or full path to the NFS share"
+            )]
+    string ShareName,
+    
+        [Required, IN, Description ( 
+            "IP address of the machine hosting the NFS/CIFS share."
+            )]
+    string IPAddress,
+    
+        [Required, IN, Description ( 
+        "If included, the exported license is renamed to <FileName>"
+        )]
+    string FileName,
+    
+        [OUT, Description ( 
+            "Error Message ID returned if method fails to execute."
+            )]
+    string MessageID[],
+    
+        [OUT, Description ( 
+            "Error message in English corresponding to MessageID "
+            "returned if the method fails to execute."
+            )]
+    string Message[],
+    
+        [OUT, Description ( 
+            "Substitution variables for dynamic error messages."
+            )]
+    string MessageArgs[],
+    
+        [IN(false), OUT, Description(
+            "Reference to instance CIM_ConcreteJob."
+            "CIM_ConcreteJob instance returns a Job ID to" 
+            "track the status of the export operation")]
+    CIM_ConcreteJob REF Job
+  ); 
+  
+  [Description ( "ExportLicenseByDevice. " ),
+      ValueMap { "0",       "1",             "2"},
+      Values   { "Success", "Not Supported", "Failed"}]
+  uint32 ExportLicenseByDevice
+  (
+        [Required, IN, Description ( 
+            "Entitlement ID of the license being exported" 
+            )]
+    string FQDD,
+    
+        [OUT, Description ( 
+            "Error Message ID returned if method fails to execute."
+            )]
+    string MessageID[],
+    
+        [OUT, Description ( 
+            "Error message in English corresponding to MessageID "
+            "returned if the method fails to execute."
+            )]
+    string Message[],
+    
+        [OUT, Description ( 
+            "Substitution variables for dynamic error messages."
+            )]
+    string MessageArgs[],
+    
+        [OUT, Description ( 
+            "Exported license file encoded in base64."
+            )]
+    string LicenseFile[]
+  );
+
+  [Description ( "DeleteLicense. "),
+      ValueMap { "0",       "1",             "2"},
+      Values   { "Success", "Not Supported", "Failed"}]
+  uint32 DeleteLicense
+  (
+        [IN, Description ( 
+            "FQDD of the device to delete the license from." 
+            )]
+    string FQDD,
+    
+        [IN, Description ( 
+            "Entitlement ID of the license to delete." 
+            )]
+    string EntitlementID,
+    
+        [Required, IN, Description ( 
+            "Flag to force delete or delete license from all "
+            "like devices. "), 
+         ValueMap { "0", "1", "3"},
+         Values { "No option", "Force", "All"}]        
+    uint16 DeleteOptions,
+    
+        [OUT, Description ( 
+            "Error Message ID returned if method fails to execute."
+            )]
+    string MessageID[],
+    
+        [OUT, Description ( 
+            "Error message in English corresponding to MessageID "
+            "returned if the method fails to execute."
+            )]
+    string Message[],
+    
+        [OUT, Description ( 
+            "Substitution variables for dynamic error messages."
+            )]
+    string MessageArgs[]
+  );
+    
+  [Description ( "ShowLicenseBits. "),
+      ValueMap { "0",       "1",             "2"},
+      Values   { "Success", "Not Supported", "Failed"}]
+  uint32 ShowLicenseBits
+  (
+        [OUT, Description ( 
+            "256-bit License bit string"
+            )]
+    string LicenseBits,
+        
+        [OUT, Description ( 
+            "Error Message ID returned if method fails to execute."
+            )]
+    string MessageID[],
+    
+        [OUT, Description ( 
+            "Error message in English corresponding to MessageID "
+            "returned if the method fails to execute."
+            )]
+    string Message[],
+    
+        [OUT, Description ( 
+            "Substitution variables for dynamic error messages."
+            )]
+    string MessageArgs[]
+  ); 
+  
+  [Description ( "ReplaceLicense. "),
+      ValueMap { "0",       "1",             "2"},
+      Values   { "Success", "Not Supported", "Failed"}]
+  uint32 ReplaceLicense 
+  (
+        [IN, Description ( 
+            "A base64 encoded XML License file." 
+            )]
+    string LicenseFile,
+    
+        [IN, Description ( 
+            "FQDD of the device the license is being replaced on."
+            )]
+    string FQDD,
+    
+        [IN, Description ( 
+            "Entitlement ID of the license being replaced." 
+            )]
+    string EntitlementID,
+    
+        [IN, Description ( 
+            "Flag to force or replace for all like devices."
+            "No options=0, force=1 and all=2."
+            )]
+    uint16 ReplaceOptions,
+    
+        [OUT, Description ( 
+            "Error Message ID returned if method fails to execute."
+            )]
+    string MessageID[],
+    
+        [OUT, Description ( 
+            "Error message in English corresponding to MessageID is"
+            "returned if the method fails to execute."
+            )]
+    string Message[],
+    
+        [OUT, Description ( 
+            "Substitution variables for dynamic error messages."
+            )]
+    string MessageArgs[]
+
+  ); 
+};

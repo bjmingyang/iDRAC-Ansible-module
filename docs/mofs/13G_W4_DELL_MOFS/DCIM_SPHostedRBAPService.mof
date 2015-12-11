@@ -1,0 +1,4 @@
+[Association]
+class DCIM_SPHostedRBAPService : DCIM_SPHostedService
+{ 
+};

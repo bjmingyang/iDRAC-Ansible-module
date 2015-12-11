@@ -1,0 +1,11 @@
+// ==================================================================
+// DCIM_CSCapabilitiesMemberOfCollection
+// ==================================================================
+
+    [Association, Description(
+        "DCIM_CSCapabilitiesMemberOfCollection is a"
+        "trivial derivation of CIM_MemberOfCollection") ]
+class DCIM_CSCapabilitiesMemberOfCollection : CIM_MemberOfCollection 
+{
+
+};
