@@ -1957,75 +1957,146 @@ def upgradeFirmware(remote,firmware,reboot_type):
          result['minimum_version'] = minimum_version
          result['target_version'] = new_version
          result['current_version'] = cur_version
-         if ((minimum_version != '') and (LooseVersion(cur_version) < LooseVersion(minimum_version))):
-            if debug:
-               log.debug("minumum version not met")
-            result['msg'] = "Minimum version not met"
-            result['changed'] = False
-            result['failed'] = True
-            msg['failed'] = True
-         elif LooseVersion(new_version) > LooseVersion(cur_version):
-            if check_mode:
+         if re.search('^Disk\.', software_res[k]['FQDD']):
+            if ((minimum_version != '') and (cur_version < minimum_version)):
                if debug:
-                  log.debug("upgradeFirmware check_mode for %s",k)
-               result['msg'] = "Would have attempted to install firmware because new_version: "+new_version+" does not equal cur_version: "+cur_version
-               result['changed'] = True
-               result['failed'] = False
-               msg['changed'] = True
-            else:
-               if debug:
-                  log.debug("upgradeFirmware: running ___installFromURI() for %s",k)
-               result = ___installFromURI(remote,uri,instance_id,result)
-               if result['failed']:
-                  msg['failed'] = True
+                  log.debug("minumum version not met")
+               result['msg'] = "Minimum version not met"
+               result['changed'] = False
+               result['failed'] = True
+               msg['failed'] = True
+            elif new_version > cur_version:
+               if check_mode:
+                  if debug:
+                     log.debug("upgradeFirmware check_mode for %s",k)
+                  result['msg'] = "Would have attempted to install firmware because new_version: "+new_version+" does not equal cur_version: "+cur_version
                   result['changed'] = True
-                  result['msg'] = "Download started but, not completed. "+result['msg']
+                  result['failed'] = False
+                  msg['changed'] = True
                else:
-                  # Waits 5 minutes or until the download completes
-                  wait_time = 60 * 5
-                  end_time = time.time() + wait_time
-                  while time.time() < end_time:
-                     if debug:
-                        log.debug("upgradeFirmware: checking job status for %s. jobid: ",k,result['jobid'])
-                        log.debug("upgradeFirmware: current time: %s end_time: %s",time.time(),end_time)
-                     result = ___checkJobStatus(remote,result['jobid'],result)
-                     if result['JobStatus'] == 'Downloaded':
-                        break
-                     elif result['JobStatus'] == 'Failed':
-                        break
-                     elif result['JobStatus'] == 'Completed':
-                        break
-                  
-                     time.sleep(10)
-                  
-                  if result['JobStatus'] == 'Failed':
-                     result['failed'] = True
+                  if debug:
+                     log.debug("upgradeFirmware: running ___installFromURI() for %s",k)
+                  result = ___installFromURI(remote,uri,instance_id,result)
+                  if result['failed']:
+                     msg['failed'] = True
                      result['changed'] = True
                      result['msg'] = "Download started but, not completed. "+result['msg']
-                     msg['failed'] = True
-                  elif result['JobStatus'] == 'Downloaded':
-                     if ('reboot' in software_res[k]) and (software_res[k]['reboot'] == "True"):
-                        jobs.append(result['jobid'])
-                     result['changed'] = True
-                  elif result['JobStatus'] == 'Completed':
-                     result['changed'] = True
                   else:
-                     if debug:
-                        log.debug("upgradeFirmware: JobStatus %s is not being handled.",software_res[k]['JobStatus'])
+                     # Waits 5 minutes or until the download completes
+                     wait_time = 60 * 5
+                     end_time = time.time() + wait_time
+                     while time.time() < end_time:
+                        if debug:
+                           log.debug("upgradeFirmware: checking job status for %s. jobid: ",k,result['jobid'])
+                           log.debug("upgradeFirmware: current time: %s end_time: %s",time.time(),end_time)
+                        result = ___checkJobStatus(remote,result['jobid'],result)
+                        if result['JobStatus'] == 'Downloaded':
+                           break
+                        elif result['JobStatus'] == 'Failed':
+                           break
+                        elif result['JobStatus'] == 'Completed':
+                           break
+                     
+                        time.sleep(10)
+                     
+                     if result['JobStatus'] == 'Failed':
+                        result['failed'] = True
+                        result['changed'] = True
+                        result['msg'] = "Download started but, not completed. "+result['msg']
+                        msg['failed'] = True
+                     elif result['JobStatus'] == 'Downloaded':
+                        if ('reboot' in software_res[k]) and (software_res[k]['reboot'] == "True"):
+                           jobs.append(result['jobid'])
+                        result['changed'] = True
+                     elif result['JobStatus'] == 'Completed':
+                        result['changed'] = True
+                     else:
+                        if debug:
+                           log.debug("upgradeFirmware: JobStatus %s is not being handled.",software_res[k]['JobStatus'])
 
-         elif LooseVersion(new_version) == LooseVersion(cur_version):
-            result['failed'] = False
-            result['changed'] = False
-            result['msg'] = "Firmware is current"
-         elif LooseVersion(new_version) < LooseVersion(cur_version):
-            result['failed'] = False
-            result['changed'] = False
-            result['msg'] = "Version trying to be installed is less than current version"
+            elif new_version == cur_version:
+               result['failed'] = False
+               result['changed'] = False
+               result['msg'] = "Firmware is current"
+            elif new_version < cur_version:
+               result['failed'] = False
+               result['changed'] = False
+               result['msg'] = "Version trying to be installed is less than current version"
+            else:
+               result['failed'] = True
+               result['changed'] = False
+               result['msg'] = "Was unable to compare versions"
+               msg['failed'] = True
          else:
-            result['failed'] = True
-            result['changed'] = False
-            result['msg'] = "Was unable to compare versions"
-            msg['failed'] = True
+            if ((minimum_version != '') and (LooseVersion(cur_version) < LooseVersion(minimum_version))):
+               if debug:
+                  log.debug("minumum version not met")
+               result['msg'] = "Minimum version not met"
+               result['changed'] = False
+               result['failed'] = True
+               msg['failed'] = True
+            elif LooseVersion(new_version) > LooseVersion(cur_version):
+               if check_mode:
+                  if debug:
+                     log.debug("upgradeFirmware check_mode for %s",k)
+                  result['msg'] = "Would have attempted to install firmware because new_version: "+new_version+" does not equal cur_version: "+cur_version
+                  result['changed'] = True
+                  result['failed'] = False
+                  msg['changed'] = True
+               else:
+                  if debug:
+                     log.debug("upgradeFirmware: running ___installFromURI() for %s",k)
+                  result = ___installFromURI(remote,uri,instance_id,result)
+                  if result['failed']:
+                     msg['failed'] = True
+                     result['changed'] = True
+                     result['msg'] = "Download started but, not completed. "+result['msg']
+                  else:
+                     # Waits 5 minutes or until the download completes
+                     wait_time = 60 * 5
+                     end_time = time.time() + wait_time
+                     while time.time() < end_time:
+                        if debug:
+                           log.debug("upgradeFirmware: checking job status for %s. jobid: ",k,result['jobid'])
+                           log.debug("upgradeFirmware: current time: %s end_time: %s",time.time(),end_time)
+                        result = ___checkJobStatus(remote,result['jobid'],result)
+                        if result['JobStatus'] == 'Downloaded':
+                           break
+                        elif result['JobStatus'] == 'Failed':
+                           break
+                        elif result['JobStatus'] == 'Completed':
+                           break
+                     
+                        time.sleep(10)
+                     
+                     if result['JobStatus'] == 'Failed':
+                        result['failed'] = True
+                        result['changed'] = True
+                        result['msg'] = "Download started but, not completed. "+result['msg']
+                        msg['failed'] = True
+                     elif result['JobStatus'] == 'Downloaded':
+                        if ('reboot' in software_res[k]) and (software_res[k]['reboot'] == "True"):
+                           jobs.append(result['jobid'])
+                        result['changed'] = True
+                     elif result['JobStatus'] == 'Completed':
+                        result['changed'] = True
+                     else:
+                        if debug:
+                           log.debug("upgradeFirmware: JobStatus %s is not being handled.",software_res[k]['JobStatus'])
+
+            elif LooseVersion(new_version) == LooseVersion(cur_version):
+               result['failed'] = False
+               result['changed'] = False
+               result['msg'] = "Firmware is current"
+            elif LooseVersion(new_version) < LooseVersion(cur_version):
+               result['failed'] = False
+               result['changed'] = False
+               result['msg'] = "Version trying to be installed is less than current version"
+            else:
+               result['failed'] = True
+               result['changed'] = False
+               result['msg'] = "Was unable to compare versions"
+               msg['failed'] = True
 
          msg['result'][software_res[k]['FQDD']] = result
       else:
