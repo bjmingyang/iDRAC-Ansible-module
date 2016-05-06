@@ -3753,7 +3753,8 @@ def ___parseFirmwareFile(file):
     cmpnnt_ids = {}
 
     try:
-        log.debug("trying to open file %s", file)
+        if debug:
+            log.debug("trying to open file %s", file)
         with open(file, 'r') as stream:
             tmp = yaml.load(stream)
             for sys_gen in tmp['firmware']:
@@ -3779,9 +3780,11 @@ def ___parseFirmwareFile(file):
                     else:
                         # should never reach here
                         # TODO add failure
-                        log.debug("reached code I shouldn't have")
+                        if debug:
+                            log.debug("reached code I shouldn't have")
     except:
-        log.debug("couldn't open file")
+        if debug:
+            log.debug("couldn't open file")
 
     firmware['id_nfo_vals'] = id_nfo_vals
     firmware['cmpnnt_ids'] = cmpnnt_ids
