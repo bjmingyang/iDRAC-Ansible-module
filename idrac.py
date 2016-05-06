@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 #
 # (c) 2015 by Hank Beatty
 #
@@ -27,7 +27,7 @@ module: idrac
 short_description: Module to configure to Dell iDRAC
 description:
    - Use this module to configure Dell iDRAC.
-version: 0.1.0
+version: 0.2.0
 options:
    hostname:
       description:
@@ -942,7 +942,9 @@ def exportSystemConfiguration(remote,share_info,hostname,local_path,
    ret['changed'] = False
    return ret
 
-def generateFirmwareVars(remote):
+# TODO re-write to the format of ___parseFirmwareFile() and the pass to
+# ___writeFirmwareFile()
+def generateFirmwareVars(remote, tmp_dir):
    msg = {}
    firmware = {}
 
@@ -991,12 +993,12 @@ def generateFirmwareVars(remote):
             continue
          elif re.search('^BIOS',software_res[sw]['FQDD']):
             if 'bios' not in firmware[sys_gen]:
-               firmware[sys_gen]['bios'] = {}
-               firmware[sys_gen]['bios']['element_name'] = software_res[sw]['ElementName']
-               firmware[sys_gen]['bios']['url'] = "Where can the iDRAC download this? Can be http, ftp, tftp, cifs, or nfs"
-               firmware[sys_gen]['bios']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
-               firmware[sys_gen]['bios']['identity_info_value'] = software_res[sw]['IdentityInfoValue']
-               firmware[sys_gen]['bios']['reboot'] = "True"
+               firmware[sys_gen]['bios.1'] = {}
+               firmware[sys_gen]['bios.1']['element_name'] = software_res[sw]['ElementName']
+               firmware[sys_gen]['bios.1']['url'] = "Where can the iDRAC download this? Can be http, ftp, tftp, cifs, or nfs"
+               firmware[sys_gen]['bios.1']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
+               firmware[sys_gen]['bios.1']['identity_info_value'] = software_res[sw]['IdentityInfoValue']
+               firmware[sys_gen]['bios.1']['reboot'] = "True"
          elif re.search('^iDRAC',software_res[sw]['FQDD']):
             if 'idrac' not in firmware[sys_gen]:
                firmware[sys_gen]['idrac'] = {}
@@ -1194,7 +1196,7 @@ def generateFirmwareVars(remote):
                firmware[sys_gen]['unknown.1']['url'] = "Where can the iDRAC download this? Can be http, ftp, tftp, cifs, or nfs"
                firmware[sys_gen]['unknown.1']['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
                firmware[sys_gen]['unknown.1']['identity_info_value'] = software_res[sw]['IdentityInfoValue']
-               firmware[sys_gen]['unknown.1']['reboot'] = "Does this require a reboot? If yes, set to \"True\". If no, delete this line."
+               firmware[sys_gen]['unknown.1']['reboot'] = "Does this require a reboot? If yes, set to True. If no, delete this line."
             else:
                # check to see if we already have this one
                found = False
@@ -1211,20 +1213,20 @@ def generateFirmwareVars(remote):
                   firmware[sys_gen][unknown_key]['url'] = "Where can the iDRAC download this? Can be http, ftp, tftp, cifs, or nfs"
                   firmware[sys_gen][unknown_key]['target_version'] = "Fill in this value from support.dell.com. Current version is "+software_res[sw]['VersionString']
                   firmware[sys_gen][unknown_key]['identity_info_value'] = software_res[sw]['IdentityInfoValue']
-                  firmware[sys_gen][unknown_key]['reboot'] = "Does this require a reboot? If yes, set to \"True\". If no, delete this line."
+                  firmware[sys_gen][unknown_key]['reboot'] = "Does this require a reboot? If yes, set to True. If no, delete this line."
 
    if debug:
       tmp = json.dumps(firmware, indent=3, separators=(',', ': '))
       log.debug("hostname: %s, msg: %s",remote.ip,tmp)
 
-   file = remote.ip+".firmware.yml"
+   file = tmp_dir+remote.ip+".firmware.yml"
 
    fh = open(file, 'w')
    
    fh.write("---\n")
    fh.write("# I recommend you copy this file to your group_vars/all folder\n")
    fh.write("#\n")
-   fh.write("# GenerateFirmwareVars will create this file or (if specified) will take a current firmware.yml and merge into a new one.\n")
+   fh.write("# GenerateFirmwareVars will create this file.\n")
    fh.write("#\n")
    fh.write("# Example of iDRAC System Generations\n")
    fh.write("# 13G_Monolithic:\n")
@@ -2379,59 +2381,37 @@ def installIdracFirmware(remote,firmware):
 
    return msg
 
-def mergeFirmwareVars():
-   msg = {}
+def mergeFirmwareVars(tmp_dir, firmware_file):
+    msg = {}
+    firmware = {}
+    counts = {}
 
-   if firmware_file == '':
-      if debug:
-         log.debug("sys_gen not in firmware")
-   else:
-      with open(firmware_file, 'r') as stream:
-         tmp = yaml.load(stream)
-         firmware = tmp['firmware']
-         if debug:
-            tmp = json.dumps(firmware, indent=3, separators=(',', ': '))
-            log.debug("hostname: %s, msg: %s",remote.ip,tmp)
+    for fn in os.listdir(tmp_dir):
+        #if debug:
+        #    log.debug(fn)
+        if re.match('.*firmware\.yml$', fn) != None:
+            log.debug("found a match")
+            res = ___parseFirmwareFile(tmp_dir+fn)
+            for k in res:
+                for sys_gen in res[k]:
+                    if sys_gen not in firmware:
+                        firmware[sys_gen] = {}
+                    firmware[sys_gen].update(res[k][sys_gen])
 
-      if sys_gen not in firmware:
-         if debug:
-            log.debug("sys_gen not in firmware")
-         firmware[sys_gen] = {}
-      else:
-         if debug:
-            log.debug("sys_gen in firmware")
-         # set the counts
-         for fw in firmware[sys_gen]:
-            if re.search('^disk', fw):
-               if debug:
-                  log.debug("incrementing disk_cnt")
-               disk_cnt += 1
-            if re.search('^psu', fw):
-               if debug:
-                  log.debug("incrementing psu_cnt")
-               psu_cnt += 1
-            if re.search('^raid\.', fw):
-               if debug:
-                  log.debug("incrementing raid_cnt")
-               raid_cnt += 1
-            if re.search('^raid_backplane', fw):
-               if debug:
-                  log.debug("incrementing raid_backplane_cnt")
-               raid_backplane_cnt += 1
-            if re.search('^enclosure', fw):
-               if debug:
-                  log.debug("incrementing enclosure_cnt")
-               enclosure_cnt += 1
-            if re.search('^nic', fw):
-               if debug:
-                  log.debug("incrementing nic_cnt")
-               nic_cnt += 1
-               if re.search('^nic', fw):
-                  if debug:
-                     log.debug("incrementing nic_cnt")
-                  nic_cnt += 1
+    if firmware_file != '':
+        res = ___parseFirmwareFile(firmware_file)
+        for k in res:
+            for sys_gen in res[k]:
+                if sys_gen not in firmware:
+                    firmware[sys_gen] = {}
+                firmware[sys_gen].update(res[k][sys_gen])
 
-   return msg
+    res = ___writeFirmwareFile(firmware, tmp_dir+'firmware.yml')
+
+    if debug:
+        tmp = json.dumps(firmware, indent=3, separators=(',', ': '))
+        log.debug(tmp)
+    return msg
 
 # remote:
 #    - ip, username, password passed to Remote() of WSMan
@@ -3767,6 +3747,47 @@ def ___listSDCardPartitions(remote, msg={}):
 
    return msg
 
+def ___parseFirmwareFile(file):
+    firmware = {}
+    id_nfo_vals = {}
+    cmpnnt_ids = {}
+
+    try:
+        log.debug("trying to open file %s", file)
+        with open(file, 'r') as stream:
+            tmp = yaml.load(stream)
+            for sys_gen in tmp['firmware']:
+                log.debug(sys_gen)
+                if sys_gen not in id_nfo_vals:
+                    id_nfo_vals[sys_gen] = {}
+
+                if sys_gen not in cmpnnt_ids:
+                    cmpnnt_ids[sys_gen] = {}
+
+                for fw in tmp['firmware'][sys_gen]:
+                    fw_type = fw.split(".")
+                    if 'identity_info_value' in tmp['firmware'][sys_gen][fw]:
+                        # add to id_nfo_vals
+                        if tmp['firmware'][sys_gen][fw]['identity_info_value'] not in id_nfo_vals[sys_gen]:
+                            id_nfo_vals[sys_gen][tmp['firmware'][sys_gen][fw]['identity_info_value']] = tmp['firmware'][sys_gen][fw]
+                            id_nfo_vals[sys_gen][tmp['firmware'][sys_gen][fw]['identity_info_value']]['type'] = fw_type[0]
+                    elif 'component_id' in tmp['firmware'][sys_gen][fw]:
+                        # add to cmpnnt_ids
+                        if tmp['firmware'][sys_gen][fw]['component_id'] not in cmpnnt_ids[sys_gen]:
+                            cmpnnt_ids[sys_gen][tmp['firmware'][sys_gen][fw]['component_id']] = tmp['firmware'][sys_gen][fw]
+                            cmpnnt_ids[sys_gen][tmp['firmware'][sys_gen][fw]['component_id']]['type'] = fw_type[0]
+                    else:
+                        # should never reach here
+                        # TODO add failure
+                        log.debug("reached code I shouldn't have")
+    except:
+        log.debug("couldn't open file")
+
+    firmware['id_nfo_vals'] = id_nfo_vals
+    firmware['cmpnnt_ids'] = cmpnnt_ids
+
+    return firmware
+
 # wsman invoke -a SetEventFilterByCategory \
 # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationServcie?SystemCreationClassName=DCIM_SPComputerSystem&CreationClassName=DCIM_EFConfigurationServcie&SystemName=systemmc&Name=DCIM:EFConfigurationService" \
 # "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/root/dcim/DCIM_EFConfigurationService?SystemCreationClassName=DCIM_SPComputerSystem&CreationClassName=DCIM_EFConfigurationService&SystemName=systemmc&Name=DCIM:EFConfigurationService"
@@ -3984,299 +4005,495 @@ def ___systemView(remote,instance_id=''):
    msg['failed'] = False
    return msg
 
+def ___writeFirmwareFile(firmware, file):
+    counts = {}
+
+    fh = open(file, 'w')
+
+    fh.write("---\n")
+    fh.write("# I recommend you copy this file to your group_vars/all folder\n")
+    fh.write("#\n")
+    fh.write("# GenerateFirmwareVars will create this file.\n")
+    fh.write("#\n")
+    fh.write("# Example of iDRAC System Generations\n")
+    fh.write("# 13G_Monolithic:\n")
+    fh.write("#   iDRAC8:\n")
+    fh.write("#     - PowerEdge_R730xd\n")
+    fh.write("#     - PowerEdge_R630\n")
+    fh.write("#\n") 
+    fh.write("# 12G_Monolithic:\n")
+    fh.write("#   iDRAC7:\n")
+    fh.write("#     - PowerEdge_R720xd\n")
+    fh.write("#     - PowerEdge_R720\n")
+    fh.write("#\n")
+    fh.write("# Example firmware.yml")
+    fh.write("#\n")
+    fh.write("#---\n")
+    fh.write("#firmware:\n")
+    fh.write("#  12G_Monolithic:\n")
+    fh.write("#    idrac:\n")
+    fh.write("#      url: \"{{share_type}}://{{share_user}}:{{share_pass}}@{{share_ip}}/iDRAC-with-Lifecycle-Controller_Firmware_VV01T_WN64_2.21.21.21_A00.EXE;mountpoint={{share_name}}\"\n")
+    fh.write("#      target_version: \"2.21.21.21\"\n")
+    fh.write("#      element_name: \"Integrated Dell Remote Access Controller\"\n")
+    fh.write("#    bios:\"\n")
+    fh.write("#      url: \"{{share_type}}://{{share_user}}:{{share_pass}}@{{share_ip}}/BIOS_MKCTM_WN64_2.5.2.EXE;mountpoint={{share_name}}\"\n")
+    fh.write("#      target_version: \"2.5.2\"\n")
+    fh.write("#      element_name: \"BIOS\"\n")
+    fh.write("#      reboot: \"True\"\n")
+    fh.write("#    nic.1:\"\n")
+    fh.write("#      url: \"{{share_type}}://{{share_user}}:{{share_pass}}@{{share_ip}}/Network_Firmware_PX6V4_WN64_7.12.17.EXE;mountpoint={{share_name}}\"\n")
+    fh.write("#      target_version: \"7.12.17\"\n")
+    fh.write("#      element_name: \"Broadcom Gigabit Ethernet BCM5720\"\n")
+    fh.write("#      identity_info_value: \"DCIM:firmware:14E4:165F:1028:1F5B\"\n")
+    fh.write("#      reboot: \"True\"\n")
+    fh.write("#    nic.2:\"\n")
+    fh.write("#      url: \"{{share_type}}://{{share_user}}:{{share_pass}}@{{share_ip}}/Network_Firmware_6FD9P_WN64_16.5.20_A00.EXE;mountpoint={{share_name}}\"\n")
+    fh.write("#      target_version: \"16.5.20\"\n")
+    fh.write("#      element_name: \"Intel(R) Ethernet 10G 2P X520 Adapter\"\n")
+    fh.write("#      identity_info_value: \"DCIM:firmware:8086:154D:8086:7B11\"\n")
+    fh.write("#      reboot: \"True\"\n")
+    fh.write("#    raid_backplane.1:\"\n")
+    fh.write("#      url: \"{{share_type}}://{{share_user}}:{{share_pass}}@{{share_ip}}/Firmware_681JN_WN32_1.00_A00.EXE;mountpoint={{share_name}}\"\n")
+    fh.write("#      component_id: \"26018\"\n")
+    fh.write("#      target_version: \"1.00\"\n")
+    fh.write("#      element_name: \"Backplane 1\"\n")
+    fh.write("#      reboot: \"True\"\n")
+    fh.write("#    enclosure.1:\"\n")
+    fh.write("#      url: \"{{share_type}}://{{share_user}}:{{share_pass}}@{{share_ip}}/ESM_Firmware_3GPH3_WN32_1.07_A00-00.EXE;mountpoint={{share_name}}\"\n")
+    fh.write("#      component_id: \"15400735\"\n")
+    fh.write("#      target_version: \"1.07\"\n")
+    fh.write("#      element_name: \"BP12G+EXP 0:1\"\n")
+    fh.write("#      reboot: \"True\"\n")
+    fh.write("#    disk.2:\"\n")
+    fh.write("#      url: \"{{share_type}}://{{share_user}}:{{share_pass}}@{{share_ip}}/SAS-Drive_Firmware_57G3N_WN64_YS0C_A08.EXE;mountpoint={{share_name}}\"\n")
+    fh.write("#      component_id: \"25851\"\n")
+    fh.write("#      target_version: \"YS0C\"\n")
+    fh.write("#      element_name: \"Disk 24 in Backplane 1 of Integrated RAID Controller 1. Model ST9146853SS Manufacturer SEAGATE\"\n")
+    fh.write("#      reboot: \"True\"\n")
+    fh.write("#    disk.1:\"\n")
+    fh.write("#      url: \"{{share_type}}://{{share_user}}:{{share_pass}}@{{share_ip}}/SAS-Drive_Firmware_68NGY_WN64_LS0B_A00.EXE;mountpoint={{share_name}}\"\n")
+    fh.write("#      component_id: \"30667\"\n")
+    fh.write("#      target_version: \"LS0B\"\n")
+    fh.write("#      element_name: \"Disk 22 in Backplane 1 of Integrated RAID Controller 1. Model ST900MM0006 Manufacturer SEAGATE\"\n")
+    fh.write("#      reboot: \"True\"\n")
+    fh.write("#    psu.1:\"\n")
+    fh.write("#      url: \"{{share_type}}://{{share_user}}:{{share_pass}}@{{share_ip}}/Power_Firmware_62N6X_WN64_07.09.49_A00.EXE;mountpoint={{share_name}}\"\n")
+    fh.write("#      component_id: \"26513\"\n")
+    fh.write("#      target_version: \"07.09.49\"\n")
+    fh.write("#      element_name: \"Power Supply\"\n")
+    fh.write("#      reboot: \"True\"\n")
+    fh.write("#    raid.1:\"\n")
+    fh.write("#      url: \"{{share_type}}://{{share_user}}:{{share_pass}}@{{share_ip}}/SAS-RAID_Firmware_F9M2Y_WN64_21.3.2-0005_A07.EXE;mountpoint={{share_name}}\"\n")
+    fh.write("#      target_version: \"21.3.2-0005\"\n")
+    fh.write("#      element_name: \"PERC H710P Mini\"\n")
+    fh.write("#      identity_info_value: \"DCIM:firmware:1000:005B:1028:1F34\"\n")
+    fh.write("#      reboot: \"True\"\n")
+    fh.write("#\n")
+    fh.write("# options:\n")
+    fh.write("#   element_name:\n")
+    fh.write("#     - optional\n")
+    fh.write("#     - ElementName from EnumerateSoftwareIdentity. Created when this file is generated with GenerateFirmwareVars so that you'll have something to use when getting the url from Dell's website.\n")
+    fh.write("#   url:\n")
+    fh.write("#     - required\n")
+    fh.write("#     - Location of the firmware. Must be reachable from the iDRAC. Can be http, ftp, tftp, cifs, or nfs. If not specified the url will be used.\n")
+    fh.write("#   reboot:\n")
+    fh.write("#     - optional\n")
+    fh.write("#     - \"True\"/\"False\". Defaults to \"False\". This is a string not a bool. Do not use yes/no/0/1/true/false/TRUE/FALSE.\n")
+    fh.write("#   target_version:\n")
+    fh.write("#     - required\n")
+    fh.write("#     - The version of software to be installed. Used to check the installed version doesn't match the one to be installed before trying the install.\n")
+    fh.write("#   minimum_version:\n")
+    fh.write("#     - optional\n")
+    fh.write("#     - If you run into a situation where an install won't complete you may need to install a firmware version between the one installed and the one you are trying to install.\n")
+    fh.write("#   component_id:\n")
+    fh.write("#     - optional\n")
+    fh.write("#     - If specified this will be used to match the 'ComponentID' from EnumerateSoftwareIdentity.\n")
+    fh.write("#   identity_info_value:\n")
+    fh.write("#     - optional\n")
+    fh.write("#     - If specified this will be used to match the 'IdentityInfoValue' from EnumerateSoftwareIdentity.\n")
+    fh.write("#   search:\n")
+    fh.write("#     - optional\n")
+    fh.write("#     - Uses a regular expression search of the 'ElementName' from EnumerateSoftwareIdentity to find a match. This is a last resort and I recommend you use either the component_id or identity_info_value.\n")
+    fh.write("#\n")
+    fh.write("#  Matching order:\n")
+    fh.write("#    1. key. idrac, bios, diagnostics, os_collector, and driver_pack should only match one.\n")
+    fh.write("#    2. component_id. if specified. Best used for disks, power supplies, RAID backplane, RAID enclosure\n")
+    fh.write("#    3. identity_info_value. if specified. Best used for NICs, RAID controller\n")
+    fh.write("#    4. search. if specified. Searches the 'ElementName' from EnumerateSoftwareIdentity. Last resort.\n")
+    fh.write("#\n")
+    fh.write("firmware:\n")
+    for sys_gen in firmware:
+        if sys_gen not in counts:
+            counts[sys_gen] = {}
+        print >>fh, "  "+sys_gen+":"
+        for fw in firmware[sys_gen]:
+            if firmware[sys_gen][fw]['type'] not in counts[sys_gen]:
+                counts[sys_gen][firmware[sys_gen][fw]['type']] = 1
+            else:
+                counts[sys_gen][firmware[sys_gen][fw]['type']] += 1
+
+            print >>fh, "    "+firmware[sys_gen][fw]['type']+"."+str(counts[sys_gen][firmware[sys_gen][fw]['type']])+":"
+            for value in firmware[sys_gen][fw]:
+                if value != 'type':
+                    print >>fh, "      "+value+": \""+str(firmware[sys_gen][fw][value])+"\""
+
+
+    fh.close()
+
 def main():
-   global debug,check_mode,fmt,fHandle,html,log,wsman
+    global debug,check_mode,fmt,fHandle,html,log,wsman
 
-   module = AnsibleModule(
-      argument_spec = dict(
-         attributes        = dict(type='list'),
-         debug             = dict(default='False',type='bool'),
-         disk_cache_policy = dict(default=''),
-         enable            = dict(type='bool',default='True'),
-         firmware          = dict(default=''),
-         firmware_file     = dict(default=''),
-         hostname          = dict(required=True),
-         import_file       = dict(default=''),
-         instanceID        = dict(default=''),
-         iso_image         = dict(),
-         jobid             = dict(default=''),
-         local_path        = dict(default='~'),
-         name              = dict(required=True, aliases=['command']),
-         new_pass          = dict(),
-         old_pass          = dict(),
-         partition_ndx     = dict(),
-         password          = dict(required=True),
-         physical_disks    = dict(default=''),
-         port              = dict(type='int',default=0),
-         raid_level        = dict(default=''),
-         read_policy       = dict(default=''),
-         rebootid          = dict(),
-         reboot_type       = dict(type='int',default='2'),
-         remove_xml        = dict(default=True),
-         servers           = dict(type='dict'),
-         share_ip          = dict(default=''),
-         share_name        = dict(default=''),
-         share_pass        = dict(default=''),
-         share_type        = dict(default=''),
-         share_user        = dict(default=''),
-         size              = dict(default=''),
-         span_depth        = dict(default=''),
-         span_length       = dict(default=''),
-         stripe_size       = dict(default=''),
-         target            = dict(default='iDRAC.Embedded.1'),
-         target_controller = dict(default=''),
-         user_to_change    = dict(default=''),
-         username          = dict(required=True),
-         virtual_disk_name = dict(default=''),
-         workgroup         = dict(default=''),
-         write_policy      = dict(default='')
-      ),
-      supports_check_mode=True
-   )
+    module = AnsibleModule(
+        argument_spec = dict(
+            attributes        = dict(type='list'),
+            debug             = dict(default='False', type='bool'),
+            disk_cache_policy = dict(default=''),
+            enable            = dict(type='bool', default='True'),
+            firmware          = dict(default=''),
+            firmware_file     = dict(default=''),
+            hostname          = dict(default=''),
+            import_file       = dict(default=''),
+            instanceID        = dict(default=''),
+            iso_image         = dict(),
+            jobid             = dict(default=''),
+            local_path        = dict(default='~'),
+            name              = dict(required=True, aliases=['command']),
+            new_pass          = dict(),
+            old_pass          = dict(),
+            partition_ndx     = dict(),
+            password          = dict(default=''),
+            physical_disks    = dict(default=''),
+            port              = dict(type='int', default=0),
+            raid_level        = dict(default=''),
+            read_policy       = dict(default=''),
+            rebootid          = dict(),
+            reboot_type       = dict(type='int', default='2'),
+            remove_xml        = dict(default=True),
+            servers           = dict(type='dict'),
+            share_ip          = dict(default=''),
+            share_name        = dict(default=''),
+            share_pass        = dict(default=''),
+            share_type        = dict(default=''),
+            share_user        = dict(default=''),
+            size              = dict(default=''),
+            span_depth        = dict(default=''),
+            span_length       = dict(default=''),
+            stripe_size       = dict(default=''),
+            target            = dict(default='iDRAC.Embedded.1'),
+            target_controller = dict(default=''),
+            tmp_dir           = dict(default='./'),
+            user_to_change    = dict(default=''),
+            username          = dict(default=''),
+            virtual_disk_name = dict(default=''),
+            workgroup         = dict(default=''),
+            write_policy      = dict(default='')
+            ),
+        supports_check_mode=True
+        )
 
-   attributes        = module.params['attributes']
-   debug             = module.params['debug']
-   disk_cache_policy = module.params['disk_cache_policy']
-   enable            = module.params['enable']
-   firmware          = module.params['firmware']
-   firmware_file     = module.params['firmware_file']
-   hostname          = module.params['hostname']
-   import_file       = module.params['import_file']
-   instanceID        = module.params['instanceID']
-   iso_image         = module.params['iso_image']
-   jobid             = module.params['jobid']
-   local_path        = module.params['local_path']
-   name              = module.params['name']
-   new_pass          = module.params['new_pass']
-   old_pass          = module.params['old_pass']
-   partition_ndx     = module.params['partition_ndx']
-   password          = module.params['password']
-   physical_disks    = module.params['physical_disks']
-   port              = module.params['port']
-   raid_level        = module.params['raid_level']
-   read_policy       = module.params['read_policy']
-   reboot_type       = module.params['reboot_type']
-   rebootid          = module.params['rebootid']
-   remove_xml        = module.params['remove_xml']
-   servers           = module.params['servers']
-   share_ip          = module.params['share_ip']
-   share_name        = module.params['share_name']
-   share_pass        = module.params['share_pass']
-   share_type        = module.params['share_type']
-   share_user        = module.params['share_user']
-   size              = module.params['size']
-   span_length       = module.params['span_length']
-   span_depth        = module.params['span_depth']
-   stripe_size       = module.params['stripe_size']
-   target            = module.params['target']
-   target_controller = module.params['target_controller']
-   user_to_change    = module.params['user_to_change']
-   username          = module.params['username']
-   virtual_disk_name = module.params['virtual_disk_name']
-   workgroup         = module.params['workgroup']
-   write_policy      = module.params['write_policy']
+    attributes = module.params['attributes']
+    debug = module.params['debug']
+    disk_cache_policy = module.params['disk_cache_policy']
+    enable = module.params['enable']
+    firmware = module.params['firmware']
+    firmware_file = module.params['firmware_file']
+    hostname = module.params['hostname']
+    import_file = module.params['import_file']
+    instanceID = module.params['instanceID']
+    iso_image = module.params['iso_image']
+    jobid = module.params['jobid']
+    local_path = module.params['local_path']
+    name = module.params['name']
+    new_pass = module.params['new_pass']
+    old_pass = module.params['old_pass']
+    partition_ndx = module.params['partition_ndx']
+    password = module.params['password']
+    physical_disks = module.params['physical_disks']
+    port = module.params['port']
+    raid_level = module.params['raid_level']
+    read_policy = module.params['read_policy']
+    reboot_type = module.params['reboot_type']
+    rebootid = module.params['rebootid']
+    remove_xml = module.params['remove_xml']
+    servers = module.params['servers']
+    share_ip = module.params['share_ip']
+    share_name = module.params['share_name']
+    share_pass = module.params['share_pass']
+    share_type = module.params['share_type']
+    share_user = module.params['share_user']
+    size = module.params['size']
+    span_length = module.params['span_length']
+    span_depth = module.params['span_depth']
+    stripe_size = module.params['stripe_size']
+    target = module.params['target']
+    target_controller = module.params['target_controller']
+    tmp_dir = module.params['tmp_dir']
+    user_to_change = module.params['user_to_change']
+    username = module.params['username']
+    virtual_disk_name = module.params['virtual_disk_name']
+    workgroup = module.params['workgroup']
+    write_policy = module.params['write_policy']
 
-   check_mode        = module.check_mode
+    check_mode = module.check_mode
 
-   if not HAS_WSMAN:
-      module.fail_json(msg='dell-wsman-client-api-python is required for this module http://github.com/hbeatty/dell-wsman-client-api-python')
+    if not HAS_WSMAN:
+        module.fail_json(msg='dell-wsman-client-api-python is required for this module http://github.com/hbeatty/dell-wsman-client-api-python')
 
-   wsman = WSMan(transport=Subprocess())
+    wsman = WSMan(transport=Subprocess())
 
-   if debug:
+    if debug:
 
-      # Set up the text log
-      fmt = OutputFormatter('%(asctime)s %(levelname)s %(name)s %(message)s %(command)s %(output)s %(duration)fs', pretty=False)
-      fHandle = logging.FileHandler("idrac_ansible_module.txt", mode="w")
-      fHandle.setFormatter(fmt)
+        # Set up the text log
+        fmt = OutputFormatter('%(asctime)s %(levelname)s %(name)s %(message)s %(command)s %(output)s %(duration)fs', pretty=False)
+        fHandle = logging.FileHandler("idrac_ansible_module.txt", mode="w")
+        fHandle.setFormatter(fmt)
 
-      # Set up the HTML log
-      html = HTMLHandler("idrac_ansible_module.html", pretty=False)
-      log = logging.getLogger("")
-      log.setLevel(logging.DEBUG)
-      log.addHandler(fHandle)
-      log.addHandler(html)
+        # Set up the HTML log
+        html = HTMLHandler("idrac_ansible_module.html", pretty=False)
+        log = logging.getLogger("")
+        log.setLevel(logging.DEBUG)
+        log.addHandler(fHandle)
+        log.addHandler(html)
 
-      #debug = True
-      logging.basicConfig(level=logging.DEBUG,
-                          format='%(asctime)s %(levelname)-8s %(message)s',
-                          datefmt='%a, %d %b %Y %H:%M:%S')
-      log.debug ("Entering debug mode")
+        #debug = True
+        logging.basicConfig(level=logging.DEBUG,
+                            format='%(asctime)s %(levelname)-8s %(message)s',
+                            datefmt='%a, %d %b %Y %H:%M:%S')
+        log.debug ("Entering debug mode")
 
-   if debug and check_mode:
-      log.debug ("Entering check mode")
+    if debug and check_mode:
+        log.debug ("Entering check mode")
 
-   # this gets passed to all wsman commands
-   remote = Remote(hostname, username, password)
-   changed = False
+    # this gets passed to all wsman commands
+    if hostname != '':
+        remote = Remote(hostname, username, password)
 
-   share_info = {
-      'user': share_user,
-      'pass': share_pass,
-      'name': share_name,
-      'type': share_type,
-      'ip': share_ip,
-      'workgroup': workgroup
-   }
+    changed = False
 
-   if name == "BootToNetworkISO":
-      res = bootToNetworkISO(remote,share_info,iso_image)
-      module.exit_json(**res)
+    share_info = {
+        'user': share_user,
+        'pass': share_pass,
+        'name': share_name,
+        'type': share_type,
+        'ip': share_ip,
+        'workgroup': workgroup
+    }
 
-   elif name == "CheckJobStatus":
-      res = checkJobStatus(remote,jobid)
-      module.exit_json(**res)
+    if name == "BootToNetworkISO":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = bootToNetworkISO(remote, share_info, iso_image)
+        module.exit_json(**res)
 
-   elif name == "CheckReadyState":
-      res = checkReadyState(remote)
-      module.exit_json(**res)
+    elif name == "CheckJobStatus":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = checkJobStatus(remote, jobid)
+        module.exit_json(**res)
 
-   elif name == "CreateRebootJob":
-      res = createRebootJob(remote,reboot_type)
-      module.exit_json(**res)
+    elif name == "CheckReadyState":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = checkReadyState(remote)
+        module.exit_json(**res)
 
-   elif name == "CreateTargetedConfigJobRAID":
-      res = createTargetedConfigJobRAID(remote,reboot_type)
-      module.exit_json(**res)
+    elif name == "CreateRebootJob":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = createRebootJob(remote, reboot_type)
+        module.exit_json(**res)
 
-   elif name == "DeleteJob":
-      res = deleteJobQueue(remote,jobid)
-      module.exit_json(**res)
+    elif name == "CreateTargetedConfigJobRAID":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = createTargetedConfigJobRAID(remote, reboot_type)
+        module.exit_json(**res)
 
-   elif name == "DeleteJobQueue":
-      jobid = 'JID_CLEARALL'
-      res = deleteJobQueue(remote,jobid)
-      module.exit_json(**res)
+    elif name == "DeleteJob":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = deleteJobQueue(remote, jobid)
+        module.exit_json(**res)
 
-   elif name == "DetachISOImage":
-      res = detachISOImage(remote)
-      module.exit_json(**res)
+    elif name == "DeleteJobQueue":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        jobid = 'JID_CLEARALL'
+        res = deleteJobQueue(remote, jobid)
+        module.exit_json(**res)
 
-   elif name == "DetachSDCardPartitions":
-      res = detachSDCardPartitions(remote,hostname)
-      module.exit_json(**res)
+    elif name == "DetachISOImage":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = detachISOImage(remote)
+        module.exit_json(**res)
 
-   elif name == "EnumerateEventFilters":
-      res = enumerateEventFilters(remote)
-      module.exit_json(**res)
+    elif name == "DetachSDCardPartitions":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = detachSDCardPartitions(remote, hostname)
+        module.exit_json(**res)
 
-   elif name == "EnumerateSoftwareIdentity":
-      res = enumerateSoftwareIdentity(remote)
-      module.exit_json(**res)
+    elif name == "EnumerateEventFilters":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = enumerateEventFilters(remote)
+        module.exit_json(**res)
 
-   elif name == "ExportSystemConfiguration":
-      res = exportSystemConfiguration(remote,share_info,hostname,local_path,
-                                         remove_xml)
-      module.exit_json(**res)
-   elif name == "GenerateFirmwareVars":
-      res = generateFirmwareVars(remote)
-      module.exit_json(**res)
+    elif name == "EnumerateSoftwareIdentity":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = enumerateSoftwareIdentity(remote)
+        module.exit_json(**res)
 
-   elif name == "GetSystemInventory":
-      res = getSystemInventory(remote)
-      module.exit_json(**res)
+    elif name == "ExportSystemConfiguration":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = exportSystemConfiguration(remote, share_info, hostname, local_path,
+                                        remove_xml)
+        module.exit_json(**res)
 
-   elif name == "GetRemoteServicesAPIStatus":
-      res = getRemoteServicesAPIStatus(remote)
-      module.exit_json(**res)
+    elif name == "GenerateFirmwareVars":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = generateFirmwareVars(remote, tmp_dir)
+        module.exit_json(**res)
 
-   elif name == "ImportSystemConfiguration":
-      res = importSystemConfiguration(remote,share_info,hostname,import_file,
-                                      remove_xml)
-      module.exit_json(**res)
+    elif name == "GetSystemInventory":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = getSystemInventory(remote)
+        module.exit_json(**res)
 
-   elif name == "InstallBIOS":
-      res = installBIOS(remote,firmware)
-      module.exit_json(**res)
+    elif name == "GetRemoteServicesAPIStatus":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = getRemoteServicesAPIStatus(remote)
+        module.exit_json(**res)
 
-   elif name == "UpgradeFirmware":
-      res = upgradeFirmware(remote,firmware,reboot_type)
-      module.exit_json(**res)
+    elif name == "ImportSystemConfiguration":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = importSystemConfiguration(remote, share_info, hostname, import_file,
+                                        remove_xml)
+        module.exit_json(**res)
 
-   elif name == "InstallIdracFirmware":
-      res = installIdracFirmware(remote,firmware)
-      module.exit_json(**res)
+    elif name == "InstallBIOS":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = installBIOS(remote, firmware)
+        module.exit_json(**res)
 
-   elif name == "ResetPassword":
-      res = resetPassword(remote,hostname,user_to_change,new_pass)
-      module.exit_json(**res)
+    elif name == "InstallIdracFirmware":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = installIdracFirmware(remote, firmware)
+        module.exit_json(**res)
 
-   elif name == "ResetRAIDConfig":
-      res = resetRAIDConfig(remote,hostname,remove_xml)
-      module.exit_json(**res)
+    elif name == "MergeFirmwareVars":
+        res = mergeFirmwareVars(tmp_dir, firmware_file)
+        module.exit_json(**res)
 
-   elif name == "SetEventFiltersByInstanceIDs":
-      res = setEventFiltersByInstanceIDs(remote)
-      module.exit_json(**res)
+    elif name == "ResetPassword":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = resetPassword(remote, hostname, user_to_change, new_pass)
+        module.exit_json(**res)
 
-   elif name == "SyslogSettings":
-      res = syslogSettings(remote,servers,enable,port)
-      module.exit_json(**res)
+    elif name == "ResetRAIDConfig":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = resetRAIDConfig(remote, hostname, remove_xml)
+        module.exit_json(**res)
 
-   elif name == "SetupJobQueue":
-      res = setupJobQueue(remote,jobid,rebootid)
-      module.exit_json(**res)
+    elif name == "SetEventFiltersByInstanceIDs":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = setEventFiltersByInstanceIDs(remote)
+        module.exit_json(**res)
 
-   elif name == "CreateVirtualDisk":
-      res = ___createVirtualDisk(remote,target_controller,physical_disks,
-                                 raid_level,span_length,virtual_disk_name,size,
-                                 span_depth,stripe_size,read_policy,
-                                 write_policy,disk_cache_policy)
-      module.exit_json(**res)
+    elif name == "SyslogSettings":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = syslogSettings(remote, servers, enable, port)
+        module.exit_json(**res)
 
-   # The below commands are considered "private" for the module. One should not
-   # have to call any of them directly. They are in this section for testing
-   # purposes.
+    elif name == "SetupJobQueue":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = setupJobQueue(remote, jobid, rebootid)
+        module.exit_json(**res)
 
-   elif name == "___applyAttributes":
-      res = ___applyAttributes(remote,target,attributes)
-      module.exit_json(**res)
+    elif name == "UpgradeFirmware":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = upgradeFirmware(remote, firmware, reboot_type)
+        module.exit_json(**res)
 
-   elif name == "___checkJobStatus":
-      res = ___checkJobStatus(remote,jobid)
-      module.exit_json(**res)
+    elif name == "CreateVirtualDisk":
+        if hostname == '' or username == '' or password == '':
+            module.fail_json(msg="hostname, username and password required for this name.")
+        res = ___createVirtualDisk(remote, target_controller, physical_disks,
+                                   raid_level, span_length, virtual_disk_name, size,
+                                   span_depth, stripe_size, read_policy,
+                                   write_policy, disk_cache_policy)
+        module.exit_json(**res)
 
-   elif name == "___detachSDCardPartition":
-      res = ___detachSDCardPartition(remote,partition_ndx)
-      module.exit_json(**res)
+    # The below commands are considered "private" for the module. One should not
+    # have to call any of them directly. They are in this section for testing
+    # purposes.
 
-   elif name == "___enumerateEventFilters":
-      res = ___enumerateEventFilters(remote)
-      module.exit_json(**res)
+    elif name == "___applyAttributes":
+        res = ___applyAttributes(remote, target, attributes)
+        module.exit_json(**res)
 
-   elif name == "___enumerateIdracCard":
-      res = ___enumerateIdracCard(remote)
-      module.exit_json(**res)
+    elif name == "___checkJobStatus":
+        res = ___checkJobStatus(remote, jobid)
+        module.exit_json(**res)
 
-   elif name == "___enumerateIdracCardInteger(remote)":
-      res = ___enumerateIdracCardInteger(remote)
-      module.exit_json(**res)
+    elif name == "___detachSDCardPartition":
+        res = ___detachSDCardPartition(remote, partition_ndx)
+        module.exit_json(**res)
 
-   elif name == "___enumerateIdracCardString":
-      res = ___enumerateIdracCardString(remote)
-      module.exit_json(**res)
+    elif name == "___enumerateEventFilters":
+        res = ___enumerateEventFilters(remote)
+        module.exit_json(**res)
 
-   # The return value isn't in ansible_facts
-   elif name == "___enumerateSoftwareIdentity":
-      res = ___enumerateSoftwareIdentity(remote)
-      module.exit_json(**res)
+    elif name == "___enumerateIdracCard":
+        res = ___enumerateIdracCard(remote)
+        module.exit_json(**res)
 
-   elif name == "___installFromURI":
-      res = ___installFromURI(remote,hostname,share_info,firmware)
-      module.exit_json(**res)
+    elif name == "___enumerateIdracCardInteger(remote)":
+        res = ___enumerateIdracCardInteger(remote)
+        module.exit_json(**res)
 
-   elif name == "___listJobs":
-      res = ___listJobs(remote,jobid)
-      module.exit_json(**res)
+    elif name == "___enumerateIdracCardString":
+        res = ___enumerateIdracCardString(remote)
+        module.exit_json(**res)
 
-   elif name == "___listSDCardPartitions":
-      res = ___listSDCardPartitions(remote)
-      module.exit_json(**res)
+    # The return value isn't in ansible_facts
+    elif name == "___enumerateSoftwareIdentity":
+        res = ___enumerateSoftwareIdentity(remote)
+        module.exit_json(**res)
 
-   else:
-      # Catch no matching command
-      module.fail_json(msg="Could not find a match for the 'name' you specified in your task.")
+    elif name == "___installFromURI":
+        res = ___installFromURI(remote, hostname, share_info, firmware)
+        module.exit_json(**res)
+
+    elif name == "___listJobs":
+        res = ___listJobs(remote, jobid)
+        module.exit_json(**res)
+
+    elif name == "___listSDCardPartitions":
+        res = ___listSDCardPartitions(remote)
+        module.exit_json(**res)
+
+    else:
+        # Catch no matching command
+        module.fail_json(msg="Could not find a match for the 'name' you specified in your task.")
 
 from ansible.module_utils.basic import *
 from ansible.module_utils.facts import *
-main()
+
+if __name__ == '__main__':
+    main()

@@ -45,3 +45,4 @@
   * [DetachSDCardPartitions](DetachSDCardPartitions.md)  
 * Utility Methods
   * [GenerateFirmwareVars](GenerateFirmwareVars.md)
+  * [MergeFirmwareVars](MergeFirmwareVars.md)
