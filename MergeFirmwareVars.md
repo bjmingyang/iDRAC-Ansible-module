@@ -1,8 +1,8 @@
-# GenerateFirmwareVars
+# MergeFirmwareVars
 
 ## Synopsis
 
-Used to generate <tmp_dir><hostname>.firmware.yml files for merging with [MergeFirmwareVars](MergeFirmwareVars.md).
+Used to merge the files in <tmp_dir> with <firmware_file>.
 
 ## Requirements
 
@@ -17,23 +17,19 @@ Used to generate <tmp_dir><hostname>.firmware.yml files for merging with [MergeF
 
 | parameter     | required | default | choices   | comments                                  |
 | ---------     | -------- | ------- | -------   | --------                                  |
-| username      | yes      | none    |           | A user that has admin access to the iDRAC |
-| password      | yes      | none    |           | Password of the above user                |
-| hostname      | yes      | none    |           | Hostname or IP of the iDRAC               |
-| name          | yes      | none    |           | The name is 'GenerateFirmwareVars'        |
+| name          | yes      | none    |           | The name is 'MergeFirmwareVars'           |
 | tmp_dir       | no       | ./      |           | Temporary directory. Must end with a /    |
+| firmware_file | no       | ''      |           | Current firmware.yml. Usuaally group_vars/all/firmware.yml |
 
 ## Examples
 
 ```
-- name: Generate Firmware Files
+- name: Merge Firmware Files
   local_action:
     module: idrac
-    username: "{{lom_user}}"
-    password: "{{lom_pass}}"
-    hostname: "{{lom_hostname}}"
-    name: "GenerateFirmwareVars"
+    name: "MergeFirmwareVars"
     tmp_dir: "{{idrac_tmp_dir}}"
+    firmware_file: group_vars/all/firmware.yml
 ```
 
 ## Return Values
@@ -52,4 +48,3 @@ Used to generate <tmp_dir><hostname>.firmware.yml files for merging with [MergeF
 
 ## Notes
 
-* [idrac-roles/firmware](https://github.com/hbeatty/idrac-roles/tree/master/firmware)

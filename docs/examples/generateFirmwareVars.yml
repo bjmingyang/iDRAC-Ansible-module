@@ -1,0 +1,30 @@
+---
+# file: GenerateFirmwareVars.yml
+- hosts: all
+  gather_facts: False
+  become: yes
+
+  tasks:
+
+  - name: Generate Firmware Files
+    local_action:
+      module: idrac
+      username: "{{lom_user}}"
+      password: "{{lom_pass}}"
+      hostname: "{{lom_hostname}}"
+      name: "GenerateFirmwareVars"
+      tmp_dir: "{{idrac_tmp_dir}}"
+
+- hosts: localhost
+  gather_facts: False
+  become: yes
+
+  tasks:
+
+  - name: Merge Firmware files
+    local_action:
+      module: idrac
+      name: "MergeFirmwareVars"
+      tmp_dir: "{{idrac_tmp_dir}}"
+      firmware_file: group_vars/all/firmware.yml
+    tags: merge_firmware
