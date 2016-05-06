@@ -2387,10 +2387,11 @@ def mergeFirmwareVars(tmp_dir, firmware_file):
     counts = {}
 
     for fn in os.listdir(tmp_dir):
-        #if debug:
-        #    log.debug(fn)
+        if debug:
+            log.debug(fn)
         if re.match('.*firmware\.yml$', fn) != None:
-            log.debug("found a match")
+            if debug:
+                log.debug("found a match")
             res = ___parseFirmwareFile(tmp_dir+fn)
             for k in res:
                 for sys_gen in res[k]:
