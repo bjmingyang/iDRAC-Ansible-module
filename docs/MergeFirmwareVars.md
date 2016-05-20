@@ -1,8 +1,10 @@
-# GenerateFirmwareVars
+# MergeFirmwareVars
 
 ## Synopsis
 
-Used to generate <tmp_dir><hostname>.firmware.yml files for merging with [MergeFirmwareVars](MergeFirmwareVars.md).
+Used to merge the files in <tmp_dir> with <firmware_file>.
+
+Use with [GenerateFirmwareVars](GenerateFirmwareVars.md).
 
 ## Requirements
 
@@ -15,13 +17,12 @@ Used to generate <tmp_dir><hostname>.firmware.yml files for merging with [MergeF
 
 ## Options
 
-| parameter     | required | default | choices   | comments                                  |
-| ---------     | -------- | ------- | -------   | --------                                  |
-| username      | yes      | none    |           | A user that has admin access to the iDRAC |
-| password      | yes      | none    |           | Password of the above user                |
-| hostname      | yes      | none    |           | Hostname or IP of the iDRAC               |
-| name          | yes      | none    |           | The name is 'GenerateFirmwareVars'        |
-| tmp_dir       | no       | ./      |           | Temporary directory. Must end with a /    |
+| parameter     | required | default | choices        | comments                                                                                     |
+| ---------     | -------- | ------- | -------        | --------                                                                                     |
+| name          | yes      | none    |                | The name is 'MergeFirmwareVars'                                                              |
+| tmp_dir       | no       | ./      |                | Temporary directory. Must end with a /. If not specified uses the directory of the playbook. |
+| firmware_file | no       | ''      |                | Current firmware.yml. Usuaally group_vars/all/firmware.yml                                   |
+| debug         | no       | "False" | "True"/"False" |
 
 ## Examples
 

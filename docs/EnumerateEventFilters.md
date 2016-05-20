@@ -2,7 +2,7 @@
 
 ## Synopsis
 
-Used to get a lising of all the Event Filters
+Used to get a lising of all the Event Filters. The Notification field shows which PossibleNotifications are on. 
 
 ## Requirements
 
@@ -15,12 +15,13 @@ Used to get a lising of all the Event Filters
 
 ## Options
 
-| parameter   | required | default | choices   | comments                                      |
-| ---------   | -------- | ------- | -------   | --------                                      |
-| username    | yes      |         |           | A user that has admin access to the iDRAC     |
-| password    | yes      |         |           | Password of the above user                    |
-| hostname    | yes      |         |           | Hostname or IP of the iDRAC                   |
-| command     | yes      |         |           | This command is 'EnumerateEventFilters'       |
+| parameter | required | default | choices         | comments                                                                          |
+| --------- | -------- | ------- | -------         | --------                                                                          |
+| username  | yes      |         |                 | A user that has admin access to the iDRAC                                         |
+| password  | yes      |         |                 | Password of the above user                                                        |
+| hostname  | yes      |         |                 | Hostname or IP of the iDRAC                                                       |
+| name      | yes      |         |                 | The name is 'EnumerateEventFilters'                                               |
+| debug     | no       | "False" | "True", "False" | Turn on debug logging. Writes idrac_ansible_module.log in the playbook directory. |
 
 ## Examples
 
@@ -31,7 +32,6 @@ Used to get a lising of all the Event Filters
     password: password
     hostname: host.example.com
     command: 'EnumerateEventFilters'
-    debug: true
 ```
 
 # Return Values

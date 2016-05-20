@@ -27,7 +27,7 @@ module: idrac
 short_description: Module to configure to Dell iDRAC
 description:
    - Use this module to configure Dell iDRAC.
-version: 0.2.0
+version: 0.3.0
 options:
    hostname:
       description:
@@ -4259,7 +4259,7 @@ def main():
 
         # Set up the text log
         fmt = OutputFormatter('%(asctime)s %(levelname)s %(name)s %(message)s %(command)s %(output)s %(duration)fs', pretty=False)
-        fHandle = logging.FileHandler("idrac_ansible_module.txt", mode="w")
+        fHandle = logging.FileHandler("idrac_ansible_module.log", mode="w")
         fHandle.setFormatter(fmt)
 
         # Set up the HTML log

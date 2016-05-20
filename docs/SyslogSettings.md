@@ -24,6 +24,7 @@ Used to set the 'Remote System Log' servers.
 | servers    | yes      |         | Server1, Server2, Server3 | Dictionary of syslog servers. iDRAC limits to 3.                                   |
 | enable     | no       | true    | true, false               | If you are calling this command I assume you want to turn on syslog.               |
 | port       | no       |         |                           | If you don't specify a port this won't change what is set on the iDRAC.            |
+| debug      | no       | "False" | "True", "False"           | Turn on debug logging. Writes idrac_ansible_module.log in the playbook directory.  |
 
 ## Examples
 
@@ -40,7 +41,6 @@ Used to set the 'Remote System Log' servers.
       - 'Server3': '10.10.10.3'
     enable: true
     port: 514
-    debug: True
   tags:
     - idrac_syslog
 ```
