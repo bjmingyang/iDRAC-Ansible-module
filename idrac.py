@@ -27,7 +27,7 @@ module: idrac
 short_description: Module to configure to Dell iDRAC
 description:
    - Use this module to configure Dell iDRAC.
-version: 0.2.0
+version: 0.3.0
 options:
    hostname:
       description:
@@ -2387,10 +2387,7 @@ def mergeFirmwareVars(tmp_dir, firmware_file):
     counts = {}
 
     for fn in os.listdir(tmp_dir):
-        #if debug:
-        #    log.debug(fn)
-        if re.match('.*firmware\.yml$', fn) != None:
-            log.debug("found a match")
+        if re.match('.*\.firmware\.yml$', fn) != None:
             res = ___parseFirmwareFile(tmp_dir+fn)
             for k in res:
                 for sys_gen in res[k]:
@@ -2406,11 +2403,12 @@ def mergeFirmwareVars(tmp_dir, firmware_file):
                     firmware[sys_gen] = {}
                 firmware[sys_gen].update(res[k][sys_gen])
 
-    res = ___writeFirmwareFile(firmware, tmp_dir+'firmware.yml')
-
     if debug:
         tmp = json.dumps(firmware, indent=3, separators=(',', ': '))
         log.debug(tmp)
+
+    res = ___writeFirmwareFile(firmware, tmp_dir+'firmware.yml')
+
     return msg
 
 # remote:
@@ -3752,12 +3750,17 @@ def ___parseFirmwareFile(file):
     id_nfo_vals = {}
     cmpnnt_ids = {}
 
+    if debug:
+        log.debug("in function ___parseFirmwareFile")
+
     try:
-        log.debug("trying to open file %s", file)
+        if debug:
+            log.debug("parsing %s", file)
         with open(file, 'r') as stream:
             tmp = yaml.load(stream)
             for sys_gen in tmp['firmware']:
-                log.debug(sys_gen)
+                if debug:
+                    log.debug("System Generation %s",sys_gen)
                 if sys_gen not in id_nfo_vals:
                     id_nfo_vals[sys_gen] = {}
 
@@ -3779,9 +3782,15 @@ def ___parseFirmwareFile(file):
                     else:
                         # should never reach here
                         # TODO add failure
-                        log.debug("reached code I shouldn't have")
+                        if debug:
+                            dtmp = json.dumps(tmp['firmware'][sys_gen][fw], indent=3, separators=(',', ': '))
+                            log.debug("this firmware section not parsed because there isn't a component_id or identity_info_value:")
+                            log.debug(dtmp)
+
+
     except:
-        log.debug("couldn't open file")
+        if debug:
+            log.debug("couldn't open file")
 
     firmware['id_nfo_vals'] = id_nfo_vals
     firmware['cmpnnt_ids'] = cmpnnt_ids
@@ -4008,6 +4017,9 @@ def ___systemView(remote,instance_id=''):
 def ___writeFirmwareFile(firmware, file):
     counts = {}
 
+    if debug:
+        log.debug("in function ___writeFirmwareFile")
+
     fh = open(file, 'w')
 
     fh.write("---\n")
@@ -4123,6 +4135,8 @@ def ___writeFirmwareFile(firmware, file):
     fh.write("#\n")
     fh.write("firmware:\n")
     for sys_gen in firmware:
+        if debug:
+            log.debug(sys_gen)
         if sys_gen not in counts:
             counts[sys_gen] = {}
         print >>fh, "  "+sys_gen+":"
@@ -4245,7 +4259,7 @@ def main():
 
         # Set up the text log
         fmt = OutputFormatter('%(asctime)s %(levelname)s %(name)s %(message)s %(command)s %(output)s %(duration)fs', pretty=False)
-        fHandle = logging.FileHandler("idrac_ansible_module.txt", mode="w")
+        fHandle = logging.FileHandler("idrac_ansible_module.log", mode="w")
         fHandle.setFormatter(fmt)
 
         # Set up the HTML log
